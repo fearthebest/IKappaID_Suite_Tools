@@ -1,0 +1,11 @@
+IGUI_IKST_WS_Loot = Loot
+IGUI_IKST_WS_Loot_Desc = Repopulate containers with vanilla loot
+IGUI_IKST_Cat_Loot = Loot
+IGUI_IKST_Job_Loot = Loot repopulate
+IGUI_IKST_Job_Loot_Desc = Refill containers with vanilla loot for this room and container type.
+IGUI_IKST_Loot_Repopulate = Repopulate loot
+IGUI_IKST_Loot_Here = At my feet
+IGUI_IKST_Loot_Arm = Click ground to repopulate
+IGUI_IKST_Loot_Context = Repopulate loot
+IGUI_IKST_Loot_Context_All = All on this square
+IGUI_IKST_Tip_Loot = Tip: Right-click a container, or pick a scope and click the ground

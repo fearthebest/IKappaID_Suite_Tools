@@ -1,0 +1,3 @@
+Tooltip_EN = {
+    Tooltip_IKST_KeypadKit = Craftable lock kit. Install on a container tile to password-protect storage.,
+}

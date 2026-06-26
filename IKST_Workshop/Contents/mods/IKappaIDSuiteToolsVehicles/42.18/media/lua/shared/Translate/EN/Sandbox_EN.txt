@@ -1,0 +1,4 @@
+Sandbox_IKappaIDSuiteToolsVehicles = IKappaID Suite Tools — Vehicles
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleListRadius = How far to look for cars to list or remove
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys = Players must have the car key before claiming it
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims = Let any player see all vehicle claims on the server (not just their own)

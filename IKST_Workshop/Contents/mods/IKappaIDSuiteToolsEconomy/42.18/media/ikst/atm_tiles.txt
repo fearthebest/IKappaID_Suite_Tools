@@ -1,0 +1,14 @@
+# IKST ATM fixtures — IKST economy tiles (Tiles addon) + vanilla bank props for Enable ATM only.
+# Spawn placement uses ikst_economy_01_* only (bank_* below are vault/safe props in B42 — not spawned).
+# Admins must place a kit or enable a map fixture before players can use bank services here.
+# One sprite name or prefix per line. Prefix lines end with _.
+ikst_economy_01_0
+ikst_economy_01_1
+ikst_economy_01_2
+ikst_economy_01_3
+location_business_bank_01_64
+location_business_bank_01_65
+location_business_bank_01_68
+location_business_bank_01_69
+location_business_bank_01_70
+location_business_bank_01_71

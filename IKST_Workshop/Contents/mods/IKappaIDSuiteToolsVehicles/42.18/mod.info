@@ -1,0 +1,20 @@
+name=IKappaID Suite Tools — Vehicles
+
+id=IKappaIDSuiteToolsVehicles
+
+description=Vehicle list, repair, and cleanup tools for server hosts using IKappaID Suite Tools.
+
+author=IKappaID
+
+poster=poster.png
+icon=icon.png
+
+modversion=0.2.3
+
+versionMin=42.18
+
+require=IKappaIDSuiteTools,IKappaIDSuiteToolsTiles
+
+category=Admin
+
+tags=Build 42;Admin;Vehicles;Multiplayer
