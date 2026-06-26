@@ -1,13 +1,11 @@
 # IKappaID Suite Tools
 
-Build 42 admin and player toolkit for Project Zomboid: safehouse and vehicle claims, recovery journal, server utilities, and optional **World Edit**, **Vehicles**, **Economy**, and **Loot** addons.
+Build 42 admin and player toolkit for Project Zomboid: safehouse and vehicle claims, recovery journal, server utilities, and optional World Edit, Vehicles, Economy, and Loot addons.
 
 [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-blue)](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193)
 [![Version](https://img.shields.io/badge/Version-0.2.3-green)](https://github.com/fearthebest/IKappaID_Suite_Tools)
 [![Build](https://img.shields.io/badge/Project%20Zomboid-Build%2042-orange)](https://pzwiki.net/wiki/Build_42)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
----
 
 ## Overview
 
@@ -25,20 +23,35 @@ IKappaID Suite Tools is a hub panel (`Ctrl+Shift+W`) for multiplayer servers and
 
 Enable only the addons your server needs.
 
-## Repository layout
+## Repository structure
 
-| Path | Purpose |
-|------|---------|
-| `IKST_Workshop/` | Steam Workshop upload tree (`Contents/mods`, `workshop.txt`, `preview.png`) |
-| `CHANGELOG.md` | Version history |
-| `docs/ASSETS-CREDITS.md` | Third-party tile art attribution |
+```text
+.
+├── README.md
+├── CHANGELOG.md
+├── LICENSE
+├── docs/
+│   └── ASSETS-CREDITS.md      # Third-party tile art attribution
+└── IKST_Workshop/             # Steam Workshop upload tree
+    ├── workshop.txt
+    ├── preview.png
+    └── Contents/
+        └── mods/
+            ├── IKappaIDSuiteTools/42.18/
+            ├── IKappaIDSuiteToolsEconomy/42.18/
+            ├── IKappaIDSuiteToolsTiles/42.18/
+            ├── IKappaIDSuiteToolsVehicles/42.18/
+            └── IKappaIDSuiteToolsLoot/42.18/
+```
 
-## Steam publish
+Edit Lua and assets under `IKST_Workshop/Contents/mods/`. Upload from `IKST_Workshop/` using the in-game Workshop uploader.
+
+## Steam publish checklist
 
 1. Edit Lua and assets under `IKST_Workshop/Contents/mods/`.
-2. Bump `modversion` in each addon `mod.info`.
-3. Upload from `IKST_Workshop/` using the in-game Workshop uploader.
-4. Add a **Change note** on Steam (see `CHANGELOG.md`); keep the main Workshop description stable unless intentionally rewritten.
+2. Bump `modversion` in each enabled addon `mod.info`.
+3. Upload from `IKST_Workshop/`.
+4. Add a change note on Steam (see `CHANGELOG.md`). Keep the main Workshop description stable unless intentionally rewritten.
 
 ## Art credits
 
@@ -47,6 +60,6 @@ Economy tile sprites (`ikst_economy_01`) are 2D renders from CGTrader models (Ro
 ## Links
 
 - **Steam Workshop:** https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193
-- **Ko-fi:** https://ko-fi.com/ikappaid
+- **Support:** https://ko-fi.com/ikappaid
 
 Community mod — not affiliated with or endorsed by The Indie Stone.
