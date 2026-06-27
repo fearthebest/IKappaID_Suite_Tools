@@ -44,12 +44,31 @@ If you need a new admin-only craft item, omit `craftRecipe` from the item script
 
 **Fix:**
 
-1. Pull the latest `cursor/sandbox-rework-6242` branch (or merge to master).
-2. Copy `Workshop/IKappaID Suite Tools/` over your game Workshop folder (replace all).
-3. Delete any leftover `42.18/media/lua/shared/Translate/EN/Sandbox.json` or old `Sandbox_EN.txt` files in your local copy.
-4. Restart the game completely (not just return to main menu).
+1. Use the mod from **`Workshop/IKappaID Suite Tools/`** in this repo (not GitHub branches, not Steam subscription).
+2. Copy the entire folder to `%UserProfile%\Zomboid\Workshop\IKappaID Suite Tools\` and replace all files.
+3. **Disable/unsubscribe** the Steam Workshop copy of IKST (Workshop ID `3750835193`) so it cannot override your local files.
+4. Confirm this file exists in your game copy:
 
-**Reference:** Skill Recovery Journal (Workshop `2503622437`) uses the same layout: `42.xx/media/sandbox-options.txt` plus `common/media/lua/shared/Translate/EN/Sandbox.json`.
+   `Contents/mods/IKappaIDSuiteTools/SANDBOX_BUILD.txt`
+
+   If that file is missing, the game is **not** loading this build.
+
+5. In Sandbox Options, pick a **new preset** (saved presets like "TestingMods" cache the old layout).
+6. Fully quit and restart Project Zomboid.
+
+**Correct B42 layout (matches Skill Recovery Journal `2503622437`):**
+
+```text
+IKappaIDSuiteTools/
+  mod.info
+  common/mod.info
+  common/media/lua/shared/Translate/EN/Sandbox.json
+  common/media/lua/shared/Translate/EN/Sandbox_EN.txt
+  42.19/media/sandbox-options.txt
+  42.18/media/... (lua scripts)
+```
+
+**In-game you should see:** sidebar tabs **IKST: General**, **IKST: Claims**, first option **Enable IKST**.
 
 ---
 

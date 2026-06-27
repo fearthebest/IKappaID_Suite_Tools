@@ -1,0 +1,27 @@
+VERSION = 1,
+
+option IKappaIDSuiteToolsVehicles.VehicleListRadius
+{
+    type = integer,
+    default = 30,
+    min = 5,
+    max = 100,
+    page = IKST_Claims_Vehicles,
+    translation = IKappaIDSuiteToolsVehicles_VehicleListRadius,
+}
+
+option IKappaIDSuiteToolsVehicles.VehicleClaimRequireKeys
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims_Vehicles,
+    translation = IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys,
+}
+
+option IKappaIDSuiteToolsVehicles.VehicleShowAllClaims
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims_Vehicles,
+    translation = IKappaIDSuiteToolsVehicles_VehicleShowAllClaims,
+}

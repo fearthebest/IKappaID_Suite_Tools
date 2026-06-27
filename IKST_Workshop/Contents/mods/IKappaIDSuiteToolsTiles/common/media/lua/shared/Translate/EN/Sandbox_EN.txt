@@ -1,0 +1,12 @@
+Sandbox_EN = {
+    Sandbox_IKappaIDSuiteToolsTiles = "IKappaID Suite Tools — World Edit",
+    Sandbox_IKST_World_Edit = "IKST: World Edit Tools",
+    Sandbox_IKappaIDSuiteToolsTiles_MaxCleanupRadius = "Max Cleanup Radius",
+    Sandbox_IKappaIDSuiteToolsTiles_MaxCleanupRadius_tooltip = "The maximum distance from the player that the Cleanup Area tool can reach.",
+    Sandbox_IKappaIDSuiteToolsTiles_EnableCatalog = "Enable Tile Catalog",
+    Sandbox_IKappaIDSuiteToolsTiles_EnableCatalog_tooltip = "Allow the use of the tile painting list to place or change world tiles.",
+    Sandbox_IKappaIDSuiteToolsTiles_MaxPaintRadius = "Max Paint Distance",
+    Sandbox_IKappaIDSuiteToolsTiles_MaxPaintRadius_tooltip = "How far away from the player tile tools can place or paint tiles.",
+    Sandbox_IKappaIDSuiteToolsTiles_ProtectClaimedSafehouses = "Protect Safehouse Tiles",
+    Sandbox_IKappaIDSuiteToolsTiles_ProtectClaimedSafehouses_tooltip = "Prevent players from using tile tools inside a claimed safehouse unless they have permission to build there.",
+}

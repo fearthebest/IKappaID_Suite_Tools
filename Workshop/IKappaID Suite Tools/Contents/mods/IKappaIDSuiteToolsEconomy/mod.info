@@ -1,0 +1,20 @@
+name=IKappaID Suite Tools — Economy
+
+id=IKappaIDSuiteToolsEconomy
+
+description=Bank accounts, money transfers, and player shops for IKappaID Suite Tools. Use with IKappaID Phone Shop for cash items.
+
+author=IKappaID
+
+poster=poster.png
+icon=icon.png
+
+modversion=0.2.5
+
+versionMin=42.18
+
+require=IKappaIDSuiteTools
+
+category=Admin
+
+tags=Build 42;Admin;Economy;Multiplayer
