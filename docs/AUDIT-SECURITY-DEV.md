@@ -4,7 +4,7 @@
 **Audit date:** 2026-06-27  
 **Baseline:** Tier C testing build (`IKST_ServerGate`, `IKST_RateLimit`, `IKST_AuditLog`, `IKST_Args`)
 
-**Guidance reference:** [PZ-AI-Dev-Guidance](https://github.com/fearthebest/PZ-AI-Dev-Guidance) was requested but is **not publicly accessible** (404). This audit uses IKST’s own `docs/SECURITY.md`, `docs/COMMAND-MATRIX.md`, `docs/REDTEAM-TIER-C.md`, and standard PZ MP rules: **server JVM is authoritative; never trust client coords, IDs, or sandbox mutations.**
+**Guidance reference:** [PZ-AI-Dev-Guidance](https://github.com/fearthebest/PZ-AI-Dev-Guidance) — full checklist cross-walk in [`PZ-GUIDANCE-COMPLIANCE.md`](./PZ-GUIDANCE-COMPLIANCE.md). This audit also uses IKST’s `docs/SECURITY.md`, `docs/COMMAND-MATRIX.md`, `docs/REDTEAM-TIER-C.md`, and standard PZ MP rules: **server JVM is authoritative; never trust client coords, IDs, or sandbox mutations.**
 
 ---
 
@@ -178,21 +178,21 @@ See `docs/ADMIN-RUNBOOK.md`. Minimum for hostile MP:
 
 ---
 
-## PZ-AI-Dev-Guidance alignment (pending)
+## PZ-AI-Dev-Guidance alignment
 
-When `PZ-AI-Dev-Guidance` is available, re-run this audit against its checklists. Expected mappings:
+Full MOD-QUALITY-CHECK cross-walk: [`PZ-GUIDANCE-COMPLIANCE.md`](./PZ-GUIDANCE-COMPLIANCE.md).
 
 | Guidance theme | IKST status |
 |----------------|-------------|
 | Server authority for MP mutations | Partial — gate yes; coords/secrets gaps |
 | No client-trusted globals | Partial — utilities API remains |
 | Input validation at boundary | Partial — `IKST_Args` underused |
-| Secrets never on client | **Fail** — lock passwords |
-| Docs match code | Partial drift |
-| Red-team before release | Template exists, not executed |
-| Single source tree | **Fail** — dual Workshop copies |
-
-**To complete guidance-based audit:** make `PZ-AI-Dev-Guidance` public or add it as a submodule / `docs/` reference in this repo.
+| Secrets never on client | **Fail** — lock passwords in ModData |
+| Zero `pcall` | **Pass** |
+| Server JVM guards on all server Lua | **Fail** — 11 / 20 files |
+| Red-team / IB sign-off before ship | **Fail** — not executed |
+| Single source tree | Partial — dual Workshop copies |
+| MOD-QUALITY-CHECK Blockers | **6 / 14 pass** — do not ship public MP |
 
 ---
 
@@ -204,3 +204,4 @@ When `PZ-AI-Dev-Guidance` is available, re-run this audit against its checklists
 - [ADMIN-RUNBOOK.md](./ADMIN-RUNBOOK.md) — operator guide
 - [AUDIT-0.2.5.md](./AUDIT-0.2.5.md) — Tier C implementation status
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — load errors (orphan files)
+- [PZ-GUIDANCE-COMPLIANCE.md](./PZ-GUIDANCE-COMPLIANCE.md) — PZ-AI-Dev-Guidance checklist
