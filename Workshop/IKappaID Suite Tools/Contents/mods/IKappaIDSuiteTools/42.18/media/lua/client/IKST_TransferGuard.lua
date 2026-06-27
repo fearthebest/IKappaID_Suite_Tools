@@ -1,3 +1,9 @@
+if type(isServer) == "function" and isServer()
+    and type(isClient) == "function" and not isClient() then
+    return
+end
+
+-- Remote MP clients: Tiles/Economy addon hooks own transfer UI; avoid double-wrap.
 if type(isClient) == "function" and isClient()
     and type(isServer) == "function" and not isServer() then
     return
@@ -99,7 +105,7 @@ function IKST_TransferGuard.wrapGrab()
 end
 
 function IKST_TransferGuard.init()
-    if isDedicated and isDedicated() then
+    if type(isClient) ~= "function" or not isClient() then
         return
     end
     if not ISInventoryTransferAction then

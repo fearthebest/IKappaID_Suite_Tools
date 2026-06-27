@@ -30,7 +30,7 @@
 3. **Rate limiting** — `IKST_RateLimit` groups for staff, economy, locks, claims.
 4. **Audit trail** — `[IKST-AUDIT]` console + ModData ring buffer; denies logged via `ServerGate.deny`.
 5. **Economy write protection** — `mayMutateStore()` blocks client JVM balance mutations.
-6. **Transfer hooks** — `IKST_TransferGuard` on server JVM for container/vehicle rules.
+6. **Transfer hooks** — `IKST_TransferGuard` on client JVM (SP/listen-host); MP remote clients use Tiles/Economy addon hooks.
 7. **Load-order hardening** — `IKST_StaffOps` avoids aliasing `IKST_ClimatePresets` at require time.
 8. **Operator docs** — `SECURITY.md`, `ADMIN-RUNBOOK.md`, sandbox security options.
 

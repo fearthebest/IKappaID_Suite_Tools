@@ -4,7 +4,7 @@
 
 ### Security & Stability release (Tier C hardening)
 
-- **Dedicated Server:** Fixed crash at startup on dedicated servers caused by client-side TimedActions loading.
+- **Dedicated Server:** Fixed startup error by moving `IKST_TransferGuard` to `client/` (no TimedActions on headless JVM).
 - **Locks:** Passwords server-only; clients sync `IKST_LocksPublic` locked flags only (no plaintext passwords in ModData).
 - **Economy:** ATM/bank ops require player proximity; full economy store no longer transmitted to MP clients (per-player snapshot cache).
 - **Claims:** Vehicle and safehouse claim require proximity for non-admin players.
@@ -41,7 +41,7 @@
 ### Fixes & hardening
 - Economy: `exchangeAll` stack counts; unclaimed shop terminal loot block; `persistStore()` after tax/wire fees; ATM tile list includes `ikst_economy_01_0`.
 - Claims: expired safehouse denies access; purge clears ModData + meta; `ISEnterVehicle` → `"enter"` permission.
-- Transfers: `IKST_TransferRules` + server `IKST_TransferGuard`; vehicle checks in `IKST_ContainerRules`.
+- Transfers: `IKST_TransferRules` + client `IKST_TransferGuard` (SP/listen-host); vehicle checks in `IKST_ContainerRules`.
 - Tiles: protect on batch cleanup + paint; claim protect on paint/batch.
 - Case-insensitive owner/whitelist; claim UI whitelist hints.
 
