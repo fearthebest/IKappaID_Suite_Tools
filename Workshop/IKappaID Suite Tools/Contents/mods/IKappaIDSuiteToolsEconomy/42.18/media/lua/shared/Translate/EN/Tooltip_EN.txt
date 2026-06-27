@@ -1,0 +1,4 @@
+Tooltip_EN = {
+    Tooltip_IKST_ShopTerminalKit = Assemble from 2 planks, 4 nails, and 1 scrap metal (Crafting menu, no skill). Place on the ground, then Economy > Open my shop here.,
+    Tooltip_IKST_AtmTerminalKit = Admin only — no craft recipe. Spawn or give this kit, place a bank ATM fixture, then players can deposit and withdraw here.,
+}

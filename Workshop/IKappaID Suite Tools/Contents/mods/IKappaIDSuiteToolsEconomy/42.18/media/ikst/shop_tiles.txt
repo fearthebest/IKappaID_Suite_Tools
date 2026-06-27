@@ -1,0 +1,10 @@
+# IKST player shop terminals — one sprite name or prefix per line.
+# Prefix lines end with _ (match any sprite starting with that text).
+# Crafted shop kits are tagged in modData and always count as terminals.
+#
+# IKST economy tiles (Tiles addon) + vanilla vending machines.
+ikst_economy_01_4
+ikst_economy_01_5
+ikst_economy_01_6
+ikst_economy_01_7
+location_shop_accessories_01_

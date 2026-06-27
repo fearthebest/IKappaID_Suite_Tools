@@ -1,0 +1,32 @@
+module IKST
+{
+    imports { Base }
+
+    item KeypadKit
+    {
+        DisplayCategory = Electronics,
+        ItemType = base:normal,
+        Weight = 2.0,
+        Icon = ElectronicsScrap,
+        WorldStaticModel = ElectronicsScrap,
+        Tooltip = Tooltip_IKST_KeypadKit,
+    }
+
+    craftRecipe ikst_craft_keypad_kit
+    {
+        timedAction = Making,
+        time = 60,
+        Tags = InHandCraft,
+        category = Miscellaneous,
+        inputs
+        {
+            item 2 [Base.ElectronicsScrap],
+            item 1 [Base.Screwdriver],
+            item 4 [Base.Screws],
+        }
+        outputs
+        {
+            item 1 IKST.KeypadKit,
+        }
+    }
+}

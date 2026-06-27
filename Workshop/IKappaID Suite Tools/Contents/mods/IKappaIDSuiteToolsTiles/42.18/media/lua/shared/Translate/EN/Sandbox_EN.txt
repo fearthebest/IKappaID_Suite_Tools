@@ -1,0 +1,9 @@
+Sandbox_IKappaIDSuiteToolsTiles = IKappaID Suite Tools — World Edit
+
+Sandbox_IKappaIDSuiteToolsTiles_MaxCleanupRadius = Maximum size for cleaning up an area
+
+Sandbox_IKappaIDSuiteToolsTiles_EnableCatalog = Turn on the tile painting list
+
+Sandbox_IKappaIDSuiteToolsTiles_MaxPaintRadius = How far from you tile tools can place or paint
+
+Sandbox_IKappaIDSuiteToolsTiles_ProtectClaimedSafehouses = Block tile edits inside claimed safehouses unless the player has build permission

@@ -1,0 +1,3 @@
+Tooltip_EN = {
+    Tooltip_IKST_RecoveryJournal = Craftable journal. Record your survivor and restore skills, traits, and recipes later.,
+}
