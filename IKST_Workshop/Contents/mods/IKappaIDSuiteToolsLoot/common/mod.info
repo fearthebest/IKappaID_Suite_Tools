@@ -1,0 +1,40 @@
+name=IKappaID Suite Tools — Loot
+
+
+
+id=IKappaIDSuiteToolsLoot
+
+
+
+description=Repopulate container loot with vanilla distributions for IKappaID Suite Tools server admins.
+
+
+
+author=IKappaID
+
+
+
+poster=poster.png
+
+icon=icon.png
+
+
+
+modversion=0.2.5
+
+
+
+versionMin=42.18
+
+
+
+require=IKappaIDSuiteTools
+
+
+
+category=Admin
+
+
+
+tags=Build 42;Admin;Loot;Multiplayer
+
