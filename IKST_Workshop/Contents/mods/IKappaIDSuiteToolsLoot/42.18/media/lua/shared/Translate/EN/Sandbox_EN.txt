@@ -1,9 +1,0 @@
-Sandbox_EN = {
-    Sandbox_IKST_Loot = "IKST: Loot Tools",
-
-    Sandbox_IKappaIDSuiteToolsLoot_LootMaxContainers = "Max Loot Containers",
-    Sandbox_IKappaIDSuiteToolsLoot_LootMaxContainers_tooltip = "The maximum number of containers that can be refilled in a single loot action.",
-
-    Sandbox_IKappaIDSuiteToolsLoot_LootClearBeforeFill = "Clear Before Refill",
-    Sandbox_IKappaIDSuiteToolsLoot_LootClearBeforeFill_tooltip = "If enabled, containers will be emptied of all old items before new loot is generated.",
-}
