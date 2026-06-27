@@ -32,6 +32,27 @@ If you need a new admin-only craft item, omit `craftRecipe` from the item script
 
 ---
 
+## Sandbox options show raw keys (e.g. `Sandbox_IKappaIDSuiteTools_EnableMod`)
+
+**Symptom:** Sandbox sidebar or option labels show untranslated keys instead of plain English.
+
+**Common causes:**
+
+1. **Stale mod copy** — The flat single-tab layout with `VehicleListRadius` near the top is the **pre-0.2.5** sandbox file. Current builds use categorized pages (`IKST: General`, `IKST: Claims`, etc.) with `EnableMod` first.
+2. **Wrong install path** — Copy the full `Workshop/IKappaID Suite Tools/` folder from this repo into `%UserProfile%\Zomboid\Workshop\`. Disable or remove any older Steam Workshop subscription copy of IKST so it does not override your local files.
+3. **Translation file location** — B42 loads sandbox labels from `common/media/lua/shared/Translate/EN/Sandbox.json` (not under `42.18/`). Each addon has its own `common/.../Sandbox.json`.
+
+**Fix:**
+
+1. Pull the latest `cursor/sandbox-rework-6242` branch (or merge to master).
+2. Copy `Workshop/IKappaID Suite Tools/` over your game Workshop folder (replace all).
+3. Delete any leftover `42.18/media/lua/shared/Translate/EN/Sandbox.json` or old `Sandbox_EN.txt` files in your local copy.
+4. Restart the game completely (not just return to main menu).
+
+**Reference:** Skill Recovery Journal (Workshop `2503622437`) uses the same layout: `42.xx/media/sandbox-options.txt` plus `common/media/lua/shared/Translate/EN/Sandbox.json`.
+
+---
+
 ## Current mod shape (repo state)
 
 | Layer | Details |
