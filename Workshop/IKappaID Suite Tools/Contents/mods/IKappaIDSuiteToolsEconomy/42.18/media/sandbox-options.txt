@@ -4,151 +4,31 @@ option IKappaIDSuiteToolsEconomy.EconomyEnabled
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Core,
     translation = IKappaIDSuiteToolsEconomy_EconomyEnabled,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyWireDistance
-{
-    type = integer,
-    default = 5,
-    min = 1,
-    max = 30,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyWireDistance,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyShopDistance
-{
-    type = integer,
-    default = 4,
-    min = 1,
-    max = 20,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyShopDistance,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyShopTilesOnly
-{
-    type = boolean,
-    default = true,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyShopTilesOnly,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyShopProtect
-{
-    type = boolean,
-    default = true,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyShopProtect,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyShopCapacity
-{
-    type = integer,
-    default = 100,
-    min = 20,
-    max = 100,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyShopCapacity,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomySalesTax
-{
-    type = integer,
-    default = 5,
-    min = 0,
-    max = 50,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomySalesTax,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyTaxReceiver
-{
-    type = string,
-    default = ,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyTaxReceiver,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyAtmRequired
-{
-    type = boolean,
-    default = false,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyAtmRequired,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyValuables
-{
-    type = boolean,
-    default = true,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyValuables,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyMaxVendPrice
-{
-    type = integer,
-    default = 100000,
-    min = 1,
-    max = 9999999,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyMaxVendPrice,
 }
 
 option IKappaIDSuiteToolsEconomy.EconomyCurrencyName
 {
     type = string,
     default = Credits,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Core,
     translation = IKappaIDSuiteToolsEconomy_EconomyCurrencyName,
 }
 
-option IKappaIDSuiteToolsEconomy.EconomyZombieBounty
+option IKappaIDSuiteToolsEconomy.EconomyValuables
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBounty,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyZombieBountyChance
-{
-    type = integer,
-    default = 15,
-    min = 0,
-    max = 100,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyChance,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyZombieBountyMin
-{
-    type = integer,
-    default = 1,
-    min = 0,
-    max = 999999,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyMin,
-}
-
-option IKappaIDSuiteToolsEconomy.EconomyZombieBountyMax
-{
-    type = integer,
-    default = 10,
-    min = 0,
-    max = 999999,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyMax,
+    page = IKST_Economy_Core,
+    translation = IKappaIDSuiteToolsEconomy_EconomyValuables,
 }
 
 option IKappaIDSuiteToolsEconomy.EconomyIdCardBanking
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyIdCardBanking,
 }
 
@@ -156,7 +36,7 @@ option IKappaIDSuiteToolsEconomy.EconomyIdCardPlayerReissue
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyIdCardPlayerReissue,
 }
 
@@ -166,7 +46,7 @@ option IKappaIDSuiteToolsEconomy.EconomyIdCardReissueFee
     default = 100,
     min = 0,
     max = 999999,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyIdCardReissueFee,
 }
 
@@ -176,16 +56,18 @@ option IKappaIDSuiteToolsEconomy.EconomyIdCardReissueCooldownHours
     default = 72,
     min = 0,
     max = 720,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyIdCardReissueCooldownHours,
 }
 
-option IKappaIDSuiteToolsEconomy.EconomyZombieBountyToBank
+option IKappaIDSuiteToolsEconomy.EconomyWireDistance
 {
-    type = boolean,
-    default = false,
-    page = IKappaIDSuiteToolsEconomy,
-    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyToBank,
+    type = integer,
+    default = 5,
+    min = 1,
+    max = 30,
+    page = IKST_Economy_Banking,
+    translation = IKappaIDSuiteToolsEconomy_EconomyWireDistance,
 }
 
 option IKappaIDSuiteToolsEconomy.EconomyMinWireAmount
@@ -194,7 +76,7 @@ option IKappaIDSuiteToolsEconomy.EconomyMinWireAmount
     default = 1,
     min = 0,
     max = 999999,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyMinWireAmount,
 }
 
@@ -204,14 +86,132 @@ option IKappaIDSuiteToolsEconomy.EconomyWireFeePercent
     default = 0,
     min = 0,
     max = 50,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Banking,
     translation = IKappaIDSuiteToolsEconomy_EconomyWireFeePercent,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyAtmRequired
+{
+    type = boolean,
+    default = false,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyAtmRequired,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyShopDistance
+{
+    type = integer,
+    default = 4,
+    min = 1,
+    max = 20,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyShopDistance,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyShopTilesOnly
+{
+    type = boolean,
+    default = true,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyShopTilesOnly,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyShopProtect
+{
+    type = boolean,
+    default = true,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyShopProtect,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyShopCapacity
+{
+    type = integer,
+    default = 100,
+    min = 20,
+    max = 100,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyShopCapacity,
 }
 
 option IKappaIDSuiteToolsEconomy.EconomyShopOwnerStockOnly
 {
     type = boolean,
     default = false,
-    page = IKappaIDSuiteToolsEconomy,
+    page = IKST_Economy_Shops,
     translation = IKappaIDSuiteToolsEconomy_EconomyShopOwnerStockOnly,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyMaxVendPrice
+{
+    type = integer,
+    default = 100000,
+    min = 1,
+    max = 9999999,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyMaxVendPrice,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomySalesTax
+{
+    type = integer,
+    default = 5,
+    min = 0,
+    max = 50,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomySalesTax,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyTaxReceiver
+{
+    type = string,
+    default = ,
+    page = IKST_Economy_Shops,
+    translation = IKappaIDSuiteToolsEconomy_EconomyTaxReceiver,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyZombieBounty
+{
+    type = boolean,
+    default = true,
+    page = IKST_Economy_Bounties,
+    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBounty,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyZombieBountyChance
+{
+    type = integer,
+    default = 15,
+    min = 0,
+    max = 100,
+    page = IKST_Economy_Bounties,
+    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyChance,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyZombieBountyMin
+{
+    type = integer,
+    default = 1,
+    min = 0,
+    max = 999999,
+    page = IKST_Economy_Bounties,
+    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyMin,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyZombieBountyMax
+{
+    type = integer,
+    default = 10,
+    min = 0,
+    max = 999999,
+    page = IKST_Economy_Bounties,
+    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyMax,
+}
+
+option IKappaIDSuiteToolsEconomy.EconomyZombieBountyToBank
+{
+    type = boolean,
+    default = false,
+    page = IKST_Economy_Bounties,
+    translation = IKappaIDSuiteToolsEconomy_EconomyZombieBountyToBank,
 }

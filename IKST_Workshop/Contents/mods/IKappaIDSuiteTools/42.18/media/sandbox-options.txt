@@ -1,683 +1,341 @@
 VERSION = 1,
 
-
-
 option IKappaIDSuiteTools.EnableMod
-
 {
-
     type = boolean,
-
     default = true,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_General,
     translation = IKappaIDSuiteTools_EnableMod,
-
 }
-
-
-
-option IKappaIDSuiteTools.VehicleListRadius
-
-{
-
-    type = integer,
-
-    default = 30,
-
-    min = 5,
-
-    max = 100,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_VehicleListRadius,
-
-}
-
-
-
-option IKappaIDSuiteTools.VehicleNearRadius
-
-{
-
-    type = integer,
-
-    default = 12,
-
-    min = 3,
-
-    max = 30,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_VehicleNearRadius,
-
-}
-
-
 
 option IKappaIDSuiteTools.ClaimPlayerSelfService
-
 {
-
     type = boolean,
-
     default = true,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Claims,
     translation = IKappaIDSuiteTools_ClaimPlayerSelfService,
-
 }
-
-
 
 option IKappaIDSuiteTools.MaxVehicleClaims
-
 {
-
     type = integer,
-
     default = 3,
-
     min = 0,
-
     max = 50,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Claims,
     translation = IKappaIDSuiteTools_MaxVehicleClaims,
-
 }
-
-
 
 option IKappaIDSuiteTools.MaxSafehouseClaims
-
 {
-
     type = integer,
-
     default = 1,
-
     min = 0,
-
     max = 20,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Claims,
     translation = IKappaIDSuiteTools_MaxSafehouseClaims,
-
 }
-
-
 
 option IKappaIDSuiteTools.ClaimDurationDays
-
 {
-
     type = integer,
-
     default = 0,
-
     min = 0,
-
     max = 365,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Claims,
     translation = IKappaIDSuiteTools_ClaimDurationDays,
-
 }
-
-
-
-option IKappaIDSuiteTools.ClaimAdminBypass
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimAdminBypass,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimWhitelistOnly
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimWhitelistOnly,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimAllowNamedPlayers
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimAllowNamedPlayers,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimMaxNamedPlayers
-
-{
-
-    type = integer,
-
-    default = 30,
-
-    min = 0,
-
-    max = 200,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimMaxNamedPlayers,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimOwnersGrantExtra
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimOwnersGrantExtra,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimOwnersEditGroups
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimOwnersEditGroups,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleGuestEnter
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleGuestEnter,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleGuestDrive
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleGuestDrive,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleGuestLoot
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleGuestLoot,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleGuestDoors
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleGuestDoors,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleGuestRefuel
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleGuestRefuel,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleMateEnter
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleMateEnter,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleMateDrive
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleMateDrive,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimVehicleMateLoot
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimVehicleMateLoot,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseGuestBuild
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseGuestBuild,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseGuestDestroy
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseGuestDestroy,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseGuestLoot
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseGuestLoot,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseGuestDoors
-
-{
-
-    type = boolean,
-
-    default = false,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseGuestDoors,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseMemberBuild
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseMemberBuild,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseMemberDestroy
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseMemberDestroy,
-
-}
-
-
-
-option IKappaIDSuiteTools.ClaimSafehouseMemberLoot
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_ClaimSafehouseMemberLoot,
-
-}
-
-
-
-option IKappaIDSuiteTools.RecoveryJournalEnabled
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_RecoveryJournalEnabled,
-
-}
-
-
-
-option IKappaIDSuiteTools.StaffToolsEnabled
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_StaffToolsEnabled,
-
-}
-
-
-
-option IKappaIDSuiteTools.EnableThreatTools
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_EnableThreatTools,
-
-}
-
-
-
-option IKappaIDSuiteTools.EnableCatchJail
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_EnableCatchJail,
-
-}
-
-
-
-option IKappaIDSuiteTools.EnableUtilitiesToggle
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_EnableUtilitiesToggle,
-
-}
-
-
-
-option IKappaIDSuiteTools.RateLimitEnabled
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_RateLimitEnabled,
-
-}
-
-
-
-option IKappaIDSuiteTools.AuditLogEnabled
-
-{
-
-    type = boolean,
-
-    default = true,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_AuditLogEnabled,
-
-}
-
-
-
-option IKappaIDSuiteTools.AuditLogMaxEntries
-
-{
-
-    type = integer,
-
-    default = 500,
-
-    min = 50,
-
-    max = 2000,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_AuditLogMaxEntries,
-
-}
-
-
 
 option IKappaIDSuiteTools.ClaimListMaxSize
-
 {
-
     type = integer,
-
     default = 200,
-
     min = 10,
-
     max = 1000,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Claims,
     translation = IKappaIDSuiteTools_ClaimListMaxSize,
-
 }
 
-
-
-option IKappaIDSuiteTools.LockMaxAttempts
-
+option IKappaIDSuiteTools.ClaimAdminBypass
 {
-
-    type = integer,
-
-    default = 20,
-
-    min = 5,
-
-    max = 100,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_LockMaxAttempts,
-
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimAdminBypass,
 }
 
-
-
-option IKappaIDSuiteTools.LockInstallDistance
-
+option IKappaIDSuiteTools.ClaimWhitelistOnly
 {
-
-    type = integer,
-
-    default = 3,
-
-    min = 1,
-
-    max = 15,
-
-    page = IKappaIDSuiteTools,
-
-    translation = IKappaIDSuiteTools_LockInstallDistance,
-
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimWhitelistOnly,
 }
 
+option IKappaIDSuiteTools.ClaimAllowNamedPlayers
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimAllowNamedPlayers,
+}
 
+option IKappaIDSuiteTools.ClaimMaxNamedPlayers
+{
+    type = integer,
+    default = 30,
+    min = 0,
+    max = 200,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimMaxNamedPlayers,
+}
+
+option IKappaIDSuiteTools.ClaimOwnersGrantExtra
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimOwnersGrantExtra,
+}
+
+option IKappaIDSuiteTools.ClaimOwnersEditGroups
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimOwnersEditGroups,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleGuestEnter
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleGuestEnter,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleGuestDrive
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleGuestDrive,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleGuestLoot
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleGuestLoot,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleGuestDoors
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleGuestDoors,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleGuestRefuel
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleGuestRefuel,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleMateEnter
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleMateEnter,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleMateDrive
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleMateDrive,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleMateLoot
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleMateLoot,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseGuestBuild
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseGuestBuild,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseGuestDestroy
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseGuestDestroy,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseGuestLoot
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseGuestLoot,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseGuestDoors
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseGuestDoors,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseMemberBuild
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseMemberBuild,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseMemberDestroy
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseMemberDestroy,
+}
+
+option IKappaIDSuiteTools.ClaimSafehouseMemberLoot
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSafehouseMemberLoot,
+}
+
+option IKappaIDSuiteTools.StaffToolsEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Admin,
+    translation = IKappaIDSuiteTools_StaffToolsEnabled,
+}
+
+option IKappaIDSuiteTools.EnableThreatTools
+{
+    type = boolean,
+    default = true,
+    page = IKST_Admin,
+    translation = IKappaIDSuiteTools_EnableThreatTools,
+}
+
+option IKappaIDSuiteTools.EnableCatchJail
+{
+    type = boolean,
+    default = true,
+    page = IKST_Admin,
+    translation = IKappaIDSuiteTools_EnableCatchJail,
+}
+
+option IKappaIDSuiteTools.EnableUtilitiesToggle
+{
+    type = boolean,
+    default = true,
+    page = IKST_Admin,
+    translation = IKappaIDSuiteTools_EnableUtilitiesToggle,
+}
 
 option IKappaIDSuiteTools.StaffRemoteAdmin
-
 {
-
     type = boolean,
-
     default = false,
-
-    page = IKappaIDSuiteTools,
-
+    page = IKST_Admin,
     translation = IKappaIDSuiteTools_StaffRemoteAdmin,
-
 }
 
+option IKappaIDSuiteTools.RateLimitEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_RateLimitEnabled,
+}
 
+option IKappaIDSuiteTools.AuditLogEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_AuditLogEnabled,
+}
+
+option IKappaIDSuiteTools.AuditLogMaxEntries
+{
+    type = integer,
+    default = 500,
+    min = 50,
+    max = 2000,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_AuditLogMaxEntries,
+}
+
+option IKappaIDSuiteTools.RecoveryJournalEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_RecoveryJournalEnabled,
+}
+
+option IKappaIDSuiteTools.LockMaxAttempts
+{
+    type = integer,
+    default = 20,
+    min = 5,
+    max = 100,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_LockMaxAttempts,
+}
+
+option IKappaIDSuiteTools.LockInstallDistance
+{
+    type = integer,
+    default = 3,
+    min = 1,
+    max = 15,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_LockInstallDistance,
+}
+
+option IKappaIDSuiteTools.VehicleNearRadius
+{
+    type = integer,
+    default = 12,
+    min = 3,
+    max = 30,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_VehicleNearRadius,
+}
+
+option IKappaIDSuiteTools.VehicleListRadius
+{
+    type = integer,
+    default = 30,
+    min = 5,
+    max = 100,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_VehicleListRadius,
+}
