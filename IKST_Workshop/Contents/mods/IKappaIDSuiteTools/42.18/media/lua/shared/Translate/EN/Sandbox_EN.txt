@@ -80,10 +80,10 @@ Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild = Members: Build in Safehou
 Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild_tooltip = Allow safehouse members to build or place items inside.
 
 Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy = Members: Destroy in Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimMemberDestroy_tooltip = Allow safehouse members to break or dismantle things inside.
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy_tooltip = Allow safehouse members to break or dismantle things inside.
 
 Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot = Members: Loot Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimMemberLoot_tooltip = Allow safehouse members to take items from containers inside.
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot_tooltip = Allow safehouse members to take items from containers inside.
 
 Sandbox_IKappaIDSuiteTools_StaffToolsEnabled = Enable Staff Tools
 Sandbox_IKappaIDSuiteTools_StaffToolsEnabled_tooltip = Allow admins to use special tools like healing, giving items, or editing the world.
