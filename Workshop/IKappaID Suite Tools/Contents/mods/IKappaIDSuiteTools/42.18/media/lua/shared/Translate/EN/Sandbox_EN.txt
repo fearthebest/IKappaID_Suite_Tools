@@ -1,125 +1,127 @@
-Sandbox_IKST_General = IKST: General
-Sandbox_IKST_Claims = IKST: Claims
-Sandbox_IKST_Admin = IKST: Admin Tools
-Sandbox_IKST_Security = IKST: Security & Logs
-Sandbox_IKST_Misc = IKST: Miscellaneous
+Sandbox_EN = {
+    Sandbox_IKST_General = "IKST: General",
+    Sandbox_IKST_Claims = "IKST: Claims",
+    Sandbox_IKST_Admin = "IKST: Admin Tools",
+    Sandbox_IKST_Security = "IKST: Security & Logs",
+    Sandbox_IKST_Misc = "IKST: Miscellaneous",
 
-Sandbox_IKappaIDSuiteTools_EnableMod = Enable IKST
-Sandbox_IKappaIDSuiteTools_EnableMod_tooltip = Turn on the main features of the IKappaID Suite Tools mod.
+    Sandbox_IKappaIDSuiteTools_EnableMod = "Enable IKST",
+    Sandbox_IKappaIDSuiteTools_EnableMod_tooltip = "Turn on the main features of the IKappaID Suite Tools mod.",
 
-Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService = Allow Self-Service Claims
-Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService_tooltip = Allow players to claim vehicles and safehouses for themselves without admin help.
+    Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService = "Allow Self-Service Claims",
+    Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService_tooltip = "Allow players to claim vehicles and safehouses for themselves without admin help.",
 
-Sandbox_IKappaIDSuiteTools_MaxVehicleClaims = Max Vehicle Claims
-Sandbox_IKappaIDSuiteTools_MaxVehicleClaims_tooltip = The maximum number of vehicles a single player can own at once. Set to 0 for no limit.
+    Sandbox_IKappaIDSuiteTools_MaxVehicleClaims = "Max Vehicle Claims",
+    Sandbox_IKappaIDSuiteTools_MaxVehicleClaims_tooltip = "The maximum number of vehicles a single player can own at once. Set to 0 for no limit.",
 
-Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims = Max Safehouse Claims
-Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims_tooltip = The maximum number of safehouses a single player can own at once. Set to 0 for no limit.
+    Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims = "Max Safehouse Claims",
+    Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims_tooltip = "The maximum number of safehouses a single player can own at once. Set to 0 for no limit.",
 
-Sandbox_IKappaIDSuiteTools_ClaimDurationDays = Claim Expiry (Days)
-Sandbox_IKappaIDSuiteTools_ClaimDurationDays_tooltip = How many days a claim lasts before it expires. Set to 0 so claims never expire.
+    Sandbox_IKappaIDSuiteTools_ClaimDurationDays = "Claim Expiry (Days)",
+    Sandbox_IKappaIDSuiteTools_ClaimDurationDays_tooltip = "How many days a claim lasts before it expires. Set to 0 so claims never expire.",
 
-Sandbox_IKappaIDSuiteTools_ClaimListMaxSize = Max List Results
-Sandbox_IKappaIDSuiteTools_ClaimListMaxSize_tooltip = Maximum number of claims shown when searching or listing. Higher numbers may slow down the menu.
+    Sandbox_IKappaIDSuiteTools_ClaimListMaxSize = "Max List Results",
+    Sandbox_IKappaIDSuiteTools_ClaimListMaxSize_tooltip = "Maximum number of claims shown when searching or listing. Higher numbers may slow down the menu.",
 
-Sandbox_IKappaIDSuiteTools_ClaimAdminBypass = Admins Bypass Claims
-Sandbox_IKappaIDSuiteTools_ClaimAdminBypass_tooltip = Allow staff members to access and use any claimed vehicle or safehouse.
+    Sandbox_IKappaIDSuiteTools_ClaimAdminBypass = "Admins Bypass Claims",
+    Sandbox_IKappaIDSuiteTools_ClaimAdminBypass_tooltip = "Allow staff members to access and use any claimed vehicle or safehouse.",
 
-Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly = Whitelist Only Mode
-Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly_tooltip = If enabled, only the owner and players specifically added to the whitelist can access the claim. Everyone else is blocked.
+    Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly = "Whitelist Only Mode",
+    Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly_tooltip = "If enabled, only the owner and players specifically added to the whitelist can access the claim. Everyone else is blocked.",
 
-Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers = Allow Whitelisting
-Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers_tooltip = Allow owners to add specific friends or players to their claim's whitelist with custom permissions.
+    Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers = "Allow Whitelisting",
+    Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers_tooltip = "Allow owners to add specific friends or players to their claim's whitelist with custom permissions.",
 
-Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers = Max Whitelisted Players
-Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers_tooltip = Maximum number of players an owner can add to a single claim's whitelist.
+    Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers = "Max Whitelisted Players",
+    Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers_tooltip = "Maximum number of players an owner can add to a single claim's whitelist.",
 
-Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra = Owners Can Grant Extra Access
-Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra_tooltip = Allow owners to give whitelisted players more permissions than the default guest settings allow.
+    Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra = "Owners Can Grant Extra Access",
+    Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra_tooltip = "Allow owners to give whitelisted players more permissions than the default guest settings allow.",
 
-Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups = Owners Can Edit Groups
-Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups_tooltip = Allow owners to manage access for groups like 'Everyone', 'Faction members', or 'Safehouse mates'.
+    Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups = "Owners Can Edit Groups",
+    Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups_tooltip = "Allow owners to manage access for groups like 'Everyone', 'Faction members', or 'Safehouse mates'.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter = Guests: Enter Vehicle
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter_tooltip = Allow any player to get inside a claimed vehicle.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter = "Guests: Enter Vehicle",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter_tooltip = "Allow any player to get inside a claimed vehicle.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive = Guests: Drive Vehicle
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive_tooltip = Allow any player to drive a claimed vehicle.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive = "Guests: Drive Vehicle",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive_tooltip = "Allow any player to drive a claimed vehicle.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot = Guests: Access Trunk
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot_tooltip = Allow any player to take items from a claimed vehicle's storage.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot = "Guests: Access Trunk",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot_tooltip = "Allow any player to take items from a claimed vehicle's storage.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors = Guests: Use Doors/Windows
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors_tooltip = Allow any player to open or close doors and windows on a claimed vehicle.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors = "Guests: Use Doors/Windows",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors_tooltip = "Allow any player to open or close doors and windows on a claimed vehicle.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel = Guests: Refuel Vehicle
-Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel_tooltip = Allow any player to add fuel to a claimed vehicle.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel = "Guests: Refuel Vehicle",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel_tooltip = "Allow any player to add fuel to a claimed vehicle.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter = Mates: Enter Vehicle
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter_tooltip = Allow safehouse mates to get inside the owner's claimed vehicles.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter = "Mates: Enter Vehicle",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter_tooltip = "Allow safehouse mates to get inside the owner's claimed vehicles.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive = Mates: Drive Vehicle
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive_tooltip = Allow safehouse mates to drive the owner's claimed vehicles.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive = "Mates: Drive Vehicle",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive_tooltip = "Allow safehouse mates to drive the owner's claimed vehicles.",
 
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot = Mates: Access Trunk
-Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot_tooltip = Allow safehouse mates to take items from the owner's claimed vehicles.
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot = "Mates: Access Trunk",
+    Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot_tooltip = "Allow safehouse mates to take items from the owner's claimed vehicles.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild = Guests: Build in Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild_tooltip = Allow any player to build or place items inside a claimed safehouse.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild = "Guests: Build in Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild_tooltip = "Allow any player to build or place items inside a claimed safehouse.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy = Guests: Destroy in Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy_tooltip = Allow any player to break or dismantle things inside a claimed safehouse.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy = "Guests: Destroy in Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy_tooltip = "Allow any player to break or dismantle things inside a claimed safehouse.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot = Guests: Loot Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot_tooltip = Allow any player to take items from containers inside a claimed safehouse.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot = "Guests: Loot Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot_tooltip = "Allow any player to take items from containers inside a claimed safehouse.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors = Guests: Use Doors
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors_tooltip = Allow any player to open or close doors in a claimed safehouse.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors = "Guests: Use Doors",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors_tooltip = "Allow any player to open or close doors in a claimed safehouse.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild = Members: Build in Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild_tooltip = Allow safehouse members to build or place items inside.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild = "Members: Build in Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild_tooltip = "Allow safehouse members to build or place items inside.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy = Members: Destroy in Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy_tooltip = Allow safehouse members to break or dismantle things inside.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy = "Members: Destroy in Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy_tooltip = "Allow safehouse members to break or dismantle things inside.",
 
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot = Members: Loot Safehouse
-Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot_tooltip = Allow safehouse members to take items from containers inside.
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot = "Members: Loot Safehouse",
+    Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot_tooltip = "Allow safehouse members to take items from containers inside.",
 
-Sandbox_IKappaIDSuiteTools_StaffToolsEnabled = Enable Staff Tools
-Sandbox_IKappaIDSuiteTools_StaffToolsEnabled_tooltip = Allow admins to use special tools like healing, giving items, or editing the world.
+    Sandbox_IKappaIDSuiteTools_StaffToolsEnabled = "Enable Staff Tools",
+    Sandbox_IKappaIDSuiteTools_StaffToolsEnabled_tooltip = "Allow admins to use special tools like healing, giving items, or editing the world.",
 
-Sandbox_IKappaIDSuiteTools_EnableThreatTools = Enable Threat Tools
-Sandbox_IKappaIDSuiteTools_EnableThreatTools_tooltip = Allow admins to use tools for managing zombies and checking player threats.
+    Sandbox_IKappaIDSuiteTools_EnableThreatTools = "Enable Threat Tools",
+    Sandbox_IKappaIDSuiteTools_EnableThreatTools_tooltip = "Allow admins to use tools for managing zombies and checking player threats.",
 
-Sandbox_IKappaIDSuiteTools_EnableCatchJail = Enable Catch & Jail
-Sandbox_IKappaIDSuiteTools_EnableCatchJail_tooltip = Allow admins to use the catch and jail features to manage players.
+    Sandbox_IKappaIDSuiteTools_EnableCatchJail = "Enable Catch & Jail",
+    Sandbox_IKappaIDSuiteTools_EnableCatchJail_tooltip = "Allow admins to use the catch and jail features to manage players.",
 
-Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle = Enable Utility Toggles
-Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle_tooltip = Allow staff to turn water and power on or off for the whole server.
+    Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle = "Enable Utility Toggles",
+    Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle_tooltip = "Allow staff to turn water and power on or off for the whole server.",
 
-Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin = Remote Admin Tools
-Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip = Allow admins to use tools like 'Protect Area' from a distance. Not recommended for public servers.
+    Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin = "Remote Admin Tools",
+    Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip = "Allow admins to use tools like 'Protect Area' from a distance. Not recommended for public servers.",
 
-Sandbox_IKappaIDSuiteTools_RateLimitEnabled = Enable Rate Limiting
-Sandbox_IKappaIDSuiteTools_RateLimitEnabled_tooltip = Prevent players from spamming commands to help keep the server running smoothly.
+    Sandbox_IKappaIDSuiteTools_RateLimitEnabled = "Enable Rate Limiting",
+    Sandbox_IKappaIDSuiteTools_RateLimitEnabled_tooltip = "Prevent players from spamming commands to help keep the server running smoothly.",
 
-Sandbox_IKappaIDSuiteTools_AuditLogEnabled = Enable Audit Logging
-Sandbox_IKappaIDSuiteTools_AuditLogEnabled_tooltip = Record important actions to the server log for security and troubleshooting.
+    Sandbox_IKappaIDSuiteTools_AuditLogEnabled = "Enable Audit Logging",
+    Sandbox_IKappaIDSuiteTools_AuditLogEnabled_tooltip = "Record important actions to the server log for security and troubleshooting.",
 
-Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries = Max Audit Log Entries
-Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries_tooltip = How many recent audit log entries to keep in memory.
+    Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries = "Max Audit Log Entries",
+    Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries_tooltip = "How many recent audit log entries to keep in memory.",
 
-Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled = Enable Recovery Journal
-Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled_tooltip = Allow the use of skill books that let players save and recover their skills after death.
+    Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled = "Enable Recovery Journal",
+    Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled_tooltip = "Allow the use of skill books that let players save and recover their skills after death.",
 
-Sandbox_IKappaIDSuiteTools_LockMaxAttempts = Max Lock Attempts
-Sandbox_IKappaIDSuiteTools_LockMaxAttempts_tooltip = How many wrong password guesses are allowed before a keypad lock freezes for 60 seconds.
+    Sandbox_IKappaIDSuiteTools_LockMaxAttempts = "Max Lock Attempts",
+    Sandbox_IKappaIDSuiteTools_LockMaxAttempts_tooltip = "How many wrong password guesses are allowed before a keypad lock freezes for 60 seconds.",
 
-Sandbox_IKappaIDSuiteTools_LockInstallDistance = Lock Install Distance
-Sandbox_IKappaIDSuiteTools_LockInstallDistance_tooltip = How close a player must be to a door to install a keypad lock.
+    Sandbox_IKappaIDSuiteTools_LockInstallDistance = "Lock Install Distance",
+    Sandbox_IKappaIDSuiteTools_LockInstallDistance_tooltip = "How close a player must be to a door to install a keypad lock.",
 
-Sandbox_IKappaIDSuiteTools_VehicleNearRadius = Vehicle Claim Distance
-Sandbox_IKappaIDSuiteTools_VehicleNearRadius_tooltip = How close a player must be to a vehicle to claim it.
+    Sandbox_IKappaIDSuiteTools_VehicleNearRadius = "Vehicle Claim Distance",
+    Sandbox_IKappaIDSuiteTools_VehicleNearRadius_tooltip = "How close a player must be to a vehicle to claim it.",
 
-Sandbox_IKappaIDSuiteTools_VehicleListRadius = Vehicle Search Distance (Old)
-Sandbox_IKappaIDSuiteTools_VehicleListRadius_tooltip = How far to look for vehicles when using the old search tool. Use the Vehicles addon for better results.
+    Sandbox_IKappaIDSuiteTools_VehicleListRadius = "Vehicle Search Distance (Old)",
+    Sandbox_IKappaIDSuiteTools_VehicleListRadius_tooltip = "How far to look for vehicles when using the old search tool. Use the Vehicles addon for better results.",
+}
