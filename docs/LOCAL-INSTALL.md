@@ -44,3 +44,7 @@ IKappaID Suite Tools\
 ## Git branch
 
 Tier C testing code: `cursor/tier-c-testing-05ab`
+
+## Troubleshooting
+
+If you see **`IKST_RecipeGate.lua: attempted index of non-table`** at startup, delete that file from your local mod copy — it is not part of official IKST. See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
