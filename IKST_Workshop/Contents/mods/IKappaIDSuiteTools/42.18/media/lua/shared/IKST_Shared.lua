@@ -158,6 +158,9 @@ IKST.CMD = {
     staffListResult = "staffListResult",
     waypointListResult = "waypointListResult",
     protectListResult = "protectListResult",
+    auditTail = "auditTail",
+    auditTailResult = "auditTailResult",
+    utilitySync = "utilitySync",
     rewind = "rewind",
 }
 

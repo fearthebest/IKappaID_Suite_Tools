@@ -126,32 +126,33 @@ function IKST.Plugins.onServerCommand(command, args, player)
     return false
 end
 
-function IKST.Plugins.handleServerCommand(command, player, args)
-    args = args or {}
+function IKST.Plugins.findCommandSpec(command)
     for pluginId, spec in pairs(registry) do
-        if not IKST.Plugins.isActive(pluginId) then
-            -- skip inactive addon
-        else
-            local isPlayer = spec.playerCommands and spec.playerCommands[command]
-            local isAdmin = spec.adminCommands and spec.adminCommands[command]
-            if isPlayer or isAdmin then
-                if isAdmin then
-                    if spec.canUseAdmin and not spec.canUseAdmin(player) then
-                        return true, false, "admin only", spec
-                    end
-                elseif spec.canUsePlayer and not spec.canUsePlayer(player) then
-                    return true, false, "unavailable", spec
-                end
-                if not spec.handleServer then
-                    return true, false, "addon error", spec
-                end
-                local ok, msg = spec.handleServer(command, player, args)
-                if spec.afterServer then
-                    spec.afterServer(command, player, args, ok, msg, isAdmin)
-                end
-                return true, ok, msg, spec
+        if IKST.Plugins.isActive(pluginId) then
+            if spec.adminCommands and spec.adminCommands[command] then
+                return pluginId, spec, "admin"
+            end
+            if spec.playerCommands and spec.playerCommands[command] then
+                return pluginId, spec, "player"
             end
         end
     end
-    return false
+    return nil
+end
+
+function IKST.Plugins.handleServerCommand(command, player, args)
+    args = args or {}
+    local pluginId, spec = IKST.Plugins.findCommandSpec(command)
+    if not pluginId then
+        return false
+    end
+    if not spec.handleServer then
+        return true, false, "addon error", spec
+    end
+    local isAdmin = spec.adminCommands and spec.adminCommands[command] == true
+    local ok, msg = spec.handleServer(command, player, args)
+    if spec.afterServer then
+        spec.afterServer(command, player, args, ok, msg, isAdmin)
+    end
+    return true, ok, msg, spec
 end

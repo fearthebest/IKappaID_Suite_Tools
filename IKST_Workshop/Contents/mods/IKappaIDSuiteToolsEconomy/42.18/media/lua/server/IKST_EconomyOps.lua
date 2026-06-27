@@ -1493,10 +1493,6 @@ function IKST_EconomyOps.handle(command, player, args)
         return true, "ok"
     end
 
-    if throttle(player) then
-        return false, "wait a moment"
-    end
-
     if command == IKST.CMD.economyDeposit then
         return IKST_EconomyOps.deposit(player, args.amount, x, y, z)
     end
@@ -1535,7 +1531,7 @@ function IKST_EconomyOps.handle(command, player, args)
         return IKST_EconomyOps.placeShopTerminal(player, x, y, z, args.itemId)
     end
     if command == IKST.CMD.economyVendEnable then
-        if not IKST_Access.canUseTools(player) then
+        if not IKST_Access.canUseStaffTools(player) then
             return false, "admin only"
         end
         local ownerKey = args.owner

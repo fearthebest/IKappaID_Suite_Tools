@@ -49,16 +49,22 @@ function IKST_QuickActions.run(player, pinId)
         IKST.toggleUtilityForPlayer(player, def.utility)
         return
     end
-    if pinId == "clearWeather" and type(isClient) == "function" and isClient() then
-        if not IKST_ClimatePresets then
-            require "IKST_ClimatePresets"
+    if pinId == "clearWeather" then
+        if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+            IKST.dispatchCommand(player, IKST.CMD.clearWeather, {})
+            return
         end
-        local ok, msg = false, "climate unavailable"
-        if IKST_ClimatePresets and IKST_ClimatePresets.clearWeather then
-            ok, msg = IKST_ClimatePresets.clearWeather()
-        end
-        if msg then
-            IKST.notify(player, msg, ok == true)
+        if type(isClient) == "function" and isClient() then
+            if not IKST_ClimatePresets then
+                require "IKST_ClimatePresets"
+            end
+            local ok, msg = false, "climate unavailable"
+            if IKST_ClimatePresets and IKST_ClimatePresets.clearWeather then
+                ok, msg = IKST_ClimatePresets.clearWeather()
+            end
+            if msg then
+                IKST.notify(player, msg, ok == true)
+            end
         end
         return
     end

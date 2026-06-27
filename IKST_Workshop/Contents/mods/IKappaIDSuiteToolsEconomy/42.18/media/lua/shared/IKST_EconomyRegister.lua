@@ -48,7 +48,7 @@ IKST.Plugins.register("economy", {
         return IKST_Access.canUseEconomy(player)
     end,
     canUseAdmin = function(player)
-        return IKST_Access.canUseTools(player) and IKST_Access.canUseEconomy(player)
+        return IKST_Access.canUseStaffTools(player) and IKST_Access.canUseEconomy(player)
     end,
     handleServer = function(command, player, args)
         if not IKST_EconomyOps or not IKST_EconomyOps.handle then

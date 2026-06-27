@@ -74,6 +74,42 @@ function IKST.applyUtilitySandboxVar(which, value)
     end
 end
 
+function IKST.setUtilityOnServer(which, on)
+    if which ~= "water" and which ~= "power" then
+        return false
+    end
+    local value = on and IKST_Utility.FAR_FUTURE or -1
+    IKST.applyUtilitySandboxVar(which, value)
+    local live = getSandboxOptions and getSandboxOptions()
+    if live and live.getOptionByName then
+        local opt = live:getOptionByName(IKST.utilityModifierName(which))
+        if opt and opt.setValue then
+            opt:setValue(value)
+        end
+    end
+    return true
+end
+
+function IKST_Utility.broadcastSync()
+    if not getOnlinePlayers then
+        return
+    end
+    local list = getOnlinePlayers()
+    if not list or not list.size then
+        return
+    end
+    local payload = {
+        waterOn = IKST.isWaterOn(),
+        powerOn = IKST.isPowerOn(),
+    }
+    for i = 0, list:size() - 1 do
+        local p = list:get(i)
+        if p and IKST.deliverClientCommand then
+            IKST.deliverClientCommand(p, IKST.CMD.utilitySync, payload)
+        end
+    end
+end
+
 -- WPControl pattern (client JVM only): copy sandbox, set modifier, sendToServer (MP) or toLua (SP).
 function IKST.setUtilityOn(which, on)
     if type(isClient) == "function" and not isClient() then
@@ -130,6 +166,11 @@ function IKST.toggleUtilityForPlayer(player, which)
     if IKST_Access and IKST_Access.canToggleUtilities and not IKST_Access.canToggleUtilities(player) then
         IKST.notify(player, "not allowed", false)
         return false
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        local cmd = which == "water" and IKST.CMD.quickWater or IKST.CMD.quickPower
+        IKST.dispatchCommand(player, cmd, {})
+        return true
     end
     local wantOn
     if which == "water" then

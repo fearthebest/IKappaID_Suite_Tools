@@ -17,7 +17,7 @@ IKST.Plugins.register("loot", {
     modId = "IKappaIDSuiteToolsLoot",
     adminCommands = ADMIN_COMMANDS,
     canUseAdmin = function(player)
-        return IKST_Access.canUseLoot(player)
+        return IKST_Access.canUseStaffTools(player) and IKST_Access.canUseLoot(player)
     end,
     handleServer = function(command, player, args)
         if not IKST_LootOps or not IKST_LootOps.handle then

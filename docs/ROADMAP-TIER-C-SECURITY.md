@@ -69,13 +69,13 @@ Dedicated server → Events.OnClientCommand → IKST_Server.handleCommand
 ### Definition of done — Tier C
 
 - [x] `COMMAND-MATRIX.md` complete for all commands
-- [ ] `IKST_ServerGate.authorize` enforces every server command path including plugins
-- [ ] No sensitive action relies on client-only sandbox/climate apply in MP
-- [ ] Rate limits on economy, locks, staff power commands
-- [ ] Server audit log with console + ring buffer
-- [ ] `REDTEAM-TIER-C.md` — all P0 tests pass on dedicated server
-- [ ] `SECURITY.md` + `ADMIN-RUNBOOK.md` published in dev docs
-- [ ] Known limitations documented honestly
+- [x] `IKST_ServerGate.authorize` enforces every server command path including plugins
+- [x] No sensitive action relies on client-only sandbox/climate apply in MP (utilities; weather dispatches to server)
+- [x] Rate limits on economy, locks, staff power commands
+- [x] Server audit log with console + ring buffer
+- [ ] `REDTEAM-TIER-C.md` — all P0 tests pass on dedicated server (manual)
+- [x] `SECURITY.md` + `ADMIN-RUNBOOK.md` published in dev docs
+- [x] Known limitations documented honestly
 
 ### Implementation order (strict)
 

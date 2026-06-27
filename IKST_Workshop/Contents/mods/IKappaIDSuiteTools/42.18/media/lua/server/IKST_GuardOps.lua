@@ -580,10 +580,26 @@ function IKST_GuardOps.restoreSafehouses()
 end
 
 function IKST_GuardOps.sendSafehouseList(player, list)
+    local max = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
+    if #list > max then
+        local trimmed = {}
+        for i = 1, max do
+            trimmed[i] = list[i]
+        end
+        list = trimmed
+    end
     IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, { safehouses = list })
 end
 
 function IKST_GuardOps.sendClaimList(player, list)
+    local max = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
+    if #list > max then
+        local trimmed = {}
+        for i = 1, max do
+            trimmed[i] = list[i]
+        end
+        list = trimmed
+    end
     IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = list })
 end
 

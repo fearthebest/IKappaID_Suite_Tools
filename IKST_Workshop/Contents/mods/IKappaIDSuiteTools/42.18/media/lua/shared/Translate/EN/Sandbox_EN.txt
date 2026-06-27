@@ -57,3 +57,25 @@ Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy = Let safehouse members b
 Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot = Let safehouse members take items from claimed houses
 
 Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled = Turn on the skill book (save and get back your skills)
+
+Sandbox_IKappaIDSuiteTools_StaffToolsEnabled = Let admins use staff tools (heal, give, world edit). Turn off to block admin commands while keeping access level.
+
+Sandbox_IKappaIDSuiteTools_EnableThreatTools = Let admins use zombie cull and threat tools
+
+Sandbox_IKappaIDSuiteTools_EnableCatchJail = Let admins catch and jail players
+
+Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle = Let moderators and admins toggle global water and power (server-authoritative in multiplayer)
+
+Sandbox_IKappaIDSuiteTools_RateLimitEnabled = Server rate limits on commands (economy, staff, locks, lists)
+
+Sandbox_IKappaIDSuiteTools_AuditLogEnabled = Write security audit lines to server console and ModData buffer
+
+Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries = How many audit log rows to keep in ModData
+
+Sandbox_IKappaIDSuiteTools_ClaimListMaxSize = Max safehouse or vehicle claims returned per list query
+
+Sandbox_IKappaIDSuiteTools_LockMaxAttempts = Wrong lock passwords before a 60-second lockout
+
+Sandbox_IKappaIDSuiteTools_LockInstallDistance = How close a player must be to install a keypad lock
+
+Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin = Allow protect-radius and similar tools without standing at the target (not recommended on public servers)

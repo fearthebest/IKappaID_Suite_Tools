@@ -2,6 +2,37 @@ require "IKST_Shared"
 
 IKST_Access = IKST_Access or {}
 
+function IKST_Access.sandbox()
+    return SandboxVars and SandboxVars.IKappaIDSuiteTools or nil
+end
+
+function IKST_Access.sandboxBool(key, fallback)
+    local sv = IKST_Access.sandbox()
+    if not sv or sv[key] == nil then
+        return fallback == true
+    end
+    return sv[key] == true
+end
+
+function IKST_Access.sandboxInt(key, fallback, minVal, maxVal)
+    local sv = IKST_Access.sandbox()
+    local v = sv and sv[key]
+    if v == nil then
+        v = fallback
+    end
+    v = tonumber(v)
+    if not v then
+        v = fallback or 0
+    end
+    if minVal and v < minVal then
+        v = minVal
+    end
+    if maxVal and v > maxVal then
+        v = maxVal
+    end
+    return math.floor(v)
+end
+
 function IKST_Access.canUseEconomy(player)
     if not IKST.isModEnabled() then
         return false
@@ -26,7 +57,7 @@ function IKST_Access.canUseLoot(player)
     if not IKST.Plugins or not IKST.Plugins.isActive("loot") then
         return false
     end
-    return IKST_Access.canUseTools(player)
+    return IKST_Access.canUseStaffTools(player)
 end
 
 function IKST_Access.isSinglePlayer()
@@ -72,9 +103,49 @@ function IKST_Access.canUseTools(player)
     return IKST_Access.isAdmin(player)
 end
 
+function IKST_Access.canUseStaffTools(player)
+    if not IKST_Access.canUseTools(player) then
+        return false
+    end
+    if IKST_Access.isSinglePlayer() then
+        return true
+    end
+    if IKST.isCoopHostPlayer and IKST.isCoopHostPlayer(player) then
+        return true
+    end
+    return IKST_Access.sandboxBool("StaffToolsEnabled", true)
+end
+
+function IKST_Access.canUseThreatTools()
+    return IKST_Access.sandboxBool("EnableThreatTools", true)
+end
+
+function IKST_Access.canUseCatchJail()
+    return IKST_Access.sandboxBool("EnableCatchJail", true)
+end
+
+function IKST_Access.utilitiesToggleEnabled()
+    return IKST_Access.sandboxBool("EnableUtilitiesToggle", true)
+end
+
+function IKST_Access.canUseRecoveryJournal()
+    return IKST_Access.sandboxBool("RecoveryJournalEnabled", true)
+end
+
+function IKST_Access.staffRemoteAdmin()
+    return IKST_Access.sandboxBool("StaffRemoteAdmin", false)
+end
+
+function IKST_Access.claimListMaxSize()
+    return IKST_Access.sandboxInt("ClaimListMaxSize", 200, 10, 1000)
+end
+
 function IKST_Access.canToggleUtilities(player)
     if IKST_Access.isSinglePlayer() then
         return true
+    end
+    if not IKST_Access.utilitiesToggleEnabled() then
+        return false
     end
     player = IKST.resolvePlayer(player)
     if not player then

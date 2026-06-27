@@ -153,7 +153,7 @@ IKST.Plugins.register("tiles", {
         return player ~= nil
     end,
     canUseAdmin = function(player)
-        return IKST_Access.canUseTools(player)
+        return IKST_Access.canUseStaffTools(player)
     end,
     handleServer = function(command, player, args)
         if not IKST_TilesOps or not IKST_TilesOps.handle then

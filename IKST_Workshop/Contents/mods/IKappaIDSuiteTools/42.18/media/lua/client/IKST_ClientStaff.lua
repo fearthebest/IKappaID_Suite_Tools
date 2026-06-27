@@ -12,6 +12,10 @@ function IKST_ClientStaff.runWeather(player, preset)
     if not player or not preset then
         return
     end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        IKST.dispatchCommand(player, IKST.CMD.setWeather, { preset = preset })
+        return
+    end
     if type(isClient) == "function" and isClient() then
         local ok, msg = IKST_ClimatePresets.applyPreset(preset)
         if msg then
@@ -25,6 +29,10 @@ end
 function IKST_ClientStaff.runClearWeather(player)
     player = IKST.resolvePlayer(player)
     if not player then
+        return
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        IKST.dispatchCommand(player, IKST.CMD.clearWeather, {})
         return
     end
     if type(isClient) == "function" and isClient() then

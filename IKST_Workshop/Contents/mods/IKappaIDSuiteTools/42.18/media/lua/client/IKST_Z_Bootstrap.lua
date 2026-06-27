@@ -152,6 +152,35 @@ local function onServerCommand(module, command, args)
         end
         return
     end
+
+    if command == IKST.CMD.utilitySync then
+        if args then
+            if args.waterOn ~= nil then
+                IKST.applyUtilitySandboxVar("water", args.waterOn and IKST_Utility.FAR_FUTURE or -1)
+            end
+            if args.powerOn ~= nil then
+                IKST.applyUtilitySandboxVar("power", args.powerOn and IKST_Utility.FAR_FUTURE or -1)
+            end
+        end
+        if IKST_JobsPanel and IKST_JobsPanel.instance then
+            IKST_JobsPanel.instance:refreshJobUI()
+        end
+        return
+    end
+
+    if command == IKST.CMD.auditTailResult then
+        if args and args.entries and IKST.pushLog then
+            for i = #args.entries, 1, -1 do
+                local row = args.entries[i]
+                if row then
+                    local line = tostring(row.cmd or "?") .. " " .. (row.ok and "ok" or "deny")
+                        .. " " .. tostring(row.user or "?") .. " " .. tostring(row.reason or "")
+                    IKST.pushLog(player, line)
+                end
+            end
+        end
+        return
+    end
 end
 
 local function onGameStart()

@@ -63,7 +63,7 @@ IKST.Plugins.register("vehicles", {
     modId = "IKappaIDSuiteToolsVehicles",
     adminCommands = ADMIN_COMMANDS,
     canUseAdmin = function(player)
-        return IKST_Access.canUseTools(player)
+        return IKST_Access.canUseStaffTools(player)
     end,
     handleServer = function(command, player, args)
         if not IKST_VehicleOps or not IKST_VehicleOps.handle then

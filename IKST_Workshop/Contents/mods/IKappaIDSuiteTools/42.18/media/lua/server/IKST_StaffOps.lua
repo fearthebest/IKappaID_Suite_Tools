@@ -208,14 +208,11 @@ function IKST_StaffOps.giveItem(player, itemType, count)
     if not player or not player.getInventory then
         return false, "no player"
     end
-    itemType = tostring(itemType or "Base.Axe")
-    count = math.floor(tonumber(count) or 1)
-    if count < 1 then
-        count = 1
+    if not IKST_Args then
+        require "IKST_Args"
     end
-    if count > 100 then
-        count = 100
-    end
+    itemType = IKST_Args.readItemType({ type = itemType }, "type") or "Base.Axe"
+    count = IKST_Args.readAmount({ count = count }, "count", 1, 100) or 1
     local inv = player:getInventory()
     local given = 0
     for _ = 1, count do
