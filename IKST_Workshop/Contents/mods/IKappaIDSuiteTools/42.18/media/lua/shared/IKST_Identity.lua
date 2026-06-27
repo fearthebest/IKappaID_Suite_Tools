@@ -825,7 +825,7 @@ function IKST_Identity.migratePlayerOnConnect(player)
             end
         end
         if IKST.transmitModData and IKST.ModDataKeys then
-            IKST.transmitModData(IKST.ModDataKeys.worldRules)
+            IKST.transmitModData(IKST.ModDataKeys.WorldRules)
         end
     end
 end
