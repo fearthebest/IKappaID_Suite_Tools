@@ -99,6 +99,9 @@ function IKST_TransferGuard.wrapGrab()
 end
 
 function IKST_TransferGuard.init()
+    if isDedicated and isDedicated() then
+        return
+    end
     if not ISInventoryTransferAction then
         require "TimedActions/ISInventoryTransferAction"
     end

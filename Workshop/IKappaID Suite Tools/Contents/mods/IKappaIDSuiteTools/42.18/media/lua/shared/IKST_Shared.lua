@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.4"
+IKST.VERSION = "0.2.5"
 
 IKST.CMD = {
     inspectSquare = "inspectSquare",

@@ -1,9 +1,10 @@
 # IKappaID Suite Tools — Changelog
 
-## 0.2.4 (2026-06-27)
+## 0.2.5 (2026-06-27)
 
-### Security release (Tier C hardening — ship candidate)
+### Security & Stability release (Tier C hardening)
 
+- **Dedicated Server:** Fixed crash at startup on dedicated servers caused by client-side TimedActions loading.
 - **Locks:** Passwords server-only; clients sync `IKST_LocksPublic` locked flags only (no plaintext passwords in ModData).
 - **Economy:** ATM/bank ops require player proximity; full economy store no longer transmitted to MP clients (per-player snapshot cache).
 - **Claims:** Vehicle and safehouse claim require proximity for non-admin players.
