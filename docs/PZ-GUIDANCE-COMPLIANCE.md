@@ -26,7 +26,7 @@
 | §9 Grep audit | **2 / 2** | partial | — |
 | §10 Content / IP | **2 / 2** | pass | Yes |
 
-**Verdict:** IKST **does not pass** MOD-QUALITY-CHECK for hostile public MP. Tier C improved command gating; several guidance **Blockers** remain (coords trust, ModData secrets, server JVM guards, IB sign-off).
+**Verdict (0.2.4):** P0 security fixes implemented. Run `REDTEAM-TIER-C.md` on IB before public MP ship.
 
 ---
 

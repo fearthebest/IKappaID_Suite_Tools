@@ -110,9 +110,15 @@ function IKST_Utility.broadcastSync()
     end
 end
 
--- WPControl pattern (client JVM only): copy sandbox, set modifier, sendToServer (MP) or toLua (SP).
+-- SP only: apply sandbox utility modifiers locally. MP uses server quickWater/quickPower.
 function IKST.setUtilityOn(which, on)
     if type(isClient) == "function" and not isClient() then
+        return false
+    end
+    if IKST.isMultiplayerSession() then
+        if type(isServer) == "function" and isServer() then
+            return IKST.setUtilityOnServer(which, on == true)
+        end
         return false
     end
     if not SandboxOptions or not SandboxOptions.new or not getSandboxOptions then
@@ -130,19 +136,11 @@ function IKST.setUtilityOn(which, on)
         return false
     end
     opt:setValue(value)
-
-    if IKST.isMultiplayerSession() then
-        if not options.sendToServer then
-            return false
-        end
-        options:sendToServer()
-    else
-        if live.copyValuesFrom then
-            live:copyValuesFrom(options)
-        end
-        if live.toLua then
-            live:toLua()
-        end
+    if live.copyValuesFrom then
+        live:copyValuesFrom(options)
+    end
+    if live.toLua then
+        live:toLua()
     end
     IKST.applyUtilitySandboxVar(which, value)
     return true

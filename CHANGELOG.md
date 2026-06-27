@@ -1,5 +1,17 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.2.4 (2026-06-27)
+
+### Security release (Tier C hardening — ship candidate)
+
+- **Locks:** Passwords server-only; clients sync `IKST_LocksPublic` locked flags only (no plaintext passwords in ModData).
+- **Economy:** ATM/bank ops require player proximity; full economy store no longer transmitted to MP clients (per-player snapshot cache).
+- **Claims:** Vehicle and safehouse claim require proximity for non-admin players.
+- **Utilities:** `setUtilityOn` no-op on MP remote client; server `quickWater`/`quickPower` only.
+- **ServerGate:** Extended `IKST_Args` validation for locks, economy, claims, vehicle IDs.
+- **Tiles:** Lock player commands require `playerClaimsEnabled`.
+- **Dev:** Server JVM guards on all `server/*.lua` files; removed dead `playerMayRunCommand` and economy throttle.
+
 ## 0.2.3 (2026-06-25)
 
 ### Economy tiles (World Edit addon)

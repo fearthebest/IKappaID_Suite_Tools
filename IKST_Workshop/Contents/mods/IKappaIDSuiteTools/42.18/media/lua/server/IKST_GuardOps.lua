@@ -1,7 +1,12 @@
 -- World Guard server operations.
+if type(isClient) == "function" and isClient()
+    and type(isServer) == "function" and not isServer() then
+    return
+end
 
 require "IKST_Shared"
 require "IKST_Access"
+require "IKST_Args"
 require "IKST_Grid"
 require "IKST_Claim"
 require "IKST_ClaimPolicy"
@@ -663,6 +668,10 @@ function IKST_GuardOps.handle(command, admin, args)
     if command == IKST.CMD.safehouseClaim then
         if not IKST_GuardOps.actorIsAdmin(admin) then
             args.owner = IKST_GuardOps.username(admin)
+            local dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+            if not IKST_Args.actorNearCoord(admin, ax, ay, az, dist) then
+                return false, "too far"
+            end
         end
         return IKST_GuardOps.claimSafehouse(admin, ax, ay, az, args.size, args.owner, args.claimMode, args.w, args.h)
     end
@@ -706,6 +715,19 @@ function IKST_GuardOps.handle(command, admin, args)
         end
         if not vid then
             return false, "no vehicle nearby — pick one in the list"
+        end
+        if not IKST_GuardOps.actorIsAdmin(admin) then
+            local vidNum = tonumber(vid)
+            if vidNum then
+                local v = IKST_VehicleUtil.getVehicle(vidNum)
+                if not v then
+                    return false, "vehicle not found"
+                end
+                local vz = v.getZ and v:getZ() or 0
+                if not IKST_Args.actorNearCoord(admin, v:getX(), v:getY(), vz, IKST.getVehicleNearRadius()) then
+                    return false, "too far"
+                end
+            end
         end
         local ownerKey = IKST_Identity.accountKey(admin)
         if IKST_GuardOps.actorIsAdmin(admin) and args.owner and args.owner ~= "" then

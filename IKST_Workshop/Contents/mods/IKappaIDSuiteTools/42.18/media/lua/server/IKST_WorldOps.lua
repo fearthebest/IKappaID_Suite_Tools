@@ -1,3 +1,7 @@
+if type(isClient) == "function" and isClient()
+    and type(isServer) == "function" and not isServer() then
+    return
+end
 -- Core world ops kept in base (results, inspect bridge, zombie threat scans).
 
 require "IKST_Shared"

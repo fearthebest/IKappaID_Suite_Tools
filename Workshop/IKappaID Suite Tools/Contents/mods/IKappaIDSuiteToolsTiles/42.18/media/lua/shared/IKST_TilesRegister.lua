@@ -1,4 +1,5 @@
 require "IKST_Plugins"
+require "IKST_ClaimPolicy"
 require "IKST_Access"
 
 local ADMIN_COMMANDS = {
@@ -150,7 +151,13 @@ IKST.Plugins.register("tiles", {
     adminCommands = ADMIN_COMMANDS,
     playerCommands = PLAYER_COMMANDS,
     canUsePlayer = function(player)
-        return player ~= nil
+        if not player then
+            return false
+        end
+        if not IKST_ClaimPolicy.playerClaimsEnabled() then
+            return false
+        end
+        return true
     end,
     canUseAdmin = function(player)
         return IKST_Access.canUseStaffTools(player)

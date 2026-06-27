@@ -9,7 +9,7 @@
 | 1 | Non-admin `sendClientCommand` healSelf | Denied + `[IKST-AUDIT]` deny | ☐ |
 | 2 | Non-admin giveItem | Denied | ☐ |
 | 3 | Non-admin backupSafehouses | Denied | ☐ |
-| 4 | Spoof economyWithdraw far from ATM | too far | ☐ |
+| 4 | Spoof economyWithdraw far from ATM | too far | ☐ (fixed in 0.2.4 — verify on IB) |
 | 5 | Spam lockTryUnlock | rate limited / lockout | ☐ |
 | 6 | Spoof quickWater as player | not allowed / utilities disabled | ☐ |
 | 7 | StaffToolsEnabled=false, admin healSelf | staff tools disabled | ☐ |

@@ -1,3 +1,7 @@
+if type(isClient) == "function" and isClient()
+    and type(isServer) == "function" and not isServer() then
+    return
+end
 require "IKST_Shared"
 require "IKST_Grid"
 require "IKST_TileProtect"

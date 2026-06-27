@@ -909,9 +909,42 @@ function IKST_Economy.persistStore()
     if not IKST_Economy.mayMutateStore() then
         return
     end
-    if ModData and ModData.transmit and IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
-        ModData.transmit(IKST_Economy.STORE_KEY)
+end
+
+function IKST_Economy.cacheClientBalances(player, bank, pending)
+    if not player or not player.getModData then
+        return
     end
+    local md = player:getModData()
+    md.IKST_bank_cache = math.floor(tonumber(bank) or 0)
+    md.IKST_pending_cache = math.floor(tonumber(pending) or 0)
+end
+
+function IKST_Economy.readClientBank(player)
+    if not player or not player.getModData then
+        return 0
+    end
+    local md = player:getModData()
+    return math.floor(tonumber(md.IKST_bank_cache) or 0)
+end
+
+function IKST_Economy.readClientPending(player)
+    if not player or not player.getModData then
+        return 0
+    end
+    local md = player:getModData()
+    return math.floor(tonumber(md.IKST_pending_cache) or 0)
+end
+
+function IKST_Economy.isMpRemoteClient()
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return false
+    end
+    if type(isClient) == "function" and isClient()
+        and type(isServer) == "function" and not isServer() then
+        return true
+    end
+    return false
 end
 
 function IKST_Economy.getAccountByKey(key)
@@ -935,11 +968,23 @@ function IKST_Economy.getAccount(player)
 end
 
 function IKST_Economy.getBank(player)
+    if not player then
+        return 0
+    end
+    if IKST_Economy.isMpRemoteClient() then
+        return IKST_Economy.readClientBank(player)
+    end
     local row = IKST_Economy.getAccount(player)
     return math.floor(tonumber(row.bank) or 0)
 end
 
 function IKST_Economy.getPending(player)
+    if not player then
+        return 0
+    end
+    if IKST_Economy.isMpRemoteClient() then
+        return IKST_Economy.readClientPending(player)
+    end
     local row = IKST_Economy.getAccount(player)
     return math.floor(tonumber(row.pending) or 0)
 end
@@ -1139,6 +1184,9 @@ function IKST_Economy.installModDataReceive()
         if key ~= IKST_Economy.STORE_KEY or not data or data == false then
             return
         end
+        if IKST_Economy.isMpRemoteClient() then
+            return
+        end
         if ModData and ModData.add then
             ModData.add(key, data)
         end
@@ -1154,8 +1202,21 @@ function IKST_Economy.installServerSync()
         return
     end
     local function push()
-        if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
-            IKST_Economy.persistStore()
+        if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+            return
+        end
+        if not getOnlinePlayers then
+            return
+        end
+        local list = getOnlinePlayers()
+        if not list or not list.size then
+            return
+        end
+        for i = 0, list:size() - 1 do
+            local p = list:get(i)
+            if p and IKST_EconomyOps and IKST_EconomyOps.sendSnapshot then
+                IKST_EconomyOps.sendSnapshot(p)
+            end
         end
     end
     if Events and Events.OnGameStart and Events.OnGameStart.Add then

@@ -801,6 +801,10 @@ function IKST_EconomyUI.onSnapshot(args)
     IKST_EconomyUI._snap.cash = args.cash or args.cashBalance or 0
     IKST_EconomyUI._snap.bank = args.bank or 0
     IKST_EconomyUI._snap.pending = args.pending or 0
+    local player = getPlayer()
+    if player and IKST_Economy and IKST_Economy.cacheClientBalances then
+        IKST_Economy.cacheClientBalances(player, IKST_EconomyUI._snap.bank, IKST_EconomyUI._snap.pending)
+    end
     if IKST_EconomyUI.Window then
         IKST_EconomyUI.Window:refreshBalances()
         IKST_EconomyUI.Window:setStatus(IKST.text("IGUI_IKST_Economy_BalancesUpdated", "Balances updated."))

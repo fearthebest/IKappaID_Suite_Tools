@@ -86,6 +86,24 @@ function IKST_Args.readVehicleId(args, key)
     return math.floor(id)
 end
 
+function IKST_Args.readPassword(args, key)
+    if not args then
+        return nil
+    end
+    local p = args[key or "password"]
+    if p == nil then
+        p = args.pass
+    end
+    if p == nil then
+        return nil
+    end
+    p = tostring(p)
+    if p == "" or #p > 32 then
+        return nil
+    end
+    return p
+end
+
 function IKST_Args.actorNearCoord(player, x, y, z, maxDist)
     if not player or x == nil or y == nil then
         return false

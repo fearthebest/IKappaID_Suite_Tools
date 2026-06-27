@@ -12,21 +12,6 @@ require "IKST_StaffOps"
 require "IKST_WorldOps"
 
 IKST_EconomyOps = IKST_EconomyOps or {}
-IKST_EconomyOps._lastCmd = {}
-
-local function throttle(player, ms)
-    ms = ms or 400
-    if not player or not player.getUsername then
-        return false
-    end
-    local name = player:getUsername()
-    local now = getTimeInMillis and getTimeInMillis() or 0
-    if now - (IKST_EconomyOps._lastCmd[name] or 0) < ms then
-        return true
-    end
-    IKST_EconomyOps._lastCmd[name] = now
-    return false
-end
 
 local function syncAdd(inv, item)
     if item and sendAddItemToContainer then
@@ -102,6 +87,9 @@ function IKST_EconomyOps.bankGate(player, x, y, z, action)
     end
     if IKST_Economy.isAtmSquare(x, y, z) and not IKST_Economy.atmAllows(x, y, z, action) then
         return false, "ATM action disabled"
+    end
+    if not IKST_Economy.playerNearCoord(player, x, y, z, IKST_Economy.shopMaxDistance() + 2) then
+        return false, "too far"
     end
     if IKST_Economy.idCardBanking and IKST_Economy.idCardBanking() then
         if not IKST_Identity.hasValidIdCard(player) then
@@ -1240,6 +1228,9 @@ function IKST_EconomyOps.vendEnable(player, x, y, z, ownerName)
 end
 
 function IKST_EconomyOps.vendDisable(player, x, y, z)
+    if not IKST_Economy.playerNearCoord(player, x, y, z, IKST_Economy.shopMaxDistance() + 2) then
+        return false, "too far"
+    end
     local obj = IKST_EconomyOps.findVendObject(x, y, z)
     if not obj then
         return false, "not a shop"
@@ -1299,6 +1290,9 @@ end
 
 function IKST_EconomyOps.vendSetPrice(player, x, y, z, args)
     args = args or {}
+    if not IKST_Economy.playerNearCoord(player, x, y, z, IKST_Economy.shopMaxDistance() + 2) then
+        return false, "too far"
+    end
     local price = math.floor(tonumber(args.price) or 0)
     if price < 0 or price > IKST_Economy.maxVendPrice() then
         return false, "invalid price"

@@ -9,7 +9,7 @@ IKST.ModDataKeys = IKST.ModDataKeys or {
     WorldRules = "IKST_WorldRules",
     VehicleClaim = "IKST_VehicleClaim",
     SafehouseClaim = "IKST_SafehouseClaim",
-    Locks = "IKST_Locks",
+    LocksPublic = "IKST_LocksPublic",
     Waypoints = "IKST_Waypoints",
 }
 
@@ -37,7 +37,7 @@ function IKST_ModDataSync.isSyncedKey(key)
         or key == IKST.ModDataKeys.WorldRules
         or key == IKST.ModDataKeys.VehicleClaim
         or key == IKST.ModDataKeys.SafehouseClaim
-        or key == IKST.ModDataKeys.Locks
+        or key == IKST.ModDataKeys.LocksPublic
         or key == IKST.ModDataKeys.Waypoints
 end
 

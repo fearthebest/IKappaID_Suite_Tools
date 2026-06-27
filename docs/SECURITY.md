@@ -18,8 +18,10 @@
 | Rate abuse | `IKST_RateLimit` per command group |
 | Lock brute force | Per-player lockout after `LockMaxAttempts` fails |
 | Audit | `[IKST-AUDIT]` console lines + ModData ring buffer |
-| Economy distance | Server revalidates ATM/shop distance |
-| Claims | Server ownership checks; list size capped |
+| Economy distance | Server revalidates ATM/shop/player proximity (`bankGate`, `ServerGate`) |
+| Lock passwords | Server-only secrets; clients receive `IKST_LocksPublic` locked flags only |
+| Economy balances (MP) | Per-player snapshot cache; full store not transmitted to clients |
+| Claims | Server ownership + proximity checks for player claims |
 
 ## What IKST does NOT protect
 

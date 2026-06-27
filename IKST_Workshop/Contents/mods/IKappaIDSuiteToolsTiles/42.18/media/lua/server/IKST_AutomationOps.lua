@@ -1,4 +1,8 @@
 -- Admin batch automations (one-shot server batches).
+if type(isClient) == "function" and isClient()
+    and type(isServer) == "function" and not isServer() then
+    return
+end
 
 require "IKST_Shared"
 require "IKST_Grid"

@@ -112,6 +112,77 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
         end
     end
 
+    if command == IKST.CMD.lockTryUnlock then
+        local dist = IKST_Access.sandboxInt("LockInstallDistance", 3, 1, 15)
+        local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+        local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+        local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+        if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, dist) then
+            return false, "too_far", meta
+        end
+        if args.password ~= nil and IKST_Args.readPassword(args, "password") == nil then
+            return false, "bad_password", meta
+        end
+    end
+
+    if command == IKST.CMD.economyDeposit or command == IKST.CMD.economyWithdraw
+        or command == IKST.CMD.economyExchange or command == IKST.CMD.economyExchangeAll
+        or command == IKST.CMD.economyIdCardReissue then
+        local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+        local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+        local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+        local maxDist = 6
+        if IKST_Economy and IKST_Economy.shopMaxDistance then
+            maxDist = IKST_Economy.shopMaxDistance() + 2
+        end
+        if x == nil or y == nil or not IKST_Economy.playerNearCoord(player, x, y, z, maxDist) then
+            return false, "too_far", meta
+        end
+    end
+
+    if command == IKST.CMD.economyVendSetPrice or command == IKST.CMD.economyVendDisable
+        or command == IKST.CMD.economyVendBuy or command == IKST.CMD.economyVendClaim then
+        local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+        local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+        local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+        local maxDist = 6
+        if IKST_Economy and IKST_Economy.shopMaxDistance then
+            maxDist = IKST_Economy.shopMaxDistance() + 2
+        end
+        if x == nil or y == nil or not IKST_Economy.playerNearCoord(player, x, y, z, maxDist) then
+            return false, "too_far", meta
+        end
+    end
+
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
+        if command == IKST.CMD.vehicleClaim and not IKST_Access.canUseTools(player) then
+            local vid = IKST_Args.readVehicleId(args, "vehicleId")
+            if vid then
+                if not IKST_VehicleUtil then
+                    require "IKST_VehicleUtil"
+                end
+                local v = IKST_VehicleUtil and IKST_VehicleUtil.getVehicle(vid)
+                if not v then
+                    return false, "bad_vehicle", meta
+                end
+                local vz = v.getZ and v:getZ() or 0
+                if not IKST_Args.actorNearCoord(player, v:getX(), v:getY(), vz, IKST.getVehicleNearRadius()) then
+                    return false, "too_far", meta
+                end
+            end
+        end
+
+        if command == IKST.CMD.safehouseClaim and not IKST_Access.canUseTools(player) then
+            local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+            local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+            local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+            local dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+            if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, dist) then
+                return false, "too_far", meta
+            end
+        end
+    end
+
     return true, "ok", meta
 end
 
@@ -239,6 +310,10 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "invalid count"
     elseif msg == "bad_coords" then
         msg = "invalid coordinates"
+    elseif msg == "bad_password" then
+        msg = "invalid password"
+    elseif msg == "bad_vehicle" then
+        msg = "invalid vehicle"
     end
     if IKST_AuditLog and IKST_AuditLog.record then
         IKST_AuditLog.record(player, command, args, false, msg)

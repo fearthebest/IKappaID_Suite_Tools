@@ -21,16 +21,6 @@ require "IKST_AuditLog"
 
 IKST_Server = IKST_Server or {}
 
-function IKST_Server.playerMayRunCommand(playerObj, command)
-    if IKST_Access.canUseTools(playerObj) then
-        return true
-    end
-    if not IKST_ClaimPolicy.playerClaimsEnabled() then
-        return false
-    end
-    return IKST.PLAYER_CLAIM_COMMANDS and IKST.PLAYER_CLAIM_COMMANDS[command] == true
-end
-
 local function readCoord(args, key)
     return IKST_Args.readCoord(args, key)
 end
