@@ -49,23 +49,22 @@ If you need a new admin-only craft item, omit `craftRecipe` from the item script
 3. **Disable/unsubscribe** the Steam Workshop copy of IKST (Workshop ID `3750835193`) so it cannot override your local files.
 4. Confirm this file exists in your game copy:
 
-   `Contents/mods/IKappaIDSuiteTools/SANDBOX_BUILD.txt`
+   `Contents/mods/IKappaIDSuiteTools/42.18/media/lua/client/IKST_Z_Bootstrap.lua`
 
-   If that file is missing, the game is **not** loading this build.
+   and `modversion=0.2.6` in `42.18/mod.info`. If Bootstrap is missing, the game is **not** loading this build.
 
 5. In Sandbox Options, pick a **new preset** (saved presets like "TestingMods" cache the old layout).
 6. Fully quit and restart Project Zomboid.
 
-**Correct B42 layout (matches Skill Recovery Journal `2503622437`):**
+**Correct B42 layout (0.2.6 — sandbox + Lua in `42.18/`; no `42.19/` stub):**
 
 ```text
 IKappaIDSuiteTools/
   mod.info
   common/mod.info
-  common/media/lua/shared/Translate/EN/Sandbox.json
-  common/media/lua/shared/Translate/EN/Sandbox_EN.txt
-  42.19/media/sandbox-options.txt
-  42.18/media/... (lua scripts)
+  42.18/media/sandbox-options.txt
+  42.18/media/lua/shared/Translate/EN/Sandbox.json
+  42.18/media/lua/... (client, server, shared)
 ```
 
 **In-game you should see:** sidebar tabs **IKST: General**, **IKST: Claims**, first option **Enable IKST**.
@@ -76,7 +75,7 @@ IKappaIDSuiteTools/
 
 | Layer | Details |
 |-------|---------|
-| **Version** | `modversion=0.2.3`, `versionMin=42.18` (runs on B42.19) |
+| **Version** | `modversion=0.2.6`, `versionMin=42.18` (runs on B42.19 via `42.18/` fallback) |
 | **Branch** | `cursor/tier-c-testing-05ab` adds Tier C security (ServerGate, RateLimit, AuditLog, Args) |
 | **Addons** | Base → Economy, Tiles, Loot (optional); Vehicles requires Tiles |
 

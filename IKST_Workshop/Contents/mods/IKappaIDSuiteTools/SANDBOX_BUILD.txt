@@ -1,4 +1,0 @@
-IKST sandbox build: 2026-06-27
-Expected in-game: sidebar tabs IKST: General, IKST: Claims, etc.
-Expected first option: Enable IKST
-If you still see VehicleListRadius first or raw keys, the game is NOT loading this folder.

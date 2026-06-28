@@ -1,6 +1,6 @@
 -- Client enforcement for inventory transfer and vehicle claims.
 -- Chains vanilla timed-action isValid/perform; rules live in shared IKST_* modules.
--- See ENFORCEMENT.md in the Workshop folder.
+-- Maintainer notes: docs/ENFORCEMENT.md (not shipped in Workshop tree).
 
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return

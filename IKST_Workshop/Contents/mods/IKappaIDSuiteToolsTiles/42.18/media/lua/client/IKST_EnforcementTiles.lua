@@ -1,6 +1,6 @@
 -- Client enforcement for tile protection (sledge destroy, movable pickup).
 -- Chains vanilla cursor/tool methods; rules live in IKST_TileCheck / IKST_SafehouseClaim.
--- See ENFORCEMENT.md in the Workshop folder.
+-- Maintainer notes: docs/ENFORCEMENT.md (not shipped in Workshop tree).
 
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return

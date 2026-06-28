@@ -1,5 +1,7 @@
 # IKST client enforcement
 
+Dev reference — **not** shipped in the Workshop upload tree (`IKST_Workshop/`).
+
 IKST blocks unauthorized looting, vehicle use, and sledge destruction by **chaining vanilla functions**, not by replacing vanilla files.
 
 Rules (who may do what) live in **shared** modules on the server path. Client enforcement only asks those rules before vanilla code runs.

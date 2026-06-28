@@ -4,10 +4,11 @@
 
 ### Claims enforcement (plain client integration)
 
-- **Vehicle claims:** Unauthorized players cannot enter claimed vehicles or loot trunks/seats; permission checks use shared `IKST_VehicleClaim` rules.
+- **Arrival Stabilization:** Zombie-immunity grace period after joining or respawning to prevent unfair deaths during sync (configurable in sandbox).
+- **Server Briefing:** Custom server information and rules panel accessible from the ESC menu and Everyone workspace.
+- **Claims enforcement:** Unauthorized players cannot enter claimed vehicles, loot trunks/seats, or destroy protected tiles; permission checks use shared rule modules.
 - **Transfer guard:** Inventory transfer and ground pickup blocked when rules deny access (vehicles, dropboxes, locks, readonly tiles, safehouse claims).
-- **Tile / safehouse protection (World Edit addon):** Sledge destroy cursor and movable pickup respect protected tiles and player safe-area claims.
-- **Architecture:** Centralized `IKST_Enforcement` (core) and `IKST_EnforcementTiles` (Tiles addon); chains vanilla methods and calls shared rule modules. `IKST_VehicleClaimWatch` remains a backup eject/engine cut.
+- **Architecture:** Centralized `IKST_Enforcement` (core) and `IKST_EnforcementTiles` (Tiles addon); chains vanilla methods for better compatibility.
 - **Stability:** Briefing loader uses `fileExists` before read (no crash when briefing folder is missing). Removed incomplete `42.19/` stub folders that prevented Lua from loading on B42.19.
 
 ## 0.2.5 (2026-06-27)

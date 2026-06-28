@@ -1,4 +1,4 @@
--- Server Briefing: resolve section text (defaults + optional host file overrides).
+-- Server Briefing: resolve section text (defaults + host file overrides).
 
 if type(isClient) == "function" and isClient()
     and type(isServer) == "function" and not isServer() then
@@ -11,31 +11,22 @@ require "IKST_Briefing"
 IKST_BriefingServer = IKST_BriefingServer or {}
 IKST_BriefingServer._cache = IKST_BriefingServer._cache or {}
 
-local function hostBriefingPath(sectionId)
-    return "IKST/Briefing/" .. tostring(sectionId) .. ".txt"
-end
-
 local function readHostFile(sectionId)
     if not getFileReader then
         return nil
     end
-    local path = hostBriefingPath(sectionId)
-    if fileExists and not fileExists(path) then
-        return nil
-    end
-    local reader = getFileReader(path, false)
+    local path = "IKST/Briefing/" .. tostring(sectionId) .. ".txt"
+    local reader = getFileReader(path, true)
     if not reader then
         return nil
     end
     local lines = {}
-    local line = reader.readLine and reader:readLine() or nil
+    local line = reader:readLine()
     while line do
         lines[#lines + 1] = line
-        line = reader.readLine and reader:readLine() or nil
+        line = reader:readLine()
     end
-    if reader.close then
-        reader:close()
-    end
+    reader:close()
     if #lines == 0 then
         return nil
     end

@@ -1,4 +1,4 @@
--- Shared inventory transfer rules (server authority + UI checks).
+-- Shared inventory transfer rules (client hooks + server guard).
 
 require "IKST_Shared"
 require "IKST_Access"

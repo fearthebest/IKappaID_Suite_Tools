@@ -9,7 +9,7 @@ Each addon ships:
 - `{build}/media/sandbox-options.txt` — option definitions (`page`, `translation`, optional `tooltip`)
 - `{build}/media/lua/shared/Translate/EN/Sandbox.json` — human-readable labels
 
-For B42.19 the active build folder is **`42.19/`**. Translation JSON must live in that folder (same as `sandbox-options.txt`), not only in `common/`.
+For B42.19 use **`42.18/`** for both `sandbox-options.txt` and `Sandbox.json` (do **not** ship a sandbox-only `42.19/` stub — it blocks Lua from loading). `common/` alone is not loaded for sandbox UI on current Unstable builds.
 
 Expected in-game tabs: **IKST: General**, **IKST: Claims**, **IKST: Admin Tools**, **IKST: Security & Logs**, **IKST: Miscellaneous**, plus Economy / Tiles / Vehicles / Loot addon tabs.
 
