@@ -87,16 +87,22 @@ function IKST_Access.isAdmin(player)
     if IKST.isCoopHostPlayer and IKST.isCoopHostPlayer(player) then
         return true
     end
-    if isAdmin and isAdmin() then
-        return true
-    end
     local lvl = ""
     if player.getAccessLevel then
         lvl = string.lower(tostring(player:getAccessLevel() or ""))
     elseif getAccessLevel then
         lvl = string.lower(tostring(getAccessLevel() or ""))
     end
-    return lvl == "admin"
+    if lvl == "admin" then
+        return true
+    end
+    if lvl ~= "" then
+        return false
+    end
+    if isAdmin and isAdmin() then
+        return true
+    end
+    return false
 end
 
 function IKST_Access.canUseTools(player)

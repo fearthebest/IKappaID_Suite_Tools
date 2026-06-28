@@ -51,7 +51,13 @@ end
 
 function IKST_Server.handleUtilityToggle(playerObj, command, args)
     local which = command == IKST.CMD.quickWater and "water" or "power"
-    local wantOn = not (which == "water" and IKST.isWaterOn() or IKST.isPowerOn())
+    local currentlyOn
+    if which == "water" then
+        currentlyOn = IKST.isWaterOn()
+    else
+        currentlyOn = IKST.isPowerOn()
+    end
+    local wantOn = not currentlyOn
     if args and args.on ~= nil then
         wantOn = args.on == true
     end

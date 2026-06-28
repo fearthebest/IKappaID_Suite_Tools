@@ -1,5 +1,14 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.2.6.1 (2026-06-28)
+
+### Dedicated MP fixes
+
+- **Arrival Stabilization:** Server detects players via `getOnlinePlayers()` on dedicated hosts (client-only `OnCreatePlayer` / `OnConnected` no longer required); grace start logged to server console; client toast + HUD on sync.
+- **Identity on connect:** Same dedicated-server player scan for ID card / economy migration on join; death uses `OnCharacterDeath` on server.
+- **Vehicle claims UI:** Shared `IKST_VehicleKeys.lua` fixes client `require("IKST_VehicleUtil") failed` on context menu.
+- **Staff / world tools (from 0.2.6 session):** MP weather on admin client, waypoint teleport sync, lifecycle world-ready on dedicated server, tile/loot rate-limit buckets, vegetation single-pick mode.
+
 ## 0.2.6 (2026-06-28)
 
 ### Claims enforcement (plain client integration)

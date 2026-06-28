@@ -10,6 +10,7 @@ require "IKST_Arrival"
 
 IKST_ArrivalServer = IKST_ArrivalServer or {}
 IKST_ArrivalServer._grace = IKST_ArrivalServer._grace or {}
+IKST_ArrivalServer._track = IKST_ArrivalServer._track or {}
 
 local function nowMs()
     if getTimestampMs then
@@ -107,6 +108,8 @@ function IKST_ArrivalServer.beginGrace(player, reason)
     if IKST_AuditLog and IKST_AuditLog.record then
         IKST_AuditLog.record(player, "arrivalStart", { reason = reason, ms = duration }, true, "grace started")
     end
+    local who = playerKey(player) or "?"
+    print("[IKST] Arrival grace started for " .. who .. " reason=" .. tostring(reason) .. " ms=" .. tostring(duration))
 end
 
 function IKST_ArrivalServer.onPlayerConnect(player, reason)
@@ -141,32 +144,125 @@ function IKST_ArrivalServer.enforce(player)
     end
 end
 
-local function onPlayerDeath(player)
-    if not player or not player.getModData then
-        return
+local function playerInWorld(player)
+    if not player then
+        return false
     end
-    local md = player:getModData()
-    md.IKST_pendingRespawnGrace = true
+    if player.isDead and player:isDead() then
+        return false
+    end
+    if player.getSquare then
+        local sq = player:getSquare()
+        if sq then
+            return true
+        end
+    end
+    if player.getX and player.getY then
+        local x = player:getX()
+        local y = player:getY()
+        if x and y and (x ~= 0 or y ~= 0) then
+            return true
+        end
+    end
+    return false
 end
 
-local function resolveConnectReason(player)
-    if not player or not player.getModData then
-        return "join"
+local function trackFor(player)
+    local key = playerKey(player)
+    if not key then
+        return nil, nil
     end
-    local md = player:getModData()
-    if md.IKST_pendingRespawnGrace then
-        md.IKST_pendingRespawnGrace = nil
-        return "respawn"
+    local track = IKST_ArrivalServer._track[key]
+    if not track then
+        track = {}
+        IKST_ArrivalServer._track[key] = track
     end
-    return "join"
+    return key, track
+end
+
+local function markPendingRespawn(player)
+    local _, track = trackFor(player)
+    if track then
+        track.pendingRespawn = true
+    end
+end
+
+local function tryStartGrace(player)
+    if not IKST_Arrival.enabled() or not playerInWorld(player) then
+        return
+    end
+    local _, track = trackFor(player)
+    if not track then
+        return
+    end
+    local reason = nil
+    if track.pendingRespawn then
+        track.pendingRespawn = false
+        reason = "respawn"
+    elseif not track.joinHandled then
+        track.joinHandled = true
+        reason = "join"
+    else
+        return
+    end
+    IKST_ArrivalServer.onPlayerConnect(player, reason)
+end
+
+local function pruneDisconnected()
+    local online = {}
+    local list = getOnlinePlayers and getOnlinePlayers()
+    if list and list.size then
+        for i = 0, list:size() - 1 do
+            local p = list:get(i)
+            local key = playerKey(p)
+            if key then
+                online[key] = true
+            end
+        end
+    else
+        local sp = getSpecificPlayer and getSpecificPlayer(0)
+        local key = playerKey(sp)
+        if key then
+            online[key] = true
+        end
+    end
+    for key in pairs(IKST_ArrivalServer._track) do
+        if not online[key] then
+            IKST_ArrivalServer._track[key] = nil
+            IKST_ArrivalServer._grace[key] = nil
+        end
+    end
+end
+
+local function foreachOnlinePlayer(fn)
+    local list = getOnlinePlayers and getOnlinePlayers()
+    if list and list.size then
+        for i = 0, list:size() - 1 do
+            local p = list:get(i)
+            if p then
+                fn(p)
+            end
+        end
+        return
+    end
+    local sp = getSpecificPlayer and getSpecificPlayer(0)
+    if sp then
+        fn(sp)
+    end
+end
+
+local function onCharacterDeath(character)
+    if not character or not instanceof or not instanceof(character, "IsoPlayer") then
+        return
+    end
+    markPendingRespawn(character)
 end
 
 local function hookPlayerConnect(player)
     if not IKST_Arrival.enabled() then
         return
     end
-    local reason = resolveConnectReason(player)
-    IKST_ArrivalServer.onPlayerConnect(player, reason)
+    tryStartGrace(player)
 end
 
 local function onCreatePlayer(playerIndex)
@@ -185,8 +281,8 @@ if Events then
     if Events.OnConnected then
         Events.OnConnected.Add(onConnected)
     end
-    if Events.OnPlayerDeath then
-        Events.OnPlayerDeath.Add(onPlayerDeath)
+    if Events.OnCharacterDeath then
+        Events.OnCharacterDeath.Add(onCharacterDeath)
     end
     if Events.OnTick then
         Events.OnTick.Add(function()
@@ -194,20 +290,11 @@ if Events then
             if IKST_ArrivalServer._tick % 15 ~= 0 then
                 return
             end
-            local list = getOnlinePlayers and getOnlinePlayers()
-            if not list or not list.size then
-                local sp = getSpecificPlayer and getSpecificPlayer(0)
-                if sp then
-                    IKST_ArrivalServer.enforce(sp)
-                end
-                return
-            end
-            for i = 0, list:size() - 1 do
-                local p = list:get(i)
-                if p then
-                    IKST_ArrivalServer.enforce(p)
-                end
-            end
+            pruneDisconnected()
+            foreachOnlinePlayer(function(p)
+                tryStartGrace(p)
+                IKST_ArrivalServer.enforce(p)
+            end)
         end)
     end
 end

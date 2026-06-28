@@ -14,6 +14,42 @@ IKST_StaffOps.KITS = {
     Food = { {"Base.TinnedBeans", 5}, {"Base.WaterBottleFull", 3} },
 }
 
+function IKST_StaffOps.addItemToInventory(inv, itemType)
+    if not inv or not itemType or itemType == "" then
+        return false
+    end
+    if instanceItem then
+        local item = instanceItem(itemType)
+        if not item then
+            return false
+        end
+        if not inv:AddItem(item) then
+            return false
+        end
+        if sendAddItemToContainer then
+            sendAddItemToContainer(inv, item)
+        end
+        if inv.setDrawDirty then
+            inv:setDrawDirty(true)
+        end
+        return true
+    end
+    if not inv.AddItem then
+        return false
+    end
+    local added = inv:AddItem(itemType, 1, true)
+    if type(added) == "boolean" then
+        if added and inv.setDrawDirty then
+            inv:setDrawDirty(true)
+        end
+        return added
+    end
+    if added and inv.setDrawDirty then
+        inv:setDrawDirty(true)
+    end
+    return added ~= nil
+end
+
 -- Local constants (do not alias IKST_ClimatePresets at load — require order can leave it nil).
 IKST_StaffOps.CLIMATE = {
     desat = 0,
@@ -41,23 +77,41 @@ end
 
 function IKST_StaffOps.teleportPlayer(player, x, y, z)
     if not player then
-        return
+        return false
     end
+    x = tonumber(x)
+    y = tonumber(y)
     z = tonumber(z) or 0
+    if not x or not y then
+        return false
+    end
     local vehicle = player.getVehicle and player:getVehicle()
-    if vehicle and vehicle.exit then
+    if vehicle and type(vehicle.exit) == "function" then
         vehicle:exit(player)
     end
-    player:setX(x)
-    player:setY(y)
-    player:setZ(z)
-    if player.setLx then
-        player:setLx(x)
-        player:setLy(y)
+    if type(player.teleportTo) == "function" then
+        player:teleportTo(x, y, z)
+    else
+        player:setX(x)
+        player:setY(y)
+        player:setZ(z)
+        if type(player.setLx) == "function" then
+            player:setLx(x)
+            player:setLy(y)
+        end
+        if type(player.setLz) == "function" then
+            player:setLz(z)
+        end
     end
-    if player.setLz then
-        player:setLz(z)
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if type(teleportPlayers) == "function" then
+            teleportPlayers(player)
+        end
+        if IKST.deliverClientCommand then
+            IKST.deliverClientCommand(player, IKST.CMD.applyTeleport, { x = x, y = y, z = z })
+        end
     end
+    return true
 end
 
 function IKST_StaffOps.findPlayerByOnlineID(id)
@@ -220,7 +274,7 @@ function IKST_StaffOps.giveItem(player, itemType, count)
     local inv = player:getInventory()
     local given = 0
     for _ = 1, count do
-        if inv:AddItem(itemType) then
+        if IKST_StaffOps.addItemToInventory(inv, itemType) then
             given = given + 1
         end
     end
@@ -241,7 +295,7 @@ function IKST_StaffOps.giveKit(player, kitName)
         local itemType = entry[1]
         local qty = entry[2] or 1
         for _ = 1, qty do
-            if inv:AddItem(itemType) then
+            if IKST_StaffOps.addItemToInventory(inv, itemType) then
                 n = n + 1
             end
         end
@@ -612,7 +666,9 @@ function IKST_StaffOps.handle(command, player, args)
         if not wp then
             return false, "no such waypoint"
         end
-        IKST_StaffOps.teleportPlayer(player, wp.x, wp.y, wp.z)
+        if not IKST_StaffOps.teleportPlayer(player, wp.x, wp.y, wp.z) then
+            return false, "bad waypoint coords"
+        end
         return true, "TP '" .. wp.name .. "'"
     end
     if command == IKST.CMD.feedTarget then

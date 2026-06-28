@@ -7,6 +7,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Access"
+require "IKST_Plugins"
 
 IKST_RateLimit = IKST_RateLimit or {}
 IKST_RateLimit._state = IKST_RateLimit._state or {}
@@ -19,6 +20,9 @@ local GROUPS = {
     staff_tp = { intervalMs = 1000, burst = 1 },
     staff_power = { intervalMs = 1000, burst = 1 },
     staff_world = { intervalMs = 1000, burst = 1 },
+    tiles_edit = { intervalMs = 100, burst = 15 },
+    tiles_batch = { intervalMs = 1500, burst = 2 },
+    loot_edit = { intervalMs = 100, burst = 15 },
     threat_cull = { intervalMs = 5000, burst = 1 },
     claim_write = { intervalMs = 1000, burst = 1 },
     lock_auth = { intervalMs = 12000, burst = 5 },
@@ -34,7 +38,70 @@ function IKST_RateLimit.enabled()
     return IKST_Access.sandboxBool("RateLimitEnabled", true)
 end
 
+function IKST_RateLimit.isTilesBatchCommand(command)
+    if command == IKST.CMD.cleanupRadius or command == IKST.CMD.cleanupCube
+        or command == IKST.CMD.cleanupRoom or command == IKST.CMD.cleanupBuilding
+        or command == IKST.CMD.cleanupVegetation then
+        return true
+    end
+    if IKST.AUTO_COMMANDS and IKST.AUTO_COMMANDS[command] then
+        return true
+    end
+    return false
+end
+
+function IKST_RateLimit.isTilesAdminCommand(command)
+    if not IKST.Plugins or not IKST.Plugins.findCommandSpec then
+        return false
+    end
+    local pluginId, _, tier = IKST.Plugins.findCommandSpec(command)
+    if pluginId ~= "tiles" or tier ~= "admin" then
+        return false
+    end
+    return true
+end
+
+function IKST_RateLimit.isLootAdminCommand(command)
+    if not IKST.Plugins or not IKST.Plugins.findCommandSpec then
+        return false
+    end
+    local pluginId, _, tier = IKST.Plugins.findCommandSpec(command)
+    if pluginId ~= "loot" or tier ~= "admin" then
+        return false
+    end
+    return true
+end
+
+function IKST_RateLimit.isAddonAdminEditCommand(command)
+    if IKST_RateLimit.isTilesBatchCommand(command) then
+        return false
+    end
+    if not IKST.Plugins or not IKST.Plugins.findCommandSpec then
+        return false
+    end
+    local pluginId, _, tier = IKST.Plugins.findCommandSpec(command)
+    if tier ~= "admin" or not pluginId then
+        return false
+    end
+    if pluginId == "economy" or pluginId == "tiles" or pluginId == "loot" then
+        return false
+    end
+    return true
+end
+
 function IKST_RateLimit.groupForCommand(command)
+    if IKST_RateLimit.isTilesBatchCommand(command) then
+        return "tiles_batch"
+    end
+    if IKST_RateLimit.isLootAdminCommand(command) then
+        return "loot_edit"
+    end
+    if IKST_RateLimit.isTilesAdminCommand(command) then
+        return "tiles_edit"
+    end
+    if IKST_RateLimit.isAddonAdminEditCommand(command) then
+        return "tiles_edit"
+    end
     if command == IKST.CMD.threatCull then
         return "threat_cull"
     end
@@ -66,6 +133,7 @@ function IKST_RateLimit.groupForCommand(command)
         return "lock_auth"
     end
     if command == IKST.CMD.safehouseList or command == IKST.CMD.vehicleClaimList
+        or command == IKST.CMD.vehicleClaimNearby
         or command == IKST.CMD.staffListPlayers or command == IKST.CMD.listWaypoints
         or command == IKST.CMD.dumpPlayers or command == IKST.CMD.threatPopulation
         or command == IKST.CMD.economySnapshot or command == IKST.CMD.economyVendList

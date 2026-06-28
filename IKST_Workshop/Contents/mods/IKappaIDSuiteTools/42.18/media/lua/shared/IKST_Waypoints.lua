@@ -3,6 +3,17 @@ require "IKST_Shared"
 IKST_Waypoints = IKST_Waypoints or {}
 IKST_Waypoints.KEY = "IKST_Waypoints"
 
+function IKST_Waypoints.normalizeName(name)
+    if not name or type(name) ~= "string" then
+        return nil
+    end
+    name = string.gsub(name, "^%s*(.-)%s*$", "%1")
+    if name == "" then
+        return nil
+    end
+    return name
+end
+
 function IKST_Waypoints.sync()
     if IKST.transmitModData then
         IKST.transmitModData(IKST.ModDataKeys and IKST.ModDataKeys.Waypoints or IKST_Waypoints.KEY)
@@ -20,7 +31,8 @@ function IKST_Waypoints.list()
 end
 
 function IKST_Waypoints.find(name)
-    if not name or name == "" then
+    name = IKST_Waypoints.normalizeName(name)
+    if not name then
         return nil
     end
     for _, wp in ipairs(IKST_Waypoints.list()) do
@@ -33,7 +45,8 @@ end
 
 function IKST_Waypoints.save(player, name)
     player = IKST.resolvePlayer(player)
-    if not player or not name or name == "" then
+    name = IKST_Waypoints.normalizeName(name)
+    if not player or not name then
         return false, "enter a name"
     end
     local list = IKST_Waypoints.list()
@@ -55,7 +68,8 @@ function IKST_Waypoints.save(player, name)
 end
 
 function IKST_Waypoints.delete(name)
-    if not name or name == "" then
+    name = IKST_Waypoints.normalizeName(name)
+    if not name then
         return false, "enter a name"
     end
     local list = IKST_Waypoints.list()

@@ -217,6 +217,10 @@ function IKST_ServerGate.authorize(player, command, args)
                 return false, "unavailable", meta
             end
         end
+        if tier == "admin" and (pluginId == "tiles" or pluginId == "loot")
+            and IKST_Lifecycle and not IKST_Lifecycle.isWorldReady() then
+            return false, "world_loading", meta
+        end
         return IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
     end
 
@@ -312,6 +316,8 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "server briefing disabled"
     elseif msg == "claims_disabled" then
         msg = "player claims disabled"
+    elseif msg == "world_loading" then
+        msg = "world loading"
     elseif msg == "unknown_command" then
         msg = "unknown command"
     elseif msg == "too_far" then

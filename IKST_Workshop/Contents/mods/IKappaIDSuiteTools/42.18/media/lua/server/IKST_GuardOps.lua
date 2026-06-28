@@ -608,6 +608,10 @@ function IKST_GuardOps.sendClaimList(player, list)
     IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = list })
 end
 
+function IKST_GuardOps.sendNearbyVehicles(player, list)
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleListResult, { vehicles = list })
+end
+
 function IKST_GuardOps.handle(command, admin, args)
     args = args or {}
     local ax = math.floor(tonumber(args.x) or (admin and admin:getX()) or 0)
@@ -776,7 +780,10 @@ function IKST_GuardOps.handle(command, admin, args)
         end
         local entry = IKST_VehicleClaim.get(vid)
         if not IKST_GuardOps.actorIsAdmin(admin) then
-            if not entry or not IKST_VehicleClaim.isOwner(entry, admin) then
+            if not entry then
+                return false, "not claimed"
+            end
+            if not IKST_VehicleClaim.isOwner(entry, admin) then
                 return false, "not your claim"
             end
         end
@@ -885,6 +892,15 @@ function IKST_GuardOps.handle(command, admin, args)
         end
         IKST_GuardOps.sendClaimList(admin, list)
         return true, #list .. " claim(s)"
+    end
+
+    if command == IKST.CMD.vehicleClaimNearby then
+        if not IKST_VehicleUtil or not IKST_VehicleUtil.listNearby then
+            return false, "vehicle API missing"
+        end
+        local list = IKST_VehicleUtil.listNearby(ax, ay, az, radius)
+        IKST_GuardOps.sendNearbyVehicles(admin, list)
+        return true, #list .. " vehicle(s)"
     end
 
     return false, "unknown guard command"

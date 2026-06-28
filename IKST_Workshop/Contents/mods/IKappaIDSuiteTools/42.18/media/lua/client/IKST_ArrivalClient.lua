@@ -69,6 +69,20 @@ function IKST_ArrivalClient.onSync(args)
     if IKST_ArrivalClient.instance then
         IKST_ArrivalClient.instance.remainingMs = tonumber(args.remainingMs) or 0
     end
+    if args.reason == "started" then
+        local player = getPlayer()
+        if not player and getSpecificPlayer then
+            player = getSpecificPlayer(0)
+        end
+        local remaining = math.ceil((tonumber(args.remainingMs) or 0) / 1000)
+        local label = IKST.text("IGUI_IKST_Arrival_HUD", "Arrival stabilization")
+        if remaining > 0 then
+            label = label .. " · " .. remaining .. "s"
+        end
+        if IKST.notify then
+            IKST.notify(player, label, true)
+        end
+    end
 end
 
 function IKST_ArrivalClient.onTick()

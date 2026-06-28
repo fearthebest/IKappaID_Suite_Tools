@@ -58,6 +58,13 @@ function IKST_WorldPick.dispatchCleanup(player, square, state)
         })
         return true
     end
+    if action == IKST.CLEANUP_MODES.vegetation and scope == IKST.CLEANUP_SCOPES.single then
+        IKST.dispatchCommand(player, IKST.CMD.cleanupObject, {
+            x = x, y = y, z = z,
+            mode = action,
+        })
+        return true
+    end
     if action == IKST.CLEANUP_MODES.vegetation then
         IKST.dispatchCommand(player, IKST.CMD.cleanupCube, {
             x = x, y = y, z = z,

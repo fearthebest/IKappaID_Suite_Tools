@@ -110,6 +110,13 @@ local function onServerCommand(module, command, args)
         return
     end
 
+    if command == IKST.CMD.applyTeleport then
+        if IKST_ClientStaff and IKST_ClientStaff.applyTeleportLocal then
+            IKST_ClientStaff.applyTeleportLocal(player, args and args.x, args and args.y, args and args.z)
+        end
+        return
+    end
+
     if command == IKST.CMD.safehouseListResult then
         if IKST_JobGuard and IKST_JobGuard.onSafehouseListResult then
             IKST_JobGuard.onSafehouseListResult(args)

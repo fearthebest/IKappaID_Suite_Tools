@@ -569,21 +569,28 @@ function IKST_Economy.countPlayerItems(player, itemType)
         return 0
     end
     local n = 0
-    if inv.getItemsFromTypeRecurse then
-        local items = inv:getItemsFromTypeRecurse(itemType, true)
-        if items then
-            for i = 0, items:size() - 1 do
-                n = n + IKST_Economy.itemCount(items:get(i))
-            end
+    local items = nil
+    if type(inv.getItemsFromFullType) == "function" then
+        items = inv:getItemsFromFullType(itemType, true)
+    elseif type(inv.getItemsFromType) == "function" then
+        items = inv:getItemsFromType(itemType, true)
+    elseif type(inv.getItemsFromTypeRecurse) == "function" then
+        items = inv:getItemsFromTypeRecurse(itemType, true)
+    end
+    if items and items.size then
+        for i = 0, items:size() - 1 do
+            n = n + IKST_Economy.itemCount(items:get(i))
         end
         return n
     end
-    if inv.getItems then
-        local items = inv:getItems()
-        for i = 0, items:size() - 1 do
-            local item = items:get(i)
-            if item and item.getFullType and item:getFullType() == itemType then
-                n = n + IKST_Economy.itemCount(item)
+    if type(inv.getItems) == "function" then
+        items = inv:getItems()
+        if items then
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and type(item.getFullType) == "function" and item:getFullType() == itemType then
+                    n = n + IKST_Economy.itemCount(item)
+                end
             end
         end
     end

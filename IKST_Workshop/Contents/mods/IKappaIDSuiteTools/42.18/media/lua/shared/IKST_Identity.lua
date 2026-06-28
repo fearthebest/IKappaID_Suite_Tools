@@ -161,6 +161,12 @@ function IKST_Identity.playerOwnsKey(player, storedKey)
         local legacy = string.sub(tostring(storedKey), #IKST_Identity.PREFIX_LEGACY + 1)
         return string.lower(uname) == string.lower(legacy)
     end
+    if string.sub(tostring(storedKey), 1, #IKST_Identity.PREFIX_STEAM) == IKST_Identity.PREFIX_STEAM then
+        local mapped = IKST_Identity.keyForLegacyName(uname)
+        if mapped and IKST_Identity.keysEqual(mapped, storedKey) then
+            return true
+        end
+    end
     return false
 end
 
@@ -796,9 +802,12 @@ function IKST_Identity.migratePlayerOnConnect(player)
         local data = IKST_VehicleClaim.store()
         if data and data.byId then
             for _, entry in pairs(data.byId) do
-                if entry and entry.owner and not IKST_Identity.isAccountKey(entry.owner) then
-                    if IKST_Identity.playerOwnsKey(player, entry.owner)
-                        or (uname and string.lower(tostring(entry.owner)) == string.lower(uname)) then
+                if entry and entry.owner then
+                    local owns = IKST_Identity.playerOwnsKey(player, entry.owner)
+                    if not owns and uname and not IKST_Identity.isAccountKey(entry.owner) then
+                        owns = string.lower(tostring(entry.owner)) == string.lower(uname)
+                    end
+                    if owns and key and key ~= "" and not IKST_Identity.keysEqual(entry.owner, key) then
                         local oldOwner = entry.owner
                         entry.owner = key
                         if IKST_VehicleClaim.removeFromOwnerList and IKST_VehicleClaim.addToOwnerList then

@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.6"
+IKST.VERSION = "0.2.6.1"
 
 IKST.CMD = {
     inspectSquare = "inspectSquare",
@@ -130,6 +130,7 @@ IKST.CMD = {
     vehicleClaimSetPerms = "vehicleClaimSetPerms",
     vehicleClaimList = "vehicleClaimList",
     vehicleClaimListResult = "vehicleClaimListResult",
+    vehicleClaimNearby = "vehicleClaimNearby",
     safehouseAddMember = "safehouseAddMember",
     safehouseRemoveMember = "safehouseRemoveMember",
     safehouseClaimSetPerms = "safehouseClaimSetPerms",
@@ -157,6 +158,7 @@ IKST.CMD = {
     threatResult = "threatResult",
     staffListResult = "staffListResult",
     waypointListResult = "waypointListResult",
+    applyTeleport = "applyTeleport",
     protectListResult = "protectListResult",
     auditTail = "auditTail",
     auditTailResult = "auditTailResult",
@@ -211,6 +213,7 @@ IKST.GUARD_COMMANDS = {
     vehicleClaimSetLabel = true,
     vehicleClaimSetPerms = true,
     vehicleClaimList = true,
+    vehicleClaimNearby = true,
     safehouseAddMember = true,
     safehouseRemoveMember = true,
     safehouseClaimSetPerms = true,
@@ -220,6 +223,7 @@ IKST.PLAYER_CLAIM_COMMANDS = {
     vehicleClaim = true,
     vehicleReleaseClaim = true,
     vehicleClaimList = true,
+    vehicleClaimNearby = true,
     vehicleClaimSetLabel = true,
     vehicleClaimSetPerms = true,
     safehouseClaim = true,
@@ -795,6 +799,9 @@ end
 
 function IKST.runServerCommand(player, command, args)
     if IKST_Lifecycle and not IKST_Lifecycle.isWorldReady() then
+        if player and IKST.notify then
+            IKST.notify(player, "world loading", false)
+        end
         return
     end
     if not IKST_Server then

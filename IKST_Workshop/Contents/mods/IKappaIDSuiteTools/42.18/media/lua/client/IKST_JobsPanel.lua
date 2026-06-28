@@ -934,9 +934,11 @@ function IKST_JobsPanel:onServerResult(args)
     end
 
     if args and (args.mode == IKST.CMD.quickWater or args.mode == IKST.CMD.quickPower) then
-
         self:refreshJobUI()
+    end
 
+    if args and args.success and IKST_JobStaff and (args.mode == IKST.CMD.saveWaypoint or args.mode == IKST.CMD.delWaypoint) then
+        IKST_JobStaff.requestWaypoints(self.player)
     end
 
 end

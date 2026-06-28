@@ -1027,19 +1027,26 @@ function IKST_EconomyOps.removeAllPlayerItems(player, itemType)
         syncRemove(container, item)
         removed = removed + n
     end
-    if inv.getItemsFromTypeRecurse then
-        local items = inv:getItemsFromTypeRecurse(itemType, true)
+    local items = nil
+    if type(inv.getItemsFromFullType) == "function" then
+        items = inv:getItemsFromFullType(itemType, true)
+    elseif type(inv.getItemsFromType) == "function" then
+        items = inv:getItemsFromType(itemType, true)
+    elseif type(inv.getItemsFromTypeRecurse) == "function" then
+        items = inv:getItemsFromTypeRecurse(itemType, true)
+    end
+    if items and items.size then
+        for i = items:size() - 1, 0, -1 do
+            removeOne(items:get(i))
+        end
+    elseif type(inv.getItems) == "function" then
+        items = inv:getItems()
         if items then
             for i = items:size() - 1, 0, -1 do
-                removeOne(items:get(i))
-            end
-        end
-    elseif inv.getItems then
-        local items = inv:getItems()
-        for i = items:size() - 1, 0, -1 do
-            local item = items:get(i)
-            if item and item.getFullType and item:getFullType() == itemType then
-                removeOne(item)
+                local item = items:get(i)
+                if item and type(item.getFullType) == "function" and item:getFullType() == itemType then
+                    removeOne(item)
+                end
             end
         end
     end

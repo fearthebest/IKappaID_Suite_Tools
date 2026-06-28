@@ -36,9 +36,10 @@ function IKST_JobEveryone.build(panel)
     end
 
     panel:makeJobButton(12, y, 160, 24, IKST.text("IGUI_IKST_Everyone_RefreshClaims", "Refresh my claims"), function()
-        IKST.dispatchCommand(p, IKST.CMD.vehicleClaimList, { all = false })
-        if IKST_JobGuard then
-            IKST_JobGuard.requestNearbyVehicles(p)
+        if IKST_JobGuard and IKST_JobGuard.requestClaims then
+            IKST_JobGuard.requestClaims(p)
+        else
+            IKST.dispatchCommand(p, IKST.CMD.vehicleClaimList, { all = false })
         end
         panel:refreshJobUI()
     end, false)
