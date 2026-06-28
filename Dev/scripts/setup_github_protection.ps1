@@ -33,31 +33,12 @@ Then re-run this script.
     Write-Host 'GitHub CLI OK' -ForegroundColor Green
 }
 
-function Invoke-GhJson {
-    param(
-        [string]$Method,
-        [string]$Endpoint,
-        [string]$JsonBody
-    )
-    $tmp = New-TemporaryFile
-    try {
-        Set-Content -Path $tmp.FullName -Value $JsonBody -Encoding UTF8 -NoNewline
-        gh api $Endpoint -X $Method --input $tmp.FullName
-        if ($LASTEXITCODE -ne 0) {
-            throw "gh api failed: $Method $Endpoint"
-        }
-    }
-    finally {
-        Remove-Item -Path $tmp.FullName -Force -ErrorAction SilentlyContinue
-    }
-}
-
 function Set-BranchProtection {
     Write-Host "`n=== Branch protection: $Branch ===" -ForegroundColor Cyan
 
-    # Solo-friendly: block force-push and branch delete; require review on PRs.
-    # enforce_admins=false -> owner can still push hotfixes directly to master.
-    $body = @'
+    # Pipe raw JSON on stdin — gh -F sends strings ("true"/"false") and breaks schema validation.
+    # Do not write via Set-Content -Encoding UTF8 (adds BOM on Windows PowerShell 5.1).
+    $json = @'
 {
   "required_status_checks": null,
   "enforce_admins": false,
@@ -71,12 +52,18 @@ function Set-BranchProtection {
   "required_linear_history": false,
   "allow_force_pushes": false,
   "allow_deletions": false,
-  "block_creations": false,
   "required_conversation_resolution": true
 }
 '@
 
-    Invoke-GhJson -Method PUT -Endpoint "repos/$Repo/branches/$Branch/protection" -JsonBody $body
+    $json | gh api "repos/$Repo/branches/$Branch/protection" -X PUT `
+        -H 'Accept: application/vnd.github+json' `
+        -H 'X-GitHub-Api-Version: 2022-11-28' `
+        --input -
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Branch protection failed for $Branch"
+    }
     Write-Host 'Branch protection applied.' -ForegroundColor Green
 }
 
