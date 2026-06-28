@@ -32,19 +32,17 @@ Enable only the addons your server needs.
 ├── LICENSE
 ├── docs/
 │   └── ASSETS-CREDITS.md      # Third-party tile art attribution
-└── IKST_Workshop/             # Steam Workshop upload tree
-    ├── workshop.txt
-    ├── preview.png
-    └── Contents/
-        └── mods/
-            ├── IKappaIDSuiteTools/42.18/
-            ├── IKappaIDSuiteToolsEconomy/42.18/
-            ├── IKappaIDSuiteToolsTiles/42.18/
-            ├── IKappaIDSuiteToolsVehicles/42.18/
-            └── IKappaIDSuiteToolsLoot/42.18/
+├── IKST_Workshop/             # Steam Workshop upload tree (edit here)
+│   ├── workshop.txt
+│   ├── preview.png
+│   └── Contents/mods/…
+└── Workshop/                  # Local test copy → copy into ~/Zomboid/Workshop/
+    └── IKappaID Suite Tools/  # Same contents as IKST_Workshop/
 ```
 
 Edit Lua and assets under `IKST_Workshop/Contents/mods/`. Upload from `IKST_Workshop/` using the in-game Workshop uploader.
+
+For local testing, copy `Workshop/IKappaID Suite Tools/` into your Zomboid `Workshop/` folder (see [Workshop/README.md](Workshop/README.md)).
 
 ## Steam publish checklist
 
