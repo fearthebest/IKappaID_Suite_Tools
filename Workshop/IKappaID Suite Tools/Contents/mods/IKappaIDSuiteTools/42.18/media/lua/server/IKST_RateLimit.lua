@@ -24,6 +24,7 @@ local GROUPS = {
     lock_auth = { intervalMs = 12000, burst = 5 },
     list_query = { intervalMs = 1000, burst = 1 },
     utility = { intervalMs = 1000, burst = 1 },
+    field_recovery = { intervalMs = 60000, burst = 1 },
 }
 
 function IKST_RateLimit.enabled()
@@ -68,8 +69,12 @@ function IKST_RateLimit.groupForCommand(command)
         or command == IKST.CMD.staffListPlayers or command == IKST.CMD.listWaypoints
         or command == IKST.CMD.dumpPlayers or command == IKST.CMD.threatPopulation
         or command == IKST.CMD.economySnapshot or command == IKST.CMD.economyVendList
-        or command == IKST.CMD.protectList or command == IKST.CMD.vehicleList then
+        or command == IKST.CMD.protectList or command == IKST.CMD.vehicleList
+        or command == IKST.CMD.briefingFetch then
         return "list_query"
+    end
+    if command == IKST.CMD.vehicleFieldRecovery then
+        return "field_recovery"
     end
     if command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore
         or command == IKST.CMD.safehouseClaim or command == IKST.CMD.safehouseRelease

@@ -125,5 +125,32 @@
     "Sandbox_IKappaIDSuiteTools_VehicleNearRadius_tooltip": "How close a player must be to a vehicle to claim it.",
 
     "Sandbox_IKappaIDSuiteTools_VehicleListRadius": "Vehicle Search Distance (Old)",
-    "Sandbox_IKappaIDSuiteTools_VehicleListRadius_tooltip": "How far to look for vehicles when using the old search tool. Use the Vehicles addon for better results."
+    "Sandbox_IKappaIDSuiteTools_VehicleListRadius_tooltip": "How far to look for vehicles when using the old search tool. Use the Vehicles addon for better results.",
+
+    "Sandbox_IKappaIDSuiteTools_BriefingEnabled": "Enable Server Briefing",
+    "Sandbox_IKappaIDSuiteTools_BriefingEnabled_tooltip": "Show the Server Briefing in the ESC menu and IKST Everyone workspace.",
+
+    "Sandbox_IKappaIDSuiteTools_BriefingMaxSectionBytes": "Briefing Section Size Limit",
+    "Sandbox_IKappaIDSuiteTools_BriefingMaxSectionBytes_tooltip": "Maximum characters per briefing section (defaults plus host overrides).",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalStabilizationEnabled": "Enable Arrival Stabilization",
+    "Sandbox_IKappaIDSuiteTools_ArrivalStabilizationEnabled_tooltip": "Short zombie-immunity grace after join or respawn while the player syncs in.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalStabilizationSeconds": "Arrival Grace Duration (seconds)",
+    "Sandbox_IKappaIDSuiteTools_ArrivalStabilizationSeconds_tooltip": "How long arrival stabilization lasts. Set to 0 to disable the timer.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalOnJoin": "Arrival Grace on Join",
+    "Sandbox_IKappaIDSuiteTools_ArrivalOnJoin_tooltip": "Apply arrival stabilization when a player connects to the server.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalOnRespawn": "Arrival Grace on Respawn",
+    "Sandbox_IKappaIDSuiteTools_ArrivalOnRespawn_tooltip": "Apply arrival stabilization after death when the character respawns.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalAttackEndsGrace": "Attacking Ends Grace",
+    "Sandbox_IKappaIDSuiteTools_ArrivalAttackEndsGrace_tooltip": "End arrival stabilization immediately if the player starts an attack.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalMoveEndsGrace": "Moving Ends Grace",
+    "Sandbox_IKappaIDSuiteTools_ArrivalMoveEndsGrace_tooltip": "End arrival stabilization if the player moves beyond the threshold distance.",
+
+    "Sandbox_IKappaIDSuiteTools_ArrivalMoveThresholdTiles": "Arrival Move Threshold (tiles)",
+    "Sandbox_IKappaIDSuiteTools_ArrivalMoveThresholdTiles_tooltip": "How far a player can move before arrival grace ends when moving ends grace is enabled."
 }

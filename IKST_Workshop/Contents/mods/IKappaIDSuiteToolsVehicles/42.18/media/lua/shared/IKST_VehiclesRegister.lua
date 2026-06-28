@@ -19,6 +19,10 @@ local ADMIN_COMMANDS = {
     vehicleUnlockDoors = true,
 }
 
+local PLAYER_COMMANDS = {
+    vehicleFieldRecovery = true,
+}
+
 local function vehiclesAfterServer(command, player, args, ok, msg)
     if command == IKST.CMD.vehicleList then
         return
@@ -62,8 +66,16 @@ end
 IKST.Plugins.register("vehicles", {
     modId = "IKappaIDSuiteToolsVehicles",
     adminCommands = ADMIN_COMMANDS,
+    playerCommands = PLAYER_COMMANDS,
     canUseAdmin = function(player)
         return IKST_Access.canUseStaffTools(player)
+    end,
+    canUsePlayer = function(player)
+        local sv = SandboxVars and SandboxVars.IKappaIDSuiteToolsVehicles
+        if not sv or sv.FieldRecoveryEnabled == false then
+            return false
+        end
+        return IKST.isModEnabled()
     end,
     handleServer = function(command, player, args)
         if not IKST_VehicleOps or not IKST_VehicleOps.handle then

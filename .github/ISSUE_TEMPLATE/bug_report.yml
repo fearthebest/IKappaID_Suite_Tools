@@ -22,8 +22,8 @@ body:
     id: ikst_version
     attributes:
       label: IKST version
-      description: From Workshop update / changelog (e.g. 0.2.5)
-      placeholder: "0.2.5"
+      description: From Workshop update / changelog (e.g. 0.2.6)
+      placeholder: "0.2.6"
     validations:
       required: true
 

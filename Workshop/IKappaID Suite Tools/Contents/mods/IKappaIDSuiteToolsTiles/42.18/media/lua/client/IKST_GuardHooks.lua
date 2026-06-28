@@ -2,13 +2,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "ISUI/ISInventoryPane"
-require "TimedActions/ISGrabItemAction"
-require "TimedActions/ISInventoryTransferAction"
 require "IKST_Shared"
-require "IKST_ContainerRules"
-require "IKST_TransferRules"
-require "IKST_TileCheck"
 require "IKST_Access"
 require "IKST_Chrome"
 
@@ -18,110 +12,6 @@ IKST_GuardHooks._shLastTick = 0
 IKST_GuardHooks._shBorderOn = false
 IKST_GuardHooks.SH_THROTTLE_MS = 400
 IKST_GuardHooks.SH_VIEW_RANGE = 90
-
-function IKST_GuardHooks.wrapTransfer()
-    if IKST_GuardHooks.transferWrapped then
-        return
-    end
-    IKST_GuardHooks.transferWrapped = true
-
-    local vanillaTransfer = ISInventoryTransferAction.isValid
-    ISInventoryTransferAction.isValid = function(self)
-        if self and self.item and self.srcContainer and self.destContainer and self.character then
-            if IKST_TransferRules and not IKST_TransferRules.transferAllowed(self.item, self.srcContainer, self.destContainer, self.character, false) then
-                if self.stop then
-                    self:stop()
-                end
-                return false
-            end
-        end
-        return vanillaTransfer(self)
-    end
-
-    if ISGrabItemAction and ISGrabItemAction.isValid then
-        local vanillaGrab = ISGrabItemAction.isValid
-        ISGrabItemAction.isValid = function(self)
-            if self and self.item and self.character then
-                local worldItem = self.item
-                local item = worldItem.getItem and worldItem:getItem() or worldItem
-                local src = item and item.getContainer and item:getContainer() or nil
-                local dest = self.character.getInventory and self.character:getInventory() or nil
-                if item and IKST_TransferRules and not IKST_TransferRules.transferAllowed(item, src, dest, self.character, false) then
-                    if self.stop then
-                        self:stop()
-                    end
-                    return false
-                end
-            end
-            return vanillaGrab(self)
-        end
-    end
-end
-
-function IKST_GuardHooks.safehouseActionBlocked(player, square, action, messageKey, fallback)
-    if not player or not square or not action then
-        return false
-    end
-    if IKST_Access.canUseTools(player) then
-        return false
-    end
-    if not IKST_SafehouseClaim or not IKST_SafehouseClaim.canAtSquare then
-        return false
-    end
-    local allowed = IKST_SafehouseClaim.canAtSquare(player, square, action)
-    if allowed == false then
-        IKST.notify(player, IKST.text(messageKey, fallback), false)
-        return true
-    end
-    return false
-end
-
-function IKST_GuardHooks.wrapDestroy()
-    if IKST_GuardHooks.destroyWrapped then
-        return
-    end
-    if not ISDestroyCursor then
-        return
-    end
-    IKST_GuardHooks.destroyWrapped = true
-    local vanillaCanDestroy = ISDestroyCursor.canDestroy
-    if not vanillaCanDestroy then
-        return
-    end
-    ISDestroyCursor.canDestroy = function(self, object)
-        if object and IKST_TileCheck.isProtected(object, "destroy", self and self.character) then
-            IKST_TileCheck.notifyBlocked(self.character, "IGUI_IKST_Guard_TileProtected", "Tile is protected.")
-            return false
-        end
-        local sq = object and object.getSquare and object:getSquare() or nil
-        if sq and IKST_GuardHooks.safehouseActionBlocked(self.character, sq, "destroy", "IGUI_IKST_Claim_SafehouseDenied", "This safe area is claimed by another player.") then
-            return false
-        end
-        return vanillaCanDestroy(self, object)
-    end
-end
-
-function IKST_GuardHooks.wrapPickup()
-    if IKST_GuardHooks.pickupWrapped or not ISMoveableSpriteTool then
-        return
-    end
-    IKST_GuardHooks.pickupWrapped = true
-    local vanillaPickup = ISMoveableSpriteTool.walkTo
-    if not vanillaPickup then
-        return
-    end
-    ISMoveableSpriteTool.walkTo = function(self, obj, ...)
-        if obj and IKST_TileCheck.isProtected(obj, "pickup", self and self.character) then
-            IKST_TileCheck.notifyBlocked(self.character, "IGUI_IKST_Guard_PickupProtected", "Pickup blocked.")
-            return false
-        end
-        local sq = obj and obj.getSquare and obj:getSquare() or nil
-        if sq and IKST_GuardHooks.safehouseActionBlocked(self.character, sq, "loot", "IGUI_IKST_Claim_SafehouseDenied", "This safe area is claimed by another player.") then
-            return false
-        end
-        return vanillaPickup(self, obj, ...)
-    end
-end
 
 function IKST_GuardHooks.applyCatchSync(player, args)
     if not player or not args then
@@ -341,16 +231,7 @@ function IKST_GuardHooks.drawSafehouseBorders()
     IKST_GuardHooks.onTickSafehouses()
 end
 
-function IKST_GuardHooks.init()
-    IKST_GuardHooks.wrapTransfer()
-    IKST_GuardHooks.wrapDestroy()
-    IKST_GuardHooks.wrapPickup()
-end
-
 if Events then
-    if Events.OnGameBoot then
-        Events.OnGameBoot.Add(IKST_GuardHooks.init)
-    end
     if Events.OnPlayerUpdate then
         Events.OnPlayerUpdate.Add(IKST_GuardHooks.onPlayerUpdate)
     end

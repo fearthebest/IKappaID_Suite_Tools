@@ -25,3 +25,21 @@ option IKappaIDSuiteToolsVehicles.VehicleShowAllClaims
     page = IKST_Claims_Vehicles,
     translation = IKappaIDSuiteToolsVehicles_VehicleShowAllClaims,
 }
+
+option IKappaIDSuiteToolsVehicles.FieldRecoveryEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims_Vehicles,
+    translation = IKappaIDSuiteToolsVehicles_FieldRecoveryEnabled,
+}
+
+option IKappaIDSuiteToolsVehicles.FieldRecoveryDistance
+{
+    type = integer,
+    default = 10,
+    min = 3,
+    max = 20,
+    page = IKST_Claims_Vehicles,
+    translation = IKappaIDSuiteToolsVehicles_FieldRecoveryDistance,
+}

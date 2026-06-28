@@ -171,6 +171,63 @@ function IKST_VehicleOps.flip(vehicleId)
     return false, "flip unavailable"
 end
 
+function IKST_VehicleOps.vehiclesSandbox()
+    return SandboxVars and SandboxVars.IKappaIDSuiteToolsVehicles or nil
+end
+
+function IKST_VehicleOps.fieldRecoveryEnabled()
+    local sv = IKST_VehicleOps.vehiclesSandbox()
+    if not sv or sv.FieldRecoveryEnabled == false then
+        return false
+    end
+    return IKST.isModEnabled()
+end
+
+function IKST_VehicleOps.fieldRecoveryDistance()
+    local sv = IKST_VehicleOps.vehiclesSandbox()
+    local v = sv and sv.FieldRecoveryDistance
+    v = tonumber(v) or 10
+    if v < 3 then
+        v = 3
+    end
+    if v > 20 then
+        v = 20
+    end
+    return v
+end
+
+function IKST_VehicleOps.fieldRecovery(player, vehicleId)
+    if not IKST_VehicleOps.fieldRecoveryEnabled() then
+        return false, "field recovery disabled"
+    end
+    if not player then
+        return false, "no player"
+    end
+    local v = IKST_VehicleOps.getVehicle(vehicleId)
+    if not v then
+        return false, "vehicle not found"
+    end
+    local maxDist = IKST_VehicleOps.fieldRecoveryDistance()
+    if IKST.distance2d(player:getX(), player:getY(), v:getX(), v:getY()) > maxDist then
+        return false, "too far"
+    end
+    local entry = IKST_VehicleClaim.get(vehicleId)
+    local username = IKST_VehicleClaim.playerUsername(player)
+    local allowed = false
+    if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
+        if IKST_VehicleClaim.isOwner(entry, username) or IKST_VehicleClaim.playerMayEdit(entry, player) then
+            allowed = true
+        end
+    end
+    if not allowed and IKST_VehicleUtil.playerHasVehicleKey(player, v) then
+        allowed = true
+    end
+    if not allowed then
+        return false, "not authorized"
+    end
+    return IKST_VehicleOps.flip(vehicleId)
+end
+
 function IKST_VehicleOps.repair(vehicleId)
     local v = IKST_VehicleOps.getVehicle(vehicleId)
     if not v then
@@ -499,6 +556,9 @@ function IKST_VehicleOps.handle(command, player, args)
     end
     if command == IKST.CMD.vehicleUnlockDoors then
         return IKST_VehicleOps.unlockDoors(player, args.vehicleId)
+    end
+    if command == IKST.CMD.vehicleFieldRecovery then
+        return IKST_VehicleOps.fieldRecovery(player, args.vehicleId)
     end
     return false, "unknown vehicle command"
 end

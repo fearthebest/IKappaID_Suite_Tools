@@ -18,6 +18,8 @@ require "IKST_ClaimPolicy"
 require "IKST_RestoreServer"
 require "IKST_RateLimit"
 require "IKST_AuditLog"
+require "IKST_BriefingServer"
+require "IKST_ArrivalServer"
 
 IKST_Server = IKST_Server or {}
 
@@ -103,6 +105,13 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
 
     if command == IKST.CMD.auditTail then
         IKST_AuditLog.sendTail(playerObj, args and args.count)
+        return
+    end
+
+    if command == IKST.CMD.briefingFetch then
+        if IKST_BriefingServer and IKST_BriefingServer.handleFetch then
+            IKST_BriefingServer.handleFetch(playerObj, args)
+        end
         return
     end
 

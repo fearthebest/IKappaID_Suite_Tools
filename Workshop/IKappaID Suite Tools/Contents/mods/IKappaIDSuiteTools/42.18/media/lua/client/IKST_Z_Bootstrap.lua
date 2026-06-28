@@ -18,20 +18,22 @@ require "IKST_JobUtilities"
 require "IKST_ClientStaff"
 require "IKST_JobClaim"
 require "IKST_JobEveryone"
-require "IKST_AdminChat"
+require "IKST_Enforcement"
+require "IKST_VehicleClaimWatch"
 require "IKST_QuickActions"
 require "IKST_QuickDrawer"
 require "IKST_HudChip"
 require "IKST_VehicleClaimUI"
 require "IKST_VehicleContext"
-require "IKST_VehicleClaimHooks"
 require "IKST_SafehouseClaimUI"
 require "IKST_SafehouseContext"
-require "IKST_SafehouseClaimHooks"
 require "IKST_ClaimIcons"
-require "IKST_ClaimRadial"
 require "IKST_RestoreJournal"
 require "IKST_ContextMenu"
+require "IKST_Briefing"
+require "IKST_BriefingUI"
+require "IKST_Arrival"
+require "IKST_ArrivalClient"
 
 local function onKeyPressed(key)
     if not Keyboard or key ~= Keyboard.KEY_W then
@@ -178,6 +180,20 @@ local function onServerCommand(module, command, args)
                     IKST.pushLog(player, line)
                 end
             end
+        end
+        return
+    end
+
+    if command == IKST.CMD.briefingResult then
+        if IKST_BriefingUI and IKST_BriefingUI.onResult then
+            IKST_BriefingUI.onResult(args or {})
+        end
+        return
+    end
+
+    if command == IKST.CMD.arrivalSync then
+        if IKST_ArrivalClient and IKST_ArrivalClient.onSync then
+            IKST_ArrivalClient.onSync(args or {})
         end
         return
     end

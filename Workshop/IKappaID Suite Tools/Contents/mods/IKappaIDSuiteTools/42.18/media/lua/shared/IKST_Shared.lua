@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.5"
+IKST.VERSION = "0.2.6"
 
 IKST.CMD = {
     inspectSquare = "inspectSquare",
@@ -162,6 +162,10 @@ IKST.CMD = {
     auditTailResult = "auditTailResult",
     utilitySync = "utilitySync",
     rewind = "rewind",
+    briefingFetch = "briefingFetch",
+    briefingResult = "briefingResult",
+    arrivalSync = "arrivalSync",
+    vehicleFieldRecovery = "vehicleFieldRecovery",
 }
 
 IKST.AUTO_COMMANDS = {

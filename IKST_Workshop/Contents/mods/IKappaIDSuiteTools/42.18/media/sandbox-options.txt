@@ -339,3 +339,81 @@ option IKappaIDSuiteTools.VehicleListRadius
     page = IKST_Misc,
     translation = IKappaIDSuiteTools_VehicleListRadius,
 }
+
+option IKappaIDSuiteTools.BriefingEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_BriefingEnabled,
+}
+
+option IKappaIDSuiteTools.BriefingMaxSectionBytes
+{
+    type = integer,
+    default = 8192,
+    min = 1024,
+    max = 32768,
+    page = IKST_Misc,
+    translation = IKappaIDSuiteTools_BriefingMaxSectionBytes,
+}
+
+option IKappaIDSuiteTools.ArrivalStabilizationEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalStabilizationEnabled,
+}
+
+option IKappaIDSuiteTools.ArrivalStabilizationSeconds
+{
+    type = integer,
+    default = 30,
+    min = 0,
+    max = 300,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalStabilizationSeconds,
+}
+
+option IKappaIDSuiteTools.ArrivalOnJoin
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalOnJoin,
+}
+
+option IKappaIDSuiteTools.ArrivalOnRespawn
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalOnRespawn,
+}
+
+option IKappaIDSuiteTools.ArrivalAttackEndsGrace
+{
+    type = boolean,
+    default = true,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalAttackEndsGrace,
+}
+
+option IKappaIDSuiteTools.ArrivalMoveEndsGrace
+{
+    type = boolean,
+    default = false,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalMoveEndsGrace,
+}
+
+option IKappaIDSuiteTools.ArrivalMoveThresholdTiles
+{
+    type = integer,
+    default = 3,
+    min = 1,
+    max = 20,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_ArrivalMoveThresholdTiles,
+}

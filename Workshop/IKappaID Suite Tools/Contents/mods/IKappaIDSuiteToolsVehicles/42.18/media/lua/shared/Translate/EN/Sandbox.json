@@ -10,5 +10,11 @@
     "Sandbox_IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys_tooltip": "If enabled, players must have the vehicle's key in their inventory before they can claim it.",
 
     "Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims": "Show All Server Claims",
-    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims_tooltip": "Allow any player to see all vehicle claims on the server in the list, not just their own."
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims_tooltip": "Allow any player to see all vehicle claims on the server in the list, not just their own.",
+
+    "Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryEnabled": "Enable Field Recovery",
+    "Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryEnabled_tooltip": "Allow owners and keyed players to flip their claimed vehicle upright nearby.",
+
+    "Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryDistance": "Field Recovery Distance",
+    "Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryDistance_tooltip": "How close a player must be to use field recovery on a vehicle."
 }

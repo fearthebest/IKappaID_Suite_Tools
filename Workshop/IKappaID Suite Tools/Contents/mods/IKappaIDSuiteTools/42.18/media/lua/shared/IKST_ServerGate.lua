@@ -56,6 +56,9 @@ function IKST_ServerGate.commandExists(command)
     if command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore then
         return true
     end
+    if command == IKST.CMD.briefingFetch then
+        return true
+    end
     if BASE_STAFF_MISC[command] then
         return true
     end
@@ -254,6 +257,13 @@ function IKST_ServerGate.authorize(player, command, args)
         return IKST_ServerGate.checkRateAndArgs(player, command, args, { group = "journal" })
     end
 
+    if command == IKST.CMD.briefingFetch then
+        if not IKST_Briefing or not IKST_Briefing.enabled() then
+            return false, "briefing_disabled", {}
+        end
+        return IKST_ServerGate.checkRateAndArgs(player, command, args, { group = "list_query" })
+    end
+
     if IKST.GUARD_COMMANDS and IKST.GUARD_COMMANDS[command] then
         if IKST.PLAYER_CLAIM_COMMANDS and IKST.PLAYER_CLAIM_COMMANDS[command] then
             if not IKST_ClaimPolicy.playerClaimsEnabled() then
@@ -298,6 +308,8 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "catch/jail disabled"
     elseif msg == "journal_disabled" then
         msg = "recovery journal disabled"
+    elseif msg == "briefing_disabled" then
+        msg = "server briefing disabled"
     elseif msg == "claims_disabled" then
         msg = "player claims disabled"
     elseif msg == "unknown_command" then

@@ -8,6 +8,8 @@ require "IKST_JobLayout"
 require "IKST_JobGuard"
 require "IKST_VehicleClaim"
 require "IKST_ClaimPolicy"
+require "IKST_Briefing"
+require "IKST_Arrival"
 
 IKST_JobEveryone = IKST_JobEveryone or {}
 
@@ -65,6 +67,22 @@ function IKST_JobEveryone.build(panel)
     y = y + 8
     panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Everyone_Hint", "Use Claim workspace to claim safehouses and vehicles."), UIFont.Small)
     y = y + 24
+
+    if IKST_Briefing and IKST_Briefing.enabled and IKST_Briefing.enabled() then
+        panel:makeJobButton(12, y, 200, 24, IKST.text("IGUI_IKST_Briefing_Open", "Open Server Briefing"), function()
+            if IKST_BriefingUI and IKST_BriefingUI.open then
+                IKST_BriefingUI.open(p)
+            end
+        end, false)
+        y = y + 32
+    end
+
+    if IKST_Arrival and IKST_Arrival.enabled and IKST_Arrival.enabled() then
+        local seconds = IKST_Arrival.durationMs() / 1000
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Arrival_Info", "Arrival stabilization") .. ": "
+            .. tostring(seconds) .. "s " .. IKST.text("IGUI_IKST_Arrival_InfoSuffix", "after join/respawn"), UIFont.Small)
+        y = y + 22
+    end
 
     return y
 end

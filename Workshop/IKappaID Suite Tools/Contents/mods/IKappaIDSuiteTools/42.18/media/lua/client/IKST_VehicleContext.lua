@@ -8,6 +8,7 @@ require "IKST_VehicleClaim"
 require "IKST_VehiclePermissions"
 require "IKST_Access"
 require "IKST_ClaimIcons"
+require "IKST_VehicleUtil"
 
 IKST_VehicleContext = IKST_VehicleContext or {}
 
@@ -85,6 +86,18 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
                 IKST_VehicleClaimUI.open(player, vid)
             end
         end, IKST_ClaimIcons.PERMS)
+    end
+
+    if IKST.Plugins and IKST.Plugins.isActive("vehicles") then
+        local mayRecover = IKST_VehicleUtil.playerHasVehicleKey(player, vehicle)
+        if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
+            mayRecover = mayRecover or isOwner or canEdit
+        end
+        if mayRecover then
+            IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_FieldRecovery", "Field recovery"), player, function()
+                IKST.dispatchCommand(player, IKST.CMD.vehicleFieldRecovery, { vehicleId = vid })
+            end, IKST_ClaimIcons.VEHICLE_CLAIM)
+        end
     end
 
     if entry then

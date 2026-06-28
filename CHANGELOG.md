@@ -1,5 +1,15 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.2.6 (2026-06-28)
+
+### Claims enforcement (plain client integration)
+
+- **Vehicle claims:** Unauthorized players cannot enter claimed vehicles or loot trunks/seats; permission checks use shared `IKST_VehicleClaim` rules.
+- **Transfer guard:** Inventory transfer and ground pickup blocked when rules deny access (vehicles, dropboxes, locks, readonly tiles, safehouse claims).
+- **Tile / safehouse protection (World Edit addon):** Sledge destroy cursor and movable pickup respect protected tiles and player safe-area claims.
+- **Architecture:** Centralized `IKST_Enforcement` (core) and `IKST_EnforcementTiles` (Tiles addon); chains vanilla methods and calls shared rule modules. `IKST_VehicleClaimWatch` remains a backup eject/engine cut.
+- **Stability:** Briefing loader uses `fileExists` before read (no crash when briefing folder is missing). Removed incomplete `42.19/` stub folders that prevented Lua from loading on B42.19.
+
 ## 0.2.5 (2026-06-27)
 
 ### Security & Stability release (Tier C hardening)
