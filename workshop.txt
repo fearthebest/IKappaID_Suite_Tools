@@ -1,4 +1,4 @@
-version=2
+version=1
 id=3750835193
 title=IKappaID Suite Tools
 description=Build 42 admin suite: claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy addons. Best tested on a private server first.

@@ -1,13 +1,13 @@
-# Mirror IKST_Workshop -> %UserProfile%\Zomboid\Workshop\IKappaID Suite Tools
+# Mirror repo root -> %UserProfile%\Zomboid\Workshop\IKappaID Suite Tools
 # Use this folder in the Steam Workshop uploader (Project Zomboid).
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path $PSScriptRoot -Parent
-$Src = Join-Path $RepoRoot "IKST_Workshop"
+$Src = $RepoRoot
 $Dst = Join-Path $env:USERPROFILE "Zomboid\Workshop\IKappaID Suite Tools"
 
-if (-not (Test-Path $Src)) {
-    Write-Error "Missing IKST_Workshop"
+if (-not (Test-Path (Join-Path $Src "Contents"))) {
+    Write-Error "Missing Contents folder in repo root"
 }
 
 $workshopParent = Split-Path $Dst -Parent
@@ -20,8 +20,11 @@ if (Test-Path $Dst) {
 }
 
 New-Item -ItemType Directory -Path $Dst -Force | Out-Null
-Write-Host "Mirror IKST_Workshop -> $Dst"
-& robocopy $Src $Dst /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
+Write-Host "Mirror repo root -> $Dst"
+
+# Copy Workshop files only (exclude repo artifacts)
+& robocopy $Src $Dst "workshop.txt" "preview.png" /NFL /NDL /NJH /NJS /NC /NS | Out-Null
+& robocopy (Join-Path $Src "Contents") (Join-Path $Dst "Contents") /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
 if ($LASTEXITCODE -ge 8) {
     Write-Error "robocopy failed (exit $LASTEXITCODE)"
 }

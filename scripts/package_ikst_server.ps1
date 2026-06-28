@@ -5,11 +5,11 @@
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path $PSScriptRoot -Parent
-$Src = Join-Path $RepoRoot "IKST_Workshop"
+$Src = $RepoRoot
 $OutZip = Join-Path $env:USERPROFILE "Desktop\IKST_ServerUpload.zip"
 
-if (-not (Test-Path $Src)) {
-    Write-Error "Missing IKST_Workshop at $Src"
+if (-not (Test-Path (Join-Path $Src "Contents"))) {
+    Write-Error "Missing Contents folder in repo root"
 }
 
 $mods = Join-Path $Src "Contents\mods"
