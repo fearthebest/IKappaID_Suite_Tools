@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Steam Workshop (pinned testing thread)
+    url: https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193
+    about: Report in the mod's Steam Discussions if you prefer not to use GitHub.
+  - name: Discord — callmekappaid
+    url: https://ko-fi.com/ikappaid
+    about: Message **callmekappaid** on Discord with your log (.txt). (No public invite yet — use username.)
+  - name: Ko-fi
+    url: https://ko-fi.com/ikappaid
+    about: Alternative contact for reports and support.

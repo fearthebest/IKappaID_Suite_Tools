@@ -1,0 +1,156 @@
+name: Bug report
+description: Something broke, duped, denied wrongly, or behaved oddly with IKST
+title: "[Bug] "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping test **IKappaID Suite Tools** toward a stable 1.0 release.
+
+        **Logs are the most important part.** Without a log, many MP bugs cannot be fixed.
+
+        - **Dedicated MP:** attach `DebugLog-server.txt` from the session (server `Logs/` folder).
+        - **SP / listen host:** attach the client `DebugLog` from the same session.
+        - Prefer **`.txt`** paste or attachment. Avoid `.exe` or unknown `.zip` files.
+
+        You can also report on [Steam Discussions](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193) or Discord **callmekappaid**.
+
+  - type: input
+    id: ikst_version
+    attributes:
+      label: IKST version
+      description: From Workshop update / changelog (e.g. 0.2.5)
+      placeholder: "0.2.5"
+    validations:
+      required: true
+
+  - type: input
+    id: b42_version
+    attributes:
+      label: Project Zomboid Build 42 version
+      description: Main menu or server build (e.g. 42.19)
+      placeholder: "42.19"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: game_mode
+    attributes:
+      label: Where did this happen?
+      options:
+        - Dedicated multiplayer server
+        - Listen host (host + clients)
+        - Single player
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ikst_addons
+    attributes:
+      label: IKST addons enabled
+      description: Check every addon that was active when the bug occurred.
+      options:
+        - label: IKappaIDSuiteTools (base — panel, claims, journal, utilities)
+        - label: IKappaIDSuiteToolsEconomy
+        - label: IKappaIDSuiteToolsTiles (World Edit)
+        - label: IKappaIDSuiteToolsVehicles
+        - label: IKappaIDSuiteToolsLoot
+
+  - type: dropdown
+    id: player_role
+    attributes:
+      label: Your role when it happened
+      options:
+        - Non-admin player
+        - Admin / server host
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area best matches the problem?
+      options:
+        - Claims (safehouse / vehicle)
+        - Recovery journal
+        - Economy / ATM / shops
+        - World Edit / tiles / locks / protect
+        - Vehicles addon (list / repair / move)
+        - Loot repopulation
+        - Staff / admin tools
+        - Sandbox options / UI / panel
+        - Server startup / load error
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: other_mods
+    attributes:
+      label: Other mods enabled
+      description: List mod names or paste a ModManager export. Especially economy, vehicles, safehouse, UI, and cheat/debug mods.
+      placeholder: |
+        e.g. IKappaID Phone Shop, Burd Journals, ArwySafehouse, …
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps help a lot. Include map/location if relevant.
+      placeholder: |
+        1. Join server as non-admin
+        2. Open panel (Ctrl+Shift+W) → Claim workspace
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      placeholder: e.g. Withdraw should succeed when standing at the ATM
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      placeholder: e.g. Action denied with no message; or SEVERE error in server log at line …
+    validations:
+      required: true
+
+  - type: textarea
+    id: log_excerpt
+    attributes:
+      label: Log excerpt (optional)
+      description: Paste lines around `[IKST`, `SEVERE`, or `Lua`, if the full file is too large. Still attach the full log below when possible.
+      render: shell
+      placeholder: |
+        LOG  : General     , … IKST …
+        ERROR: …
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: log_attached
+    attributes:
+      label: Log file
+      description: Attach the log file to this issue (drag-and-drop in the comment box after submit, or use GitHub's attach control).
+      options:
+        - label: I will attach DebugLog-server.txt or client DebugLog to this issue (required for MP bugs when possible)
+          required: true
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Privacy
+      options:
+        - label: I understand logs may contain server paths or player names and I am OK sharing them for debugging
+          required: true
