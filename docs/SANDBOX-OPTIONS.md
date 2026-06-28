@@ -2,6 +2,19 @@
 
 Base mod page: **IKappaID Suite Tools**
 
+## Plain-English labels (B42.19+)
+
+Each addon ships:
+
+- `{build}/media/sandbox-options.txt` — option definitions (`page`, `translation`, optional `tooltip`)
+- `{build}/media/lua/shared/Translate/EN/Sandbox.json` — human-readable labels
+
+For B42.19 the active build folder is **`42.19/`**. Translation JSON must live in that folder (same as `sandbox-options.txt`), not only in `common/`.
+
+Expected in-game tabs: **IKST: General**, **IKST: Claims**, **IKST: Admin Tools**, **IKST: Security & Logs**, **IKST: Miscellaneous**, plus Economy / Tiles / Vehicles / Loot addon tabs.
+
+Full method (for all mods): [PZ-AI-Dev-Guidance `SANDBOX-TRANSLATIONS.md`](https://github.com/fearthebest/PZ-AI-Dev-Guidance/blob/master/AI-DEV-GUIDANCE/SANDBOX-TRANSLATIONS.md).
+
 ## Tier C security options (new)
 
 | Option | Default | Purpose |

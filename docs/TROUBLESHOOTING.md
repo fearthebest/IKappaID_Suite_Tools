@@ -32,6 +32,46 @@ If you need a new admin-only craft item, omit `craftRecipe` from the item script
 
 ---
 
+## Sandbox options show raw keys (e.g. `Sandbox_IKappaIDSuiteTools_EnableMod`)
+
+**Symptom:** Sandbox sidebar or option labels show untranslated keys instead of plain English.
+
+**Common causes:**
+
+1. **Stale mod copy** — The flat single-tab layout with `VehicleListRadius` near the top is the **pre-0.2.5** sandbox file. Current builds use categorized pages (`IKST: General`, `IKST: Claims`, etc.) with `EnableMod` first.
+2. **Wrong install path** — Copy the full `Workshop/IKappaID Suite Tools/` folder from this repo into `%UserProfile%\Zomboid\Workshop\`. Disable or remove any older Steam Workshop subscription copy of IKST so it does not override your local files.
+3. **Translation file location** — B42 loads sandbox labels from `common/media/lua/shared/Translate/EN/Sandbox.json` (not under `42.18/`). Each addon has its own `common/.../Sandbox.json`.
+
+**Fix:**
+
+1. Use the mod from **`Workshop/IKappaID Suite Tools/`** in this repo (not GitHub branches, not Steam subscription).
+2. Copy the entire folder to `%UserProfile%\Zomboid\Workshop\IKappaID Suite Tools\` and replace all files.
+3. **Disable/unsubscribe** the Steam Workshop copy of IKST (Workshop ID `3750835193`) so it cannot override your local files.
+4. Confirm this file exists in your game copy:
+
+   `Contents/mods/IKappaIDSuiteTools/SANDBOX_BUILD.txt`
+
+   If that file is missing, the game is **not** loading this build.
+
+5. In Sandbox Options, pick a **new preset** (saved presets like "TestingMods" cache the old layout).
+6. Fully quit and restart Project Zomboid.
+
+**Correct B42 layout (matches Skill Recovery Journal `2503622437`):**
+
+```text
+IKappaIDSuiteTools/
+  mod.info
+  common/mod.info
+  common/media/lua/shared/Translate/EN/Sandbox.json
+  common/media/lua/shared/Translate/EN/Sandbox_EN.txt
+  42.19/media/sandbox-options.txt
+  42.18/media/... (lua scripts)
+```
+
+**In-game you should see:** sidebar tabs **IKST: General**, **IKST: Claims**, first option **Enable IKST**.
+
+---
+
 ## Current mod shape (repo state)
 
 | Layer | Details |

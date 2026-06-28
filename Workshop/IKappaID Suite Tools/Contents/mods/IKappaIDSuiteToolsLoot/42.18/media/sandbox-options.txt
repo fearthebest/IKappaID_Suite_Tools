@@ -6,7 +6,7 @@ option IKappaIDSuiteToolsLoot.LootMaxContainers
     default = 80,
     min = 1,
     max = 500,
-    page = IKappaIDSuiteToolsLoot,
+    page = IKST_Loot,
     translation = IKappaIDSuiteToolsLoot_LootMaxContainers,
 }
 
@@ -14,6 +14,6 @@ option IKappaIDSuiteToolsLoot.LootClearBeforeFill
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsLoot,
+    page = IKST_Loot,
     translation = IKappaIDSuiteToolsLoot_LootClearBeforeFill,
 }

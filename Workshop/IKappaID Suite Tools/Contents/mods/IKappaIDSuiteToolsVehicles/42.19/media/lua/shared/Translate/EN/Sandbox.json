@@ -1,0 +1,14 @@
+{
+    "Sandbox_IKappaIDSuiteToolsVehicles": "IKappaID Suite Tools — Vehicles",
+
+    "Sandbox_IKST_Claims_Vehicles": "IKST: Vehicle Claims",
+
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleListRadius": "Vehicle Search Distance",
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleListRadius_tooltip": "How far to look for vehicles when using the vehicle list or removal tools.",
+
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys": "Require Keys for Claim",
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys_tooltip": "If enabled, players must have the vehicle's key in their inventory before they can claim it.",
+
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims": "Show All Server Claims",
+    "Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims_tooltip": "Allow any player to see all vehicle claims on the server in the list, not just their own."
+}

@@ -4,6 +4,7 @@
 
 ### Security & Stability release (Tier C hardening)
 
+- **Sandbox UI:** Plain-English sandbox labels via categorized tabs and `Sandbox.json` per addon; translations co-located in `42.19/media/lua/shared/Translate/EN/` (required for B42.19; `common/` alone is not loaded).
 - **Dedicated Server:** Fixed startup error by moving `IKST_TransferGuard` to `client/` (no TimedActions on headless JVM).
 - **Locks:** Passwords server-only; clients sync `IKST_LocksPublic` locked flags only (no plaintext passwords in ModData).
 - **Economy:** ATM/bank ops require player proximity; full economy store no longer transmitted to MP clients (per-player snapshot cache).

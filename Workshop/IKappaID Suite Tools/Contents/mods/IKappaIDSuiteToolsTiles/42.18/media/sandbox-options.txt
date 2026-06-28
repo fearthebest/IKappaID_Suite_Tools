@@ -6,7 +6,7 @@ option IKappaIDSuiteToolsTiles.MaxCleanupRadius
     default = 50,
     min = 1,
     max = 50,
-    page = IKappaIDSuiteToolsTiles,
+    page = IKST_World_Edit,
     translation = IKappaIDSuiteToolsTiles_MaxCleanupRadius,
 }
 
@@ -14,7 +14,7 @@ option IKappaIDSuiteToolsTiles.EnableCatalog
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsTiles,
+    page = IKST_World_Edit,
     translation = IKappaIDSuiteToolsTiles_EnableCatalog,
 }
 
@@ -24,7 +24,7 @@ option IKappaIDSuiteToolsTiles.MaxPaintRadius
     default = 25,
     min = 1,
     max = 50,
-    page = IKappaIDSuiteToolsTiles,
+    page = IKST_World_Edit,
     translation = IKappaIDSuiteToolsTiles_MaxPaintRadius,
 }
 
@@ -32,6 +32,6 @@ option IKappaIDSuiteToolsTiles.ProtectClaimedSafehouses
 {
     type = boolean,
     default = true,
-    page = IKappaIDSuiteToolsTiles,
+    page = IKST_World_Edit,
     translation = IKappaIDSuiteToolsTiles_ProtectClaimedSafehouses,
 }

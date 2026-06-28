@@ -31,9 +31,12 @@ IKappaID Suite Tools\
   workshop.txt
   Contents\mods\
     IKappaIDSuiteTools\42.18\
+    IKappaIDSuiteTools\common\media\lua\shared\Translate\EN\Sandbox.json
     IKappaIDSuiteToolsEconomy\42.18\
     ...
 ```
+
+Sandbox labels load from each addon's `common/media/lua/shared/Translate/EN/Sandbox.json` (not from `42.18/`).
 
 ## In-game
 
