@@ -2,6 +2,8 @@
 
 This folder holds a **local install mirror** of IKappaID Suite Tools for in-game testing. It matches the Steam upload tree in `IKST_Workshop/`.
 
+**B42.15+ sandbox labels:** each addon includes `Translate/EN/Sandbox.json` (Build 42.19 format). The old `Sandbox_EN.txt` files are kept for reference but are not used by the game on B42.19.
+
 ## Install for testing
 
 Copy or symlink this folder into your Project Zomboid Workshop directory:
