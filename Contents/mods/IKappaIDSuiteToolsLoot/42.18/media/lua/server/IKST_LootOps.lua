@@ -122,8 +122,71 @@ function IKST_LootOps.clearRoomProceduralSpawnOnce(container, roomCleared)
     end
 end
 
-function IKST_LootOps.repopulateContainer(container, player, roomCleared)
+function IKST_LootOps.trimDuplicateContainers(parent, beforeCount)
+    if not parent or not parent.getContainerCount then
+        return
+    end
+    beforeCount = math.floor(tonumber(beforeCount) or 0)
+    if beforeCount < 1 then
+        beforeCount = 1
+    end
+    local afterCount = parent:getContainerCount()
+    while afterCount > beforeCount and afterCount > 1 do
+        local extra = parent:getContainerByIndex(afterCount - 1)
+        if extra and extra.clear then
+            extra:clear()
+        end
+        -- Dedicated server: do not RemoveContainer — causes Java NPE on some furniture.
+        if IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
+            break
+        end
+        if parent.RemoveContainer and extra then
+            parent:RemoveContainer(extra)
+        elseif parent.removeContainerFromIndex then
+            parent:removeContainerFromIndex(afterCount - 1)
+        else
+            break
+        end
+        afterCount = parent:getContainerCount()
+    end
+end
+
+function IKST_LootOps.containerReady(container)
     if not IKST_LootOps.isWorldLootContainer(container) then
+        return false
+    end
+    if not container.getSourceGrid then
+        return false
+    end
+    local square = container:getSourceGrid()
+    if not square then
+        return false
+    end
+    return true
+end
+
+-- ItemPickerJava on dedicated server: use nil (admin player object can NPE inside fillContainer).
+function IKST_LootOps.fillCharacter(player)
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
+        return nil
+    end
+    return player
+end
+
+function IKST_LootOps.syncContainerAfterFill(container, parent)
+    if parent and ItemPicker and ItemPicker.updateOverlaySprite then
+        ItemPicker.updateOverlaySprite(parent)
+    end
+    if parent and parent.transmitCompleteItemToClients then
+        parent:transmitCompleteItemToClients()
+    end
+    if container and container.setDrawDirty then
+        container:setDrawDirty(true)
+    end
+end
+
+function IKST_LootOps.repopulateContainer(container, player, roomCleared)
+    if not IKST_LootOps.containerReady(container) then
         return false
     end
     if not ItemPicker or not ItemPicker.fillContainer then
@@ -148,15 +211,36 @@ function IKST_LootOps.repopulateContainer(container, player, roomCleared)
         container:setExplored(true)
     end
 
-    ItemPicker.fillContainer(container, player)
-
     local parent = container.getParent and container:getParent()
-    if parent and ItemPicker.updateOverlaySprite then
-        ItemPicker.updateOverlaySprite(parent)
+    local beforeCount = 0
+    if parent and parent.getContainerCount then
+        beforeCount = parent:getContainerCount()
+        if beforeCount < 1 and parent.getContainer and parent:getContainer() then
+            beforeCount = 1
+        end
     end
-    if parent and parent.transmitCompleteItemToClients then
-        parent:transmitCompleteItemToClients()
+
+    ItemPicker.fillContainer(container, IKST_LootOps.fillCharacter(player))
+
+    if parent and IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
+        local afterCount = parent:getContainerCount()
+        if afterCount > beforeCount then
+            if container.clear then
+                container:clear()
+            end
+            if container.removeItemsFromProcessItems then
+                container:removeItemsFromProcessItems()
+            end
+            IKST_LootOps.trimDuplicateContainers(parent, beforeCount)
+            return false
+        end
     end
+
+    if parent then
+        IKST_LootOps.trimDuplicateContainers(parent, beforeCount)
+    end
+
+    IKST_LootOps.syncContainerAfterFill(container, parent)
     return true
 end
 
@@ -171,15 +255,25 @@ function IKST_LootOps.repopulateZone(player, x, y, z, scope, args)
     end
     local roomCleared = {}
     local count = 0
+    local skipped = 0
     for i = 1, #containers do
-        if IKST_LootOps.repopulateContainer(containers[i], player, roomCleared) then
+        local container = containers[i]
+        if IKST_LootOps.repopulateContainer(container, player, roomCleared) then
             count = count + 1
+        else
+            skipped = skipped + 1
+            if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
+                IKST_Debug.log("loot", "skip container index " .. tostring(i) .. " not ready for fill")
+            end
         end
     end
     if count == 0 then
         return false, "repopulate failed"
     end
     local suffix = ""
+    if skipped > 0 then
+        suffix = suffix .. " (" .. skipped .. " skipped)"
+    end
     if #containers >= IKST_LootOps.maxContainers() then
         suffix = " (cap " .. tostring(IKST_LootOps.maxContainers()) .. ")"
     end

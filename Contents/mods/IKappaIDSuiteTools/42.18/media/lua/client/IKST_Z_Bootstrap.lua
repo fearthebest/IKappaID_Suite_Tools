@@ -4,8 +4,10 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
+require "IKST_Debug"
 require "IKST_Plugins"
 require "IKST_ModDataSync"
+require "IKST_Threat"
 require "IKST_Utility"
 require "IKST_Access"
 require "IKST_ClientNet"
@@ -55,6 +57,10 @@ end
 local function onServerCommand(module, command, args)
     if module ~= IKST.MODULE then
         return
+    end
+    if IKST_Debug and IKST_Debug.logNet then
+        local player = getPlayer()
+        IKST_Debug.logNet("client<-server", command, player, args, "")
     end
     local player = getPlayer()
     if not player then
@@ -117,9 +123,43 @@ local function onServerCommand(module, command, args)
         return
     end
 
+    if command == IKST.CMD.applyStaffModes then
+        if IKST_ClientStaff and IKST_ClientStaff.applyPlayerModes then
+            IKST_ClientStaff.applyPlayerModes(player, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.rewindSync then
+        if not IKST_Rewind then
+            require "IKST_Rewind"
+        end
+        if IKST_Rewind and IKST_Rewind.setClientCount then
+            IKST_Rewind.setClientCount(player, args and args.count)
+        end
+        if IKST_JobsPanel and IKST_JobsPanel.instance then
+            IKST_JobsPanel.instance:refreshJobUI()
+        end
+        return
+    end
+
+    if command == IKST.CMD.applyVehicleSync then
+        if IKST_ClientStaff and IKST_ClientStaff.applyVehicleSync then
+            IKST_ClientStaff.applyVehicleSync(args)
+        end
+        return
+    end
+
     if command == IKST.CMD.safehouseListResult then
         if IKST_JobGuard and IKST_JobGuard.onSafehouseListResult then
             IKST_JobGuard.onSafehouseListResult(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseClientRefresh then
+        if Events and Events.OnSafehousesChanged then
+            Events.OnSafehousesChanged.trigger()
         end
         return
     end
@@ -191,6 +231,20 @@ local function onServerCommand(module, command, args)
         return
     end
 
+    if command == IKST.CMD.debugStatusResult then
+        if IKST_Debug and IKST_Debug.onClientStatusResult then
+            IKST_Debug.onClientStatusResult(player, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.debugTailResult then
+        if IKST_Debug and IKST_Debug.onClientTailResult then
+            IKST_Debug.onClientTailResult(player, args)
+        end
+        return
+    end
+
     if command == IKST.CMD.briefingResult then
         if IKST_BriefingUI and IKST_BriefingUI.onResult then
             IKST_BriefingUI.onResult(args or {})
@@ -209,6 +263,12 @@ end
 local function onGameStart()
     IKST_ModDataSync.installClient()
     IKST_JobsPanel.ensure()
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
+        IKST_Debug.log("boot", "v" .. IKST.VERSION .. " client JVM ready — grep console for [IKST-DEBUG]")
+    end
     print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (client)")
 end
 

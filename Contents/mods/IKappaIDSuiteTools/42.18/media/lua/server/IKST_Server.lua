@@ -4,6 +4,7 @@ if type(isClient) == "function" and isClient()
     return
 end
 require "IKST_Shared"
+require "IKST_Debug"
 require "IKST_Plugins"
 require "IKST_Utility"
 require "IKST_Access"
@@ -76,6 +77,13 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
 
     args = args or {}
 
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logNet then
+        IKST_Debug.logNet("client->server", command, playerObj, args, "")
+    end
+
     local okAuth, reason, meta = IKST_ServerGate.authorize(playerObj, command, args)
     if not okAuth then
         local msg = IKST_ServerGate.deny(playerObj, command, args, reason, meta)
@@ -114,6 +122,20 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
         return
     end
 
+    if command == IKST.CMD.debugStatus then
+        if IKST_Debug and IKST_Debug.sendStatus then
+            IKST_Debug.sendStatus(playerObj)
+        end
+        return
+    end
+
+    if command == IKST.CMD.debugTail then
+        if IKST_Debug and IKST_Debug.sendTail then
+            IKST_Debug.sendTail(playerObj, args and args.count)
+        end
+        return
+    end
+
     if command == IKST.CMD.briefingFetch then
         if IKST_BriefingServer and IKST_BriefingServer.handleFetch then
             IKST_BriefingServer.handleFetch(playerObj, args)
@@ -123,8 +145,19 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
 
     if command == IKST.CMD.threatCull then
         local x, y, z = readCoord(args, "x"), readCoord(args, "y"), readCoord(args, "z")
-        local n = IKST_WorldOps.threatCull(x, y, z, IKST_Args.readRadius(args, "radius"), tonumber(args.maxPerTick) or 100)
-        IKST.deliverClientCommand(playerObj, IKST.CMD.threatResult, { removed = n, x = x, y = y, z = z })
+        local radius = IKST_Args.readRadius(args, "radius")
+        local n = IKST_WorldOps.threatCull(x, y, z, radius, tonumber(args.maxPerTick) or 100)
+        IKST.deliverClientCommand(playerObj, IKST.CMD.threatResult, {
+            removed = n,
+            x = x,
+            y = y,
+            z = z,
+            radius = radius,
+            mirrorCull = true,
+        })
+        if IKST_WorldOps.broadcastThreatCull then
+            IKST_WorldOps.broadcastThreatCull(playerObj, x, y, z, radius, n)
+        end
         IKST_Server.logSuccess(playerObj, command, args, "culled " .. n)
         return
     end
@@ -258,4 +291,10 @@ if type(isServer) == "function" and isServer() then
     end
 
     print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (server, Tier C gate)")
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
+        IKST_Debug.log("boot", "server JVM ready — grep IB/server log for [IKST-DEBUG]")
+    end
 end

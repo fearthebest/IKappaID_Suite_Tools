@@ -18,6 +18,8 @@ local BASE_STAFF_MISC = {
     staffListPlayers = true,
     listWaypoints = true,
     auditTail = true,
+    debugStatus = true,
+    debugTail = true,
 }
 
 function IKST_ServerGate.ensureServerModules()
@@ -82,6 +84,12 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
         end
         if args.count ~= nil and IKST_Args.readAmount(args, "count", 1, 100) == nil then
             return false, "bad_count", meta
+        end
+    end
+
+    if command == IKST.CMD.economyGive or command == IKST.CMD.economyGiveTarget then
+        if args.amount ~= nil and IKST_Args.readAmount(args, "amount", 1, IKST.STAFF_ECONOMY_GIVE_MAX) == nil then
+            return false, "bad_amount", meta
         end
     end
 
@@ -181,6 +189,58 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
             local z = tonumber(args and args.z) or (player and player:getZ()) or 0
             local dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
             if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, dist) then
+                return false, "too_far", meta
+            end
+        end
+    end
+
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() and not IKST_Access.staffRemoteAdmin() then
+        local tileCmd = command == IKST.CMD.cleanupObject
+            or command == IKST.CMD.cleanupTile
+            or command == IKST.CMD.cleanupSquare
+            or command == IKST.CMD.paintRemove
+            or command == IKST.CMD.cleanupRadius
+            or command == IKST.CMD.cleanupCube
+            or command == IKST.CMD.cleanupRoom
+            or command == IKST.CMD.cleanupBuilding
+            or command == IKST.CMD.cleanupVegetation
+            or command == IKST.CMD.paintPlace
+        if tileCmd then
+            local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+            local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+            local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+            if x == nil or y == nil then
+                return false, "bad_coords", meta
+            end
+            local maxDist = 12
+            if command == IKST.CMD.cleanupRadius or command == IKST.CMD.cleanupVegetation then
+                maxDist = IKST.clampRadius(args.radius) + 2
+            elseif command == IKST.CMD.cleanupCube then
+                maxDist = (IKST.clampCubeHalf(args.halfExtent) * 2) + 4
+            elseif command == IKST.CMD.cleanupRoom or command == IKST.CMD.cleanupBuilding then
+                maxDist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+            else
+                local maxR = IKST.getMaxPaintRadius and IKST.getMaxPaintRadius() or 25
+                maxDist = maxR + 2
+            end
+            if not IKST_Args.actorNearCoord(player, x, y, z, maxDist) then
+                return false, "too_far", meta
+            end
+        end
+
+        if command == IKST.CMD.lootRepopulateContainer or command == IKST.CMD.lootRepopulateZone then
+            local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
+            local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
+            local z = tonumber(args and args.z) or (player and player:getZ()) or 0
+            local maxDist = 12
+            if command == IKST.CMD.lootRepopulateZone then
+                if args.scope == IKST.CLEANUP_SCOPES.radius then
+                    maxDist = IKST.clampRadius(args.radius) + 2
+                else
+                    maxDist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+                end
+            end
+            if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, maxDist) then
                 return false, "too_far", meta
             end
         end
@@ -335,6 +395,12 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
     end
     if IKST_AuditLog and IKST_AuditLog.record then
         IKST_AuditLog.record(player, command, args, false, msg)
+    end
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logDeny then
+        IKST_Debug.logDeny(command, player, msg, args)
     end
     return msg
 end

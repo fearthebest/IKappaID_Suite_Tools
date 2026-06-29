@@ -5,6 +5,7 @@ end
 require "IKST_Shared"
 require "IKST_Chrome"
 require "IKST_JobLayout"
+require "IKST_Threat"
 
 IKST_JobThreat = IKST_JobThreat or {}
 IKST_JobThreat.stats = { total = 0, sprinters = 0 }
@@ -80,6 +81,11 @@ function IKST_JobThreat.onResult(args)
         end
     end
     if args.removed then
+        if args.mirrorCull == true and IKST_Threat and IKST_Threat.cullAt
+            and IKST.isRemoteClient and IKST.isRemoteClient() then
+            local radius = IKST.clampRadius(args.radius or IKST.RADIUS_PRESETS.M)
+            IKST_Threat.cullAt(args.x, args.y, args.z, radius, args.removed + 50)
+        end
         IKST_JobThreat.stats.total = math.max(0, IKST_JobThreat.stats.total - args.removed)
         local player = IKST.resolvePlayer()
         if player then

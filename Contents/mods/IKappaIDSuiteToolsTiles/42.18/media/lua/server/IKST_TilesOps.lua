@@ -117,6 +117,8 @@ function IKST_TilesOps.handle(command, player, args)
         local ok, message = IKST_TilesWorldOps.rewind(player)
         if ok then
             IKST.pushLog(player, message)
+        elseif message then
+            IKST.notify(player, message, false)
         end
         return ok, message
     end

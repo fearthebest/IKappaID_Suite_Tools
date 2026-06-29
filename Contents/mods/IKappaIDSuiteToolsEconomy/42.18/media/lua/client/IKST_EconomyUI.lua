@@ -810,7 +810,15 @@ function IKST_EconomyUI.onSnapshot(args)
         IKST_EconomyUI.Window:setStatus(IKST.text("IGUI_IKST_Economy_BalancesUpdated", "Balances updated."))
     end
     if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+        local panel = IKST_JobsPanel.instance
+        local savedAmount = nil
+        if panel.economyAmount and panel.economyAmount.getText then
+            savedAmount = panel.economyAmount:getText()
+        end
+        panel:refreshJobUI(true)
+        if savedAmount and panel.economyAmount and panel.economyAmount.setText then
+            panel.economyAmount:setText(savedAmount)
+        end
     end
 end
 

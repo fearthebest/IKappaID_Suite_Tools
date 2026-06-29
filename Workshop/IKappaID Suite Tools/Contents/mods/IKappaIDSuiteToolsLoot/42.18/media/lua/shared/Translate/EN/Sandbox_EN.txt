@@ -1,3 +1,0 @@
-Sandbox_IKappaIDSuiteToolsLoot = IKappaID Suite Tools — Loot
-Sandbox_IKappaIDSuiteToolsLoot_LootMaxContainers = Max containers repopulated in one loot action
-Sandbox_IKappaIDSuiteToolsLoot_LootClearBeforeFill = Empty containers before rolling new loot

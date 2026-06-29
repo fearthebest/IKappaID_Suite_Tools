@@ -72,6 +72,12 @@ Sandbox_IKappaIDSuiteTools_AuditLogEnabled = Write security audit lines to serve
 
 Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries = How many audit log rows to keep in ModData
 
+Sandbox_IKappaIDSuiteTools_DebugLogEnabled = Write [IKST-DEBUG] lines to client/server console for MP troubleshooting (off on public servers)
+
+Sandbox_IKappaIDSuiteTools_DebugLogVerbose = Reserved for extra detail when debug logging is on
+
+Sandbox_IKappaIDSuiteTools_DebugLogMaxEntries = How many debug lines to keep in memory (server also stores in ModData)
+
 Sandbox_IKappaIDSuiteTools_ClaimListMaxSize = Max safehouse or vehicle claims returned per list query
 
 Sandbox_IKappaIDSuiteTools_LockMaxAttempts = Wrong lock passwords before a 60-second lockout

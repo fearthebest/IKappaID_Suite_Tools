@@ -259,7 +259,6 @@ function IKST_JobEconomy.buildMoney(panel, y)
 
     panel:makeJobButton(12, y, 100, 24, IKST.text("IGUI_IKST_Economy_Refresh", "Refresh"), function()
         IKST_EconomyUI.requestSnapshot(p, math.floor(p:getX()), math.floor(p:getY()), p:getZ())
-        panel:refreshJobUI()
     end, false)
     y = y + 32
 
@@ -492,8 +491,6 @@ function IKST_JobEconomy.buildAdmin(panel, y)
     panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_Economy_Refresh", "Refresh"), function()
 
         IKST.dispatchCommand(p, IKST.CMD.economySnapshot, {})
-
-        panel:refreshJobUI()
 
     end, false)
 

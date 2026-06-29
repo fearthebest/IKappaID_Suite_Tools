@@ -564,8 +564,11 @@ function IKST_Identity.removePlayerBankCards(player, exceptItem)
             n = n + 1
         end
     end
-    if n > 0 and player.getInventory().setDrawDirty then
-        player:getInventory():setDrawDirty(true)
+    if n > 0 and player.getInventory then
+        local inv = player:getInventory()
+        if inv and inv.setDrawDirty then
+            inv:setDrawDirty(true)
+        end
     end
     return n
 end

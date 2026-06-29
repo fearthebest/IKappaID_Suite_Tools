@@ -36,6 +36,7 @@ function IKST_WorldPick.dispatchCleanup(player, square, state)
             halfExtent = state.cleanupCubeHalf,
             mode = action,
         })
+        IKST_WorldPick.disarm(player)
         return true
     end
     if scope == IKST.CLEANUP_SCOPES.radius then
@@ -44,18 +45,21 @@ function IKST_WorldPick.dispatchCleanup(player, square, state)
             radius = state.cleanupRadius,
             mode = action,
         })
+        IKST_WorldPick.disarm(player)
         return true
     end
     if scope == IKST.CLEANUP_SCOPES.room then
         IKST.dispatchCommand(player, IKST.CMD.cleanupRoom, {
             x = x, y = y, z = z, mode = action,
         })
+        IKST_WorldPick.disarm(player)
         return true
     end
     if scope == IKST.CLEANUP_SCOPES.building then
         IKST.dispatchCommand(player, IKST.CMD.cleanupBuilding, {
             x = x, y = y, z = z, mode = action,
         })
+        IKST_WorldPick.disarm(player)
         return true
     end
     if action == IKST.CLEANUP_MODES.vegetation and scope == IKST.CLEANUP_SCOPES.single then

@@ -358,6 +358,7 @@ function IKST_GuardOps.releaseSafehouse(owner, x, y, w, h, id, actor)
     if sx and sy and sw and shh then
         IKST_GuardOps.clearSafehouseClaimData(sx, sy, sw, shh)
     end
+    IKST_GuardOps.broadcastSafehouseChange(actor)
     return true, "released"
 end
 
@@ -513,16 +514,15 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
         return false, "max safehouse claims"
     end
 
+    local allowed, blockReason = IKST_GuardOps.enforceVanillaClaimRules(player, square, claimPlayer)
+    if not allowed then
+        return false, blockReason or "claim blocked"
+    end
+
     local sh = nil
     if useBuilding then
         if not claimPlayer then
             return false, "player must be online for indoor claim"
-        end
-        if SafeHouse.canBeSafehouse then
-            local reason = SafeHouse.canBeSafehouse(square, claimPlayer)
-            if reason and reason ~= "" then
-                return false, reason
-            end
         end
         sh = IKST_SafeHouse.addBuilding(square, claimPlayer)
     else
@@ -540,7 +540,7 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
     if not sh then
         return false, "claim failed"
     end
-    IKST_SafeHouse.sync(sh)
+    IKST_SafeHouse.afterMutation(sh, claimPlayer or player)
     local sx = sh.getX and sh:getX() or x
     local sy = sh.getY and sh:getY() or y
     local sw = sh.getW and sh:getW() or 0
@@ -594,6 +594,48 @@ function IKST_GuardOps.sendSafehouseList(player, list)
         list = trimmed
     end
     IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, { safehouses = list })
+end
+
+function IKST_GuardOps.broadcastSafehouseChange(actor)
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return
+    end
+    if not IKST_StaffOps or not IKST_StaffOps.forEachOnline then
+        return
+    end
+    IKST_GuardOps.purgeExpiredSafehouses()
+    local list = IKST_GuardOps.listSafehouses()
+    IKST_StaffOps.forEachOnline(function(p)
+        local filtered = list
+        if not IKST_GuardOps.actorIsAdmin(p) then
+            filtered = IKST_GuardOps.filterSafehousesForPlayer(list, IKST_GuardOps.username(p))
+        end
+        IKST_GuardOps.sendSafehouseList(p, filtered)
+        IKST.deliverClientCommand(p, IKST.CMD.safehouseClientRefresh, {})
+    end)
+end
+
+function IKST_GuardOps.enforceVanillaClaimRules(player, square, claimPlayer)
+    if IKST_GuardOps.actorIsAdmin(player) then
+        return true, nil
+    end
+    local checkPlayer = claimPlayer or player
+    if not checkPlayer then
+        return false, "player must be online to claim"
+    end
+    if SafeHouse.allowSafeHouse and SafeHouse.allowSafeHouse(checkPlayer) == false then
+        return false, "not allowed to claim yet"
+    end
+    if SafeHouse.canBeSafehouse and square then
+        local reason = SafeHouse.canBeSafehouse(square, checkPlayer)
+        if reason and reason ~= "" then
+            return false, reason
+        end
+    end
+    return true, nil
 end
 
 function IKST_GuardOps.sendClaimList(player, list)

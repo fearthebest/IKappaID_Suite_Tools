@@ -1,7 +1,9 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.6.1"
+IKST.VERSION = "0.2.6.5"
+
+IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 
 IKST.CMD = {
     inspectSquare = "inspectSquare",
@@ -117,6 +119,7 @@ IKST.CMD = {
     dumpPlayersResult = "dumpPlayersResult",
     safehouseList = "safehouseList",
     safehouseListResult = "safehouseListResult",
+    safehouseClientRefresh = "safehouseClientRefresh",
     safehouseRelease = "safehouseRelease",
     safehouseClaim = "safehouseClaim",
     safehouseTp = "safehouseTp",
@@ -159,11 +162,18 @@ IKST.CMD = {
     staffListResult = "staffListResult",
     waypointListResult = "waypointListResult",
     applyTeleport = "applyTeleport",
+    applyStaffModes = "applyStaffModes",
+    applyVehicleSync = "applyVehicleSync",
     protectListResult = "protectListResult",
     auditTail = "auditTail",
     auditTailResult = "auditTailResult",
+    debugStatus = "debugStatus",
+    debugTail = "debugTail",
+    debugStatusResult = "debugStatusResult",
+    debugTailResult = "debugTailResult",
     utilitySync = "utilitySync",
     rewind = "rewind",
+    rewindSync = "rewindSync",
     briefingFetch = "briefingFetch",
     briefingResult = "briefingResult",
     arrivalSync = "arrivalSync",
@@ -694,7 +704,9 @@ function IKST.isVegetationObject(obj, square)
     end
     if string.find(name, "floors_", 1, true) or string.find(name, "street", 1, true)
         or string.find(name, "road", 1, true) or string.find(name, "pavement", 1, true)
-        or string.find(name, "asphalt", 1, true) or string.find(name, "sidewalk", 1, true) then
+        or string.find(name, "asphalt", 1, true) or string.find(name, "sidewalk", 1, true)
+        or string.find(name, "blends_grassoverlays", 1, true)
+        or string.find(name, "blends_natural", 1, true) then
         return false
     end
     if string.find(name, "vegetation_", 1, true) then
@@ -775,6 +787,12 @@ end
 
 function IKST.deliverClientCommand(player, command, args)
     args = args or {}
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logNet then
+        IKST_Debug.logNet("server->client", command, player, args, "")
+    end
     local useDirect = not IKST.isRemoteClient() and #IKST._clientCommandHandlers > 0
     if useDirect then
         for _, handler in ipairs(IKST._clientCommandHandlers) do
@@ -826,6 +844,12 @@ function IKST.dispatchCommand(player, command, args)
         return
     end
     args = args or {}
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logNet then
+        IKST_Debug.logNet("client->dispatch", command, player, args, "")
+    end
     -- Co-op host: client command does not loop back to the server.
     if IKST.isCoopHostPlayer(player) then
         IKST.runServerCommand(player, command, args)

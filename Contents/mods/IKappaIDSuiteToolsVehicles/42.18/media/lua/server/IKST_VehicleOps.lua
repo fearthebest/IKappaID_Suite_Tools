@@ -9,6 +9,8 @@ require "IKST_TileProtect"
 require "IKST_VehicleClaim"
 require "IKST_Catalog"
 require "IKST_VehicleUtil"
+require "IKST_Access"
+require "IKST_Args"
 
 IKST_VehicleOps = IKST_VehicleOps or {}
 
@@ -17,6 +19,39 @@ IKST_VehicleOps.getVehiclesFromCell = IKST_VehicleUtil.getVehiclesFromCell
 IKST_VehicleOps.getVehicle = IKST_VehicleUtil.getVehicle
 IKST_VehicleOps.listNearby = IKST_VehicleUtil.listNearby
 IKST_VehicleOps.nearestId = IKST_VehicleUtil.nearestId
+
+local function adminVehicleNearOk(player, vehicleId, targetX, targetY, targetZ)
+    if not player then
+        return false
+    end
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return true
+    end
+    if IKST_Access and IKST_Access.staffRemoteAdmin and IKST_Access.staffRemoteAdmin() then
+        return true
+    end
+    if not IKST_Args then
+        require "IKST_Args"
+    end
+    if not IKST_Access then
+        require "IKST_Access"
+    end
+    local v = IKST_VehicleOps.getVehicle(vehicleId)
+    if not v then
+        return false
+    end
+    local vz = v.getZ and v:getZ() or 0
+    local nearR = IKST.getVehicleNearRadius()
+    if not IKST_Args.actorNearCoord(player, v:getX(), v:getY(), vz, nearR) then
+        return false
+    end
+    if targetX ~= nil and targetY ~= nil then
+        if not IKST_Args.actorNearCoord(player, targetX, targetY, targetZ or vz, nearR) then
+            return false
+        end
+    end
+    return true
+end
 
 function IKST_VehicleOps.normalizeScriptName(name)
     return IKST_Catalog.normalizeFullId(name, "Base")
@@ -126,17 +161,67 @@ function IKST_VehicleOps.spawn(scriptName, x, y, z, angle, repaired, withKey, pl
     return vehicle, "spawned"
 end
 
+function IKST_VehicleOps.transmitVehicle(v)
+    if not v then
+        return
+    end
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
+        if v.updatePhysicsNetwork then
+            v:updatePhysicsNetwork()
+        end
+        return
+    end
+    if v.updatePhysicsNetwork then
+        v:updatePhysicsNetwork()
+    end
+end
+
+function IKST_VehicleOps.syncVehicleToClient(player, vehicleId, extra)
+    if not player or vehicleId == nil or not IKST.deliverClientCommand then
+        return
+    end
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    local v = IKST_VehicleOps.getVehicle(vehicleId)
+    if not v then
+        return
+    end
+    local payload = {
+        vehicleId = vehicleId,
+        x = v:getX(),
+        y = v:getY(),
+        z = v:getZ(),
+    }
+    if extra then
+        for key, value in pairs(extra) do
+            payload[key] = value
+        end
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.applyVehicleSync, payload)
+end
+
 function IKST_VehicleOps.move(vehicleId, x, y, z, angle)
     local v = IKST_VehicleOps.getVehicle(vehicleId)
     if not v then
         return false, "vehicle not found"
     end
-    v:setX(x)
-    v:setY(y)
-    v:setZ(z)
+    x = tonumber(x) or v:getX()
+    y = tonumber(y) or v:getY()
+    z = tonumber(z) or v:getZ()
+    if v.setX then
+        v:setX(x + 0.5)
+    end
+    if v.setY then
+        v:setY(y + 0.5)
+    end
+    if v.setZ then
+        v:setZ(z)
+    end
     if angle and v.setAngles then
         v:setAngles(0, angle, 0)
     end
+    IKST_VehicleOps.transmitVehicle(v)
     return true, "moved"
 end
 
@@ -151,7 +236,9 @@ function IKST_VehicleOps.delete(vehicleId)
     if not v then
         return false, "vehicle not found"
     end
-    if removeVehicle then
+    if v.permanentlyRemove then
+        v:permanentlyRemove()
+    elseif removeVehicle then
         removeVehicle(nil, v)
     elseif v.removeFromWorld then
         v:removeFromWorld()
@@ -166,6 +253,7 @@ function IKST_VehicleOps.flip(vehicleId)
     end
     if v.flipUpright then
         v:flipUpright()
+        IKST_VehicleOps.transmitVehicle(v)
         return true, "flipped"
     end
     return false, "flip unavailable"
@@ -513,23 +601,52 @@ function IKST_VehicleOps.handle(command, player, args)
         return msg == "spawned", msg
     end
     if command == IKST.CMD.vehicleMove then
-        local ok, msg = IKST_VehicleOps.move(args.vehicleId, readCoord(args, "x"), readCoord(args, "y"), readCoord(args, "z"), args.angle)
+        local tx = readCoord(args, "x")
+        local ty = readCoord(args, "y")
+        local tz = readCoord(args, "z")
+        if not adminVehicleNearOk(player, args.vehicleId, tx, ty, tz) then
+            return false, "too far from vehicle"
+        end
+        local ok, msg = IKST_VehicleOps.move(args.vehicleId, tx, ty, tz, args.angle)
+        if ok then
+            IKST_VehicleOps.syncVehicleToClient(player, args.vehicleId)
+        end
         return ok, msg
     end
     if command == IKST.CMD.vehicleDelete then
-        return IKST_VehicleOps.delete(args.vehicleId)
+        if not adminVehicleNearOk(player, args.vehicleId) then
+            return false, "too far from vehicle"
+        end
+        local ok, msg = IKST_VehicleOps.delete(args.vehicleId)
+        if ok then
+            IKST_VehicleOps.syncVehicleToClient(player, args.vehicleId, { deleted = true })
+        end
+        return ok, msg
     end
     if command == IKST.CMD.vehicleDeleteCell then
         local n = IKST_VehicleOps.deleteCell(readCoord(args, "cellX"), readCoord(args, "cellY"))
         return true, "removed " .. n
     end
     if command == IKST.CMD.vehicleFlip then
-        return IKST_VehicleOps.flip(args.vehicleId)
+        if not adminVehicleNearOk(player, args.vehicleId) then
+            return false, "too far from vehicle"
+        end
+        local ok, msg = IKST_VehicleOps.flip(args.vehicleId)
+        if ok then
+            IKST_VehicleOps.syncVehicleToClient(player, args.vehicleId, { flipped = true })
+        end
+        return ok, msg
     end
     if command == IKST.CMD.vehicleRepair then
+        if not adminVehicleNearOk(player, args.vehicleId) then
+            return false, "too far from vehicle"
+        end
         return IKST_VehicleOps.repair(args.vehicleId)
     end
     if command == IKST.CMD.vehicleKey then
+        if not adminVehicleNearOk(player, args.vehicleId) then
+            return false, "too far from vehicle"
+        end
         return IKST_VehicleOps.addKey(args.vehicleId)
     end
     if command == IKST.CMD.vehiclePrune then

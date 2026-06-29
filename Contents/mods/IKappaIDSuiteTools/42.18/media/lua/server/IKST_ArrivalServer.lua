@@ -117,6 +117,12 @@ function IKST_ArrivalServer.onPlayerConnect(player, reason)
         return
     end
     IKST_ArrivalServer.beginGrace(player, reason or "join")
+    if IKST_Rewind and IKST_Rewind.syncCountToClient then
+        IKST_Rewind.syncCountToClient(player)
+    end
+    if IKST_StaffOps and IKST_StaffOps.syncPlayerModes then
+        IKST_StaffOps.syncPlayerModes(player)
+    end
 end
 
 function IKST_ArrivalServer.enforce(player)

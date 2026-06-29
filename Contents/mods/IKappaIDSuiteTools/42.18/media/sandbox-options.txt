@@ -292,6 +292,32 @@ option IKappaIDSuiteTools.AuditLogMaxEntries
     translation = IKappaIDSuiteTools_AuditLogMaxEntries,
 }
 
+option IKappaIDSuiteTools.DebugLogEnabled
+{
+    type = boolean,
+    default = false,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_DebugLogEnabled,
+}
+
+option IKappaIDSuiteTools.DebugLogVerbose
+{
+    type = boolean,
+    default = false,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_DebugLogVerbose,
+}
+
+option IKappaIDSuiteTools.DebugLogMaxEntries
+{
+    type = integer,
+    default = 300,
+    min = 50,
+    max = 1000,
+    page = IKST_Security,
+    translation = IKappaIDSuiteTools_DebugLogMaxEntries,
+}
+
 option IKappaIDSuiteTools.RecoveryJournalEnabled
 {
     type = boolean,

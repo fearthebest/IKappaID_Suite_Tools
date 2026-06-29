@@ -181,12 +181,11 @@ function IKST_SafeHouse.addRect(x, y, w, h, username)
     y = math.floor(tonumber(y) or 0)
     w = math.floor(tonumber(w) or 1)
     h = math.floor(tonumber(h) or 1)
-    local remote = IKST.isMultiplayerSession() and IKST.runsOnServerJvm()
-    if remote then
-        local sh = SafeHouse.addSafeHouse(x, y, w, h, username, true)
-        if sh then
-            return sh
-        end
+    if w < 1 then
+        w = 1
+    end
+    if h < 1 then
+        h = 1
     end
     return SafeHouse.addSafeHouse(x, y, w, h, username)
 end
@@ -199,34 +198,31 @@ function IKST_SafeHouse.addBuilding(square, player)
 end
 
 function IKST_SafeHouse.remove(sh, actor, force)
-    if not sh or not sh.removeSafeHouse then
+    if not sh or not SafeHouse or not SafeHouse.removeSafeHouse then
         return false
     end
-    actor = IKST.resolvePlayer(actor)
-    if actor then
-        sh:removeSafeHouse(actor, force == true)
-        return true
-    end
-    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
-        return false
-    end
-    local list = getOnlinePlayers and getOnlinePlayers()
-    if not list or not list.size or list:size() < 1 then
-        return false
-    end
-    for i = 0, list:size() - 1 do
-        local p = list:get(i)
-        if p and (force == true or (IKST_Access and IKST_Access.canUseTools(p))) then
-            sh:removeSafeHouse(p, force == true)
-            return true
-        end
-    end
-    sh:removeSafeHouse(list:get(0), true)
+    SafeHouse.removeSafeHouse(sh)
     return true
 end
 
 function IKST_SafeHouse.sync(sh)
-    if sh and sh.syncSafehouse then
-        sh:syncSafehouse()
+    if SafeHouse and SafeHouse.updateSafehousePlayersConnected then
+        SafeHouse.updateSafehousePlayersConnected()
+    end
+end
+
+function IKST_SafeHouse.notifyPlayer(sh, player)
+    if sh and player and sh.updateSafehouse then
+        sh:updateSafehouse(player)
+    end
+end
+
+function IKST_SafeHouse.afterMutation(sh, player)
+    IKST_SafeHouse.sync(sh)
+    if player then
+        IKST_SafeHouse.notifyPlayer(sh, player)
+    end
+    if IKST_GuardOps and IKST_GuardOps.broadcastSafehouseChange then
+        IKST_GuardOps.broadcastSafehouseChange(player)
     end
 end

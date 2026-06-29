@@ -107,6 +107,20 @@ function IKST_JobGadgets.buildQuickPage(panel)
         y = IKST_JobTilesGuard.buildRestore(panel, y)
     end
 
+    if IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(p) then
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Gadget_debug", "Debug (MP)"), UIFont.Small)
+        y = y + 18
+        panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_Debug_Status", "Debug status"), function()
+            IKST.dispatchCommand(p, IKST.CMD.debugStatus, {})
+        end, false)
+        panel:makeJobButton(138, y, 120, 24, IKST.text("IGUI_IKST_Debug_Tail", "Debug tail"), function()
+            IKST.dispatchCommand(p, IKST.CMD.debugTail, { count = 40 })
+        end, false)
+        y = y + 28
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Debug_Hint", "Enable IKST Debug Logging in sandbox. Grep logs for [IKST-DEBUG]."), UIFont.Small)
+        y = y + 22
+    end
+
     panel.logPanel = IKST_ActionLog.dock(panel, p, y)
     return y
 end

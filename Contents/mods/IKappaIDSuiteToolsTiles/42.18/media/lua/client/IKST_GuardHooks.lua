@@ -90,7 +90,7 @@ function IKST_GuardHooks.wrapDestroy()
     end
     ISDestroyCursor.canDestroy = function(self, object)
         if object and IKST_TileCheck.isProtected(object, "destroy", self and self.character) then
-            IKST_TileCheck.notifyBlocked(self.character, "IGUI_IKST_Guard_TileProtected", "Tile is protected.")
+            IKST_TileCheck.notifyDestroyBlocked(self.character, object)
             return false
         end
         local sq = object and object.getSquare and object:getSquare() or nil

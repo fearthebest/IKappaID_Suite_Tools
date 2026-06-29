@@ -6,6 +6,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Grid"
+require "IKST_Threat"
 
 IKST_WorldOps = IKST_WorldOps or {}
 
@@ -14,54 +15,66 @@ function IKST_WorldOps.getSquare(x, y, z)
 end
 
 function IKST_WorldOps.threatCull(x, y, z, radius, maxPerTick)
-    local removed = 0
-    if not getCell or not getCell().getZombieList then
-        return removed
+    if IKST_Threat and IKST_Threat.cullAt then
+        return IKST_Threat.cullAt(x, y, z, radius, maxPerTick)
     end
-    local zombies = getCell():getZombieList()
-    if not zombies then
-        return removed
-    end
-    maxPerTick = maxPerTick or 50
-    for i = zombies:size() - 1, 0, -1 do
-        if removed >= maxPerTick then
-            break
-        end
-        local z = zombies:get(i)
-        if z and IKST.distance2d(x, y, z:getX(), z:getY()) <= radius then
-            if z.removeFromWorld then
-                z:removeFromWorld()
-            end
-            removed = removed + 1
-        end
-    end
-    return removed
+    return 0
 end
 
 function IKST_WorldOps.threatPopulation(x, y, z, radius)
-    local total, sprinters = 0, 0
-    if not getCell or not getCell().getZombieList then
-        return total, sprinters
+    if IKST_Threat and IKST_Threat.countAt then
+        return IKST_Threat.countAt(x, y, z, radius)
     end
-    local zombies = getCell():getZombieList()
-    if not zombies then
-        return total, sprinters
+    return 0, 0
+end
+
+function IKST_WorldOps.broadcastThreatCull(actor, x, y, z, radius, removed)
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
     end
-    for i = 0, zombies:size() - 1 do
-        local z = zombies:get(i)
-        if z and IKST.distance2d(x, y, z:getX(), z:getY()) <= radius then
-            total = total + 1
-            if z.isRunning and z:isRunning() then
-                sprinters = sprinters + 1
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return
+    end
+    if not IKST.deliverClientCommand or not getOnlinePlayers then
+        return
+    end
+    removed = math.floor(tonumber(removed) or 0)
+    if removed < 1 then
+        return
+    end
+    radius = IKST.clampRadius(radius)
+    local payload = {
+        removed = removed,
+        x = math.floor(tonumber(x) or 0),
+        y = math.floor(tonumber(y) or 0),
+        z = tonumber(z) or 0,
+        radius = radius,
+        mirrorCull = true,
+    }
+    local list = getOnlinePlayers()
+    if not list or not list.size or not list.get then
+        return
+    end
+    local broadcastRadius = radius + 32
+    for i = 0, list:size() - 1 do
+        local onlinePlayer = list:get(i)
+        if onlinePlayer and onlinePlayer ~= actor then
+            if IKST.distance2d(x, y, onlinePlayer:getX(), onlinePlayer:getY()) <= broadcastRadius then
+                IKST.deliverClientCommand(onlinePlayer, IKST.CMD.threatResult, payload)
             end
         end
     end
-    return total, sprinters
 end
 
 function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
     if not player then
         return
+    end
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logResult then
+        IKST_Debug.logResult(mode, player, ok, message)
     end
     local payload = {
         success = ok,

@@ -58,7 +58,7 @@ function IKST_EnforcementTiles.wrapDestroyCursor()
     local vanillaCanDestroy = ISDestroyCursor.canDestroy
     ISDestroyCursor.canDestroy = function(self, object)
         if object and IKST_TileCheck and IKST_TileCheck.isProtected(object, "destroy", self and self.character) then
-            IKST_TileCheck.notifyBlocked(self.character, "IGUI_IKST_Guard_TileProtected", "Tile is protected.")
+            IKST_TileCheck.notifyDestroyBlocked(self.character, object)
             return false
         end
         local sq = object and object.getSquare and object:getSquare() or nil
@@ -90,6 +90,33 @@ function IKST_EnforcementTiles.wrapMovablePickup()
     end
 end
 
+function IKST_EnforcementTiles.wrapDestroyTimedActions()
+    if ISDestroyStuffAction and ISDestroyStuffAction.isValid then
+        if not IKST_EnforcementTiles.alreadyWrapped(ISDestroyStuffAction, "isValid") then
+            local vanillaDestroyValid = ISDestroyStuffAction.isValid
+            ISDestroyStuffAction.isValid = function(self)
+                if self and self.item and IKST_TileCheck and IKST_TileCheck.isProtected(self.item, "destroy", self.character) then
+                    IKST_TileCheck.notifyDestroyBlocked(self.character, self.item)
+                    return false
+                end
+                return vanillaDestroyValid(self)
+            end
+        end
+    end
+    if ISDismantleAction and ISDismantleAction.isValid then
+        if not IKST_EnforcementTiles.alreadyWrapped(ISDismantleAction, "isValid") then
+            local vanillaDismantleValid = ISDismantleAction.isValid
+            ISDismantleAction.isValid = function(self)
+                if self and self.thumpable and IKST_TileCheck and IKST_TileCheck.isProtected(self.thumpable, "destroy", self.character) then
+                    IKST_TileCheck.notifyDestroyBlocked(self.character, self.thumpable)
+                    return false
+                end
+                return vanillaDismantleValid(self)
+            end
+        end
+    end
+end
+
 function IKST_EnforcementTiles.init()
     if type(isClient) == "function" and not isClient() then
         return
@@ -98,6 +125,7 @@ function IKST_EnforcementTiles.init()
         require "IKST_SafehouseClaim"
     end
     IKST_EnforcementTiles.wrapDestroyCursor()
+    IKST_EnforcementTiles.wrapDestroyTimedActions()
     IKST_EnforcementTiles.wrapMovablePickup()
 end
 

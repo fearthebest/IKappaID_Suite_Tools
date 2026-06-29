@@ -325,6 +325,7 @@ function IKST_JobCleanup.build(panel)
         rewindLabel = rewindLabel .. " (" .. rewindCount .. ")"
     end
     panel:makeJobButton(IKST_JobLayout.MARGIN + barW - 188, y + 4, 88, 22, rewindLabel, function()
+        IKST_WorldPick.disarm(panel.player)
         IKST.dispatchCommand(panel.player, IKST.CMD.rewind, {})
         panel:refreshJobUI()
     end, rewindCount > 0)

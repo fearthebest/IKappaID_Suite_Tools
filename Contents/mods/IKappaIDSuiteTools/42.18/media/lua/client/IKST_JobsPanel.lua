@@ -169,7 +169,7 @@ function IKST_JobsPanel:clearJobLayer()
 
     self.jobWidgets = {}
 
-
+    self.economyAmount = nil
 
     local chrome = self.chromeWidgets or {}
 

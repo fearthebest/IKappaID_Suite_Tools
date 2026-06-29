@@ -5,6 +5,8 @@ end
 require "IKST_Shared"
 require "IKST_Identity"
 require "IKST_Waypoints"
+require "IKST_WorldOps"
+require "IKST_Args"
 
 IKST_StaffOps = IKST_StaffOps or {}
 
@@ -229,37 +231,118 @@ function IKST_StaffOps.cure(player)
     return true, "Cured"
 end
 
+function IKST_StaffOps.useForcedSync()
+    return IKST.isMultiplayerSession and IKST.isMultiplayerSession()
+        and IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+end
+
+function IKST_StaffOps.syncStaffModesToClient(player)
+    if not player or not IKST.deliverClientCommand then
+        return
+    end
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    local md = IKST_StaffOps.staffModData(player)
+    local args = {}
+    if player.isGodMod then
+        args.god = player:isGodMod()
+    end
+    if md and md.ghost ~= nil then
+        args.ghost = md.ghost == true
+    end
+    if md and md.invisible ~= nil then
+        args.invisible = md.invisible == true
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.applyStaffModes, args)
+end
+
 function IKST_StaffOps.toggleGod(player)
     if not player or not player.isGodMod or not player.setGodMod then
         return false, "unavailable"
     end
     local on = not player:isGodMod()
-    player:setGodMod(on)
+    if IKST_StaffOps.useForcedSync() then
+        player:setGodMod(on, true)
+    else
+        player:setGodMod(on)
+    end
     if player.setInvincible then
         player:setInvincible(on)
     end
+    IKST_StaffOps.syncStaffModesToClient(player)
     return true, on and "God ON" or "God OFF"
 end
 
+function IKST_StaffOps.staffModData(player)
+    if not player or not player.getModData then
+        return nil
+    end
+    local md = player:getModData()
+    if not md.ikst_staff then
+        md.ikst_staff = {}
+    end
+    return md.ikst_staff
+end
+
+function IKST_StaffOps.applyStaffModes(player)
+    if not player then
+        return
+    end
+    local md = IKST_StaffOps.staffModData(player)
+    if not md then
+        return
+    end
+    local forced = IKST_StaffOps.useForcedSync()
+    if player.setGhostMode and md.ghost ~= nil then
+        if forced then
+            player:setGhostMode(md.ghost == true, true)
+        else
+            player:setGhostMode(md.ghost == true)
+        end
+    end
+    if player.setNoClip and md.ghost ~= nil then
+        if forced then
+            player:setNoClip(md.ghost == true, true)
+        else
+            player:setNoClip(md.ghost == true)
+        end
+    end
+    if player.setInvisible and md.invisible ~= nil then
+        if forced then
+            player:setInvisible(md.invisible == true, true)
+        else
+            player:setInvisible(md.invisible == true)
+        end
+    end
+end
+
 function IKST_StaffOps.toggleInvisible(player)
-    if not player or not player.isInvisible or not player.setInvisible then
+    if not player or not player.setInvisible then
         return false, "unavailable"
     end
-    local on = not player:isInvisible()
-    player:setInvisible(on)
-    return true, on and "Invisible ON" or "Invisible OFF"
+    local md = IKST_StaffOps.staffModData(player)
+    if not md then
+        return false, "unavailable"
+    end
+    md.invisible = not (md.invisible == true)
+    IKST_StaffOps.applyStaffModes(player)
+    IKST_StaffOps.syncStaffModesToClient(player)
+    return true, md.invisible and "Invisible ON" or "Invisible OFF"
 end
 
 function IKST_StaffOps.toggleGhost(player)
-    if not player or not player.isGhostMode or not player.setGhostMode then
+    if not player or not player.setGhostMode then
         return false, "unavailable"
     end
-    local on = not player:isGhostMode()
-    player:setGhostMode(on)
-    if player.setNoClip then
-        player:setNoClip(on)
+    local md = IKST_StaffOps.staffModData(player)
+    if not md then
+        return false, "unavailable"
     end
-    return true, on and "Ghost ON" or "Ghost OFF"
+    md.ghost = not (md.ghost == true)
+    IKST_StaffOps.applyStaffModes(player)
+    IKST_StaffOps.syncStaffModesToClient(player)
+    return true, md.ghost and "Ghost ON" or "Ghost OFF"
 end
 
 function IKST_StaffOps.giveItem(player, itemType, count)
@@ -380,42 +463,40 @@ function IKST_StaffOps.setTime(hour)
 end
 
 function IKST_StaffOps.clearZombies(player, radius)
-    local cell = getCell and getCell()
-    if not cell or not cell.getZombieList then
-        return false, "no cell"
-    end
-    local zlist = cell:getZombieList()
-    if not zlist or not zlist.size then
-        return false, "no zombies"
-    end
-    radius = tonumber(radius)
-    if radius and radius <= 0 then
-        radius = nil
+    if not IKST_WorldOps or not IKST_WorldOps.threatCull then
+        return false, "world ops unavailable"
     end
     local px = player and player:getX() or 0
     local py = player and player:getY() or 0
-    local removed = 0
-    for i = zlist:size() - 1, 0, -1 do
-        local z = zlist:get(i)
-        if z then
-            local hit = true
-            if radius then
-                local dx = z:getX() - px
-                local dy = z:getY() - py
-                hit = (dx * dx + dy * dy) <= (radius * radius)
-            end
-            if hit then
-                if z.removeFromWorld then
-                    z:removeFromWorld()
-                end
-                if z.removeFromSquare then
-                    z:removeFromSquare()
-                end
-                removed = removed + 1
-            end
-        end
+    local pz = player and player:getZ() or 0
+    radius = tonumber(radius)
+    if not radius or radius <= 0 then
+        radius = 99999
     end
-    return true, "Removed " .. removed .. " zombies"
+    local total = 0
+    local batch = 200
+    local removed = IKST_WorldOps.threatCull(px, py, pz, radius, batch)
+    while removed > 0 do
+        total = total + removed
+        if removed < batch then
+            break
+        end
+        removed = IKST_WorldOps.threatCull(px, py, pz, radius, batch)
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() and player and IKST.deliverClientCommand then
+        IKST.deliverClientCommand(player, IKST.CMD.threatResult, {
+            removed = total,
+            x = math.floor(px),
+            y = math.floor(py),
+            z = pz,
+            radius = radius,
+            mirrorCull = true,
+        })
+    end
+    if IKST_WorldOps and IKST_WorldOps.broadcastThreatCull then
+        IKST_WorldOps.broadcastThreatCull(player, px, py, pz, radius, total)
+    end
+    return true, "Removed " .. total .. " zombies"
 end
 
 function IKST_StaffOps.forEachOnline(visitor)
@@ -560,7 +641,11 @@ function IKST_StaffOps.handle(command, player, args)
         if not IKST_EconomyBridge or not IKST_EconomyBridge.giveMoney then
             return false, "enable Economy addon + PhoneShop"
         end
-        return IKST_EconomyBridge.giveMoney(player, args.amount)
+        local amount = IKST_Args.readAmount(args, "amount", 1, IKST.STAFF_ECONOMY_GIVE_MAX)
+        if amount == nil then
+            return false, "invalid amount (max " .. tostring(IKST.STAFF_ECONOMY_GIVE_MAX) .. ")"
+        end
+        return IKST_EconomyBridge.giveMoney(player, amount)
     end
     if command == IKST.CMD.economyBalance then
         if IKST_EconomyOps and IKST_EconomyOps.sendSnapshot then
@@ -639,7 +724,11 @@ function IKST_StaffOps.handle(command, player, args)
         if not target then
             return false, "target offline"
         end
-        local ok, msg = IKST_EconomyBridge.giveMoney(target, args.amount)
+        local amount = IKST_Args.readAmount(args, "amount", 1, IKST.STAFF_ECONOMY_GIVE_MAX)
+        if amount == nil then
+            return false, "invalid amount (max " .. tostring(IKST.STAFF_ECONOMY_GIVE_MAX) .. ")"
+        end
+        local ok, msg = IKST_EconomyBridge.giveMoney(target, amount)
         return ok, msg .. " -> " .. IKST_StaffOps.playerLabel(target)
     end
 
@@ -693,8 +782,42 @@ function IKST_StaffOps.handle(command, player, args)
             return false, "target offline"
         end
         local ok, msg = IKST_StaffOps.toggleGod(target)
+        if ok then
+            IKST_StaffOps.syncStaffModesToClient(target)
+        end
         return ok, msg .. " (" .. IKST_StaffOps.playerLabel(target) .. ")"
     end
 
     return false, "unknown staff command"
+end
+
+local function onStaffPlayerReady(player)
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return
+    end
+    if not player then
+        return
+    end
+    IKST_StaffOps.applyStaffModes(player)
+    IKST_StaffOps.syncStaffModesToClient(player)
+    if not IKST_Rewind then
+        require "IKST_Rewind"
+    end
+    if IKST_Rewind and IKST_Rewind.syncCountToClient then
+        IKST_Rewind.syncCountToClient(player)
+    end
+end
+
+if Events then
+    if Events.OnCreatePlayer and Events.OnCreatePlayer.Add then
+        Events.OnCreatePlayer.Add(function(playerIndex)
+            local player = getSpecificPlayer and getSpecificPlayer(playerIndex)
+            onStaffPlayerReady(player)
+        end)
+    end
+    if Events.OnConnected and Events.OnConnected.Add then
+        Events.OnConnected.Add(function(player)
+            onStaffPlayerReady(player)
+        end)
+    end
 end

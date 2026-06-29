@@ -4,6 +4,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
+require "IKST_Debug"
 
 IKST_ClientNet = IKST_ClientNet or {}
 IKST_ClientNet._pending = {}
@@ -30,6 +31,9 @@ function IKST_ClientNet.pump()
         return
     end
     -- Remote MP client JVM: player-first sendClientCommand.
+    if IKST_Debug and IKST_Debug.logNet then
+        IKST_Debug.logNet("client->server", job.command, job.player, job.args, "send")
+    end
     sendClientCommand(job.player, IKST.MODULE, job.command, job.args)
     IKST_ClientNet._waitTicks = IKST_ClientNet._gapTicks
 end

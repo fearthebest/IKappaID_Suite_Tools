@@ -112,6 +112,15 @@
     "Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries": "Max Audit Log Entries",
     "Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries_tooltip": "How many recent audit log entries to keep in memory.",
 
+    "Sandbox_IKappaIDSuiteTools_DebugLogEnabled": "IKST Debug Logging",
+    "Sandbox_IKappaIDSuiteTools_DebugLogEnabled_tooltip": "Print [IKST-DEBUG] lines to the client and server console for command and sync troubleshooting. Turn on for IB playtests; leave off on public servers.",
+
+    "Sandbox_IKappaIDSuiteTools_DebugLogVerbose": "IKST Debug Verbose",
+    "Sandbox_IKappaIDSuiteTools_DebugLogVerbose_tooltip": "Reserved for extra debug detail in a future update.",
+
+    "Sandbox_IKappaIDSuiteTools_DebugLogMaxEntries": "IKST Debug Log Buffer",
+    "Sandbox_IKappaIDSuiteTools_DebugLogMaxEntries_tooltip": "How many recent [IKST-DEBUG] lines to keep for the Debug tail tool.",
+
     "Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled": "Enable Recovery Journal",
     "Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled_tooltip": "Allow the use of skill books that let players save and recover their skills after death.",
 
