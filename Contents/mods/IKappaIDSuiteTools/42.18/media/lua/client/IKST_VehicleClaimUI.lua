@@ -125,7 +125,7 @@ function Panel:refreshPolicyUi()
         if IKST_ClaimPolicy.whitelistOnly() then
             lines[#lines + 1] = IKST.text("IGUI_IKST_Claim_WhitelistOnlyHint", "Whitelist mode: only owner + named players.")
         end
-        local entry = IKST_VehicleClaim.get(self.vehicleId)
+        local entry = IKST_VehicleClaim.entryForDisplay(self.vehicleId)
         if entry and entry.users then
             local names = {}
             for name in pairs(entry.users) do
@@ -150,11 +150,10 @@ function Panel:refreshScopeHighlight()
 end
 
 function Panel:loadPermsForScope()
-    local entry = IKST_VehicleClaim.get(self.vehicleId)
+    local entry = IKST_VehicleClaim.entryForDisplay(self.vehicleId)
     if not entry then
         return
     end
-    IKST_VehicleClaim.ensureEntryShape(entry)
     local perms
     if self.scope == "user" then
         local name = self.userEntry and self.userEntry:getText() or ""

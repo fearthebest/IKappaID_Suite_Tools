@@ -6,6 +6,8 @@ require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_Claim"
 require "IKST_SafehouseClaim"
+require "IKST_SafehouseClaimClient"
+require "IKST_SafeHouse"
 require "IKST_Access"
 require "IKST_ClaimIcons"
 
@@ -41,7 +43,6 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
     end
 
     local sh = IKST_SafehouseClaim.safehouseAtSquare(sq)
-    local username = IKST_SafehouseClaim.playerUsername(player)
     local isAdmin = IKST_Access.canUseTools(player)
 
     if sh then
@@ -49,11 +50,13 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
         if not x then
             return
         end
-        local entry = IKST_SafehouseClaim.get(x, y, w, h)
-        local isOwner = IKST_ClaimPolicy.usernamesEqual(owner, username)
-        local canEdit = entry and IKST_SafehouseClaim.playerMayEdit(entry, player)
-        if not canEdit and isOwner then
-            canEdit = true
+        local uiState = IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.uiState(x, y, w, h, player, owner)
+        local isAdmin = IKST_Access.canUseTools(player)
+        local canRelease = isAdmin
+        local canEdit = isAdmin
+        if uiState then
+            canRelease = uiState.canRelease == true or isAdmin
+            canEdit = uiState.canEdit == true or isAdmin
         end
 
         local root = context:addOption(IKST.text("IGUI_IKST_SafehouseClaim_Menu", "Safe area"))
@@ -61,10 +64,11 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
         local sub = ISContextMenu:getNew(context)
         context:addSubMenu(root, sub)
 
-        if isOwner or isAdmin then
+        if canRelease then
+            local shId = IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh)
             IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_Guard_SH_Release", "Remove safe area"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.safehouseRelease, {
-                    x = x, y = y, w = w, h = h, owner = owner,
+                    x = x, y = y, w = w, h = h, owner = owner, id = shId,
                 })
             end, IKST_ClaimIcons.SAFEHOUSE_UNCLAIM)
         end

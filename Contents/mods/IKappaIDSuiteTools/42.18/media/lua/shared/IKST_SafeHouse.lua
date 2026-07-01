@@ -61,6 +61,13 @@ function IKST_SafeHouse.id(sh)
     return sh:getId()
 end
 
+function IKST_SafeHouse.onlineId(sh)
+    if not sh or not sh.getOnlineID then
+        return nil
+    end
+    return sh:getOnlineID()
+end
+
 function IKST_SafeHouse.atSquare(square)
     if not square or not SafeHouse or not SafeHouse.getSafeHouse then
         return nil
@@ -107,6 +114,12 @@ function IKST_SafeHouse.find(entry, actor)
         return nil
     end
     local id = tonumber(entry.id)
+    if id and SafeHouse.getSafeHouse then
+        local byOnline = SafeHouse.getSafeHouse(id)
+        if byOnline then
+            return byOnline
+        end
+    end
     if id then
         local byId = nil
         IKST_SafeHouse.iter(function(sh)
@@ -116,9 +129,27 @@ function IKST_SafeHouse.find(entry, actor)
             if sh.getId and sh:getId() == id then
                 byId = sh
             end
+            if not byId and sh.getOnlineID and sh:getOnlineID() == id then
+                byId = sh
+            end
         end)
         if byId then
             return byId
+        end
+    end
+    local entryId = entry.id
+    if entryId and type(entryId) == "string" and entryId ~= "" then
+        local byTitle = nil
+        IKST_SafeHouse.iter(function(sh)
+            if byTitle then
+                return
+            end
+            if sh.getId and tostring(sh:getId()) == entryId then
+                byTitle = sh
+            end
+        end)
+        if byTitle then
+            return byTitle
         end
     end
     local x = math.floor(tonumber(entry.x) or 0)
@@ -174,6 +205,9 @@ function IKST_SafeHouse.find(entry, actor)
 end
 
 function IKST_SafeHouse.addRect(x, y, w, h, username)
+    if not IKST.mayMutateWorldState or not IKST.mayMutateWorldState() then
+        return nil
+    end
     if not SafeHouse or not SafeHouse.addSafeHouse or not username or username == "" then
         return nil
     end
@@ -191,6 +225,9 @@ function IKST_SafeHouse.addRect(x, y, w, h, username)
 end
 
 function IKST_SafeHouse.addBuilding(square, player)
+    if not IKST.mayMutateWorldState or not IKST.mayMutateWorldState() then
+        return nil
+    end
     if not SafeHouse or not SafeHouse.addSafeHouse or not square or not player then
         return nil
     end
@@ -198,10 +235,16 @@ function IKST_SafeHouse.addBuilding(square, player)
 end
 
 function IKST_SafeHouse.remove(sh, actor, force)
+    if not IKST.mayMutateWorldState or not IKST.mayMutateWorldState() then
+        return false
+    end
     if not sh or not SafeHouse or not SafeHouse.removeSafeHouse then
         return false
     end
     SafeHouse.removeSafeHouse(sh)
+    if SafeHouse.updateSafehousePlayersConnected then
+        SafeHouse.updateSafehousePlayersConnected()
+    end
     return true
 end
 
@@ -217,12 +260,12 @@ function IKST_SafeHouse.notifyPlayer(sh, player)
     end
 end
 
-function IKST_SafeHouse.afterMutation(sh, player)
+function IKST_SafeHouse.afterMutation(sh, player, syncInfo)
     IKST_SafeHouse.sync(sh)
     if player then
         IKST_SafeHouse.notifyPlayer(sh, player)
     end
     if IKST_GuardOps and IKST_GuardOps.broadcastSafehouseChange then
-        IKST_GuardOps.broadcastSafehouseChange(player)
+        IKST_GuardOps.broadcastSafehouseChange(player, syncInfo)
     end
 end

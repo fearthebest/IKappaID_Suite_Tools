@@ -1071,6 +1071,9 @@ function IKST_EconomyUI.onVendList(args)
     if not args then
         return
     end
+    if IKST_EconomyVendClient and IKST_EconomyVendClient.onVendListResult then
+        IKST_EconomyVendClient.onVendListResult(args)
+    end
     if IKST_EconomyUI.VendWindow then
         IKST_EconomyUI.VendWindow:setEntries(args.entries, args.owner)
     end

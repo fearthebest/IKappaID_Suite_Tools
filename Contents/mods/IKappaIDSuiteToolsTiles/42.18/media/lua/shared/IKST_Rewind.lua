@@ -1,4 +1,5 @@
 require "IKST_Shared"
+require "IKST_Authority"
 
 IKST_Rewind = IKST_Rewind or {}
 IKST_Rewind.MAX_STEPS = 30
@@ -98,6 +99,9 @@ function IKST_Rewind.peek(player)
 end
 
 function IKST_Rewind.push(player, label, entries, mode)
+    if IKST_Rewind.usesServerStack() and IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return
+    end
     if not player or not entries or #entries == 0 then
         return
     end
@@ -123,6 +127,9 @@ function IKST_Rewind.recordSquare(player, label, x, y, z, sprites, mode)
 end
 
 function IKST_Rewind.pop(player)
+    if IKST_Rewind.usesServerStack() and IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return nil
+    end
     local stack = IKST_Rewind.getStack(player)
     if #stack == 0 then
         return nil
@@ -133,6 +140,9 @@ function IKST_Rewind.pop(player)
 end
 
 function IKST_Rewind.clear(player)
+    if IKST_Rewind.usesServerStack() and IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return
+    end
     if IKST_Rewind.usesServerStack() then
         local key = IKST_Rewind.playerKey(player)
         local root = IKST_Rewind.serverRoot()

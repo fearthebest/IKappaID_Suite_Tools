@@ -1,5 +1,19 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.2.7.0 (2026-07-01)
+
+### Loot (addon)
+- **Dedicated MP:** Fix `ItemPickerJava` map access — use Lua-table vs Java `THashMap` `:get()` (no `map.get` probe; fixes server crash on repop).
+- **UX:** Halo toasts for loot results; client preview of affected containers in job panel; world highlights when Tiles is loaded; block empty ground clicks before server round-trip.
+
+### Vehicles (addon)
+- **Admin move:** Relocate via snapshot → delete → respawn (no overlapping vehicles / dupe risk).
+- **Safety:** Server ModData backup + restore at origin on spawn failure or server restart mid-move.
+- **Claims:** Remap vehicle claim row when engine assigns a new vehicle id after relocate.
+
+### Tiles (addon)
+- **Safehouse mirror:** Replace broken `triggerEvent(Events.OnSafehousesChanged)` with `forceSafehouseRefresh()` (B42 client API).
+
 ## 0.2.6.1 (2026-06-28)
 
 ### Dedicated MP fixes

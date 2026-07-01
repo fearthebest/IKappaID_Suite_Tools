@@ -70,13 +70,6 @@ end
 function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
     meta = meta or {}
     IKST_ServerGate.ensureServerModules()
-    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() and IKST_RateLimit then
-        local okRate, retryMs, code = IKST_RateLimit.check(player, command)
-        if not okRate then
-            meta.retryAfterMs = retryMs
-            return false, code or "rate_limit", meta
-        end
-    end
 
     if command == IKST.CMD.giveItem or command == IKST.CMD.giveTarget then
         if args.type and not IKST_Args.readItemType(args, "type") then
@@ -99,6 +92,10 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
         if x == nil or y == nil then
             return false, "bad_coords", meta
         end
+        local z = tonumber(args and args.z) or 0
+        if not IKST_Args.mapSquareExists(x, y, z) then
+            return false, "bad_coords", meta
+        end
     end
 
     if command == IKST.CMD.protectRadius or command == IKST.CMD.unprotectRadius then
@@ -113,7 +110,8 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
         end
     end
 
-    if command == IKST.CMD.lockInstallKeypad then
+    if command == IKST.CMD.lockInstallKeypad or command == IKST.CMD.lockTryUnlock
+        or command == IKST.CMD.lockSetPassword or command == IKST.CMD.lockClear then
         local dist = IKST_Access.sandboxInt("LockInstallDistance", 3, 1, 15)
         local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
         local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
@@ -124,13 +122,6 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
     end
 
     if command == IKST.CMD.lockTryUnlock then
-        local dist = IKST_Access.sandboxInt("LockInstallDistance", 3, 1, 15)
-        local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
-        local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
-        local z = tonumber(args and args.z) or (player and player:getZ()) or 0
-        if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, dist) then
-            return false, "too_far", meta
-        end
         if args.password ~= nil and IKST_Args.readPassword(args, "password") == nil then
             return false, "bad_password", meta
         end
@@ -139,6 +130,9 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
     if command == IKST.CMD.economyDeposit or command == IKST.CMD.economyWithdraw
         or command == IKST.CMD.economyExchange or command == IKST.CMD.economyExchangeAll
         or command == IKST.CMD.economyIdCardReissue then
+        if not IKST_Economy or type(IKST_Economy.playerNearCoord) ~= "function" then
+            return false, "economy_unavailable", meta
+        end
         local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
         local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
         local z = tonumber(args and args.z) or (player and player:getZ()) or 0
@@ -153,6 +147,9 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
 
     if command == IKST.CMD.economyVendSetPrice or command == IKST.CMD.economyVendDisable
         or command == IKST.CMD.economyVendBuy or command == IKST.CMD.economyVendClaim then
+        if not IKST_Economy or type(IKST_Economy.playerNearCoord) ~= "function" then
+            return false, "economy_unavailable", meta
+        end
         local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
         local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
         local z = tonumber(args and args.z) or (player and player:getZ()) or 0
@@ -256,6 +253,29 @@ function IKST_ServerGate.authorize(player, command, args)
     end
     if not player or not command then
         return false, "bad_request", {}
+    end
+
+    IKST_ServerGate.ensureServerModules()
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() and IKST_RateLimit then
+        local okRate, retryMs, code = IKST_RateLimit.check(player, command)
+        if not okRate then
+            return false, code or "rate_limit", { retryAfterMs = retryMs }
+        end
+    end
+
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if not IKST_Identity then
+            require "IKST_Identity"
+        end
+        if IKST_Identity and type(IKST_Identity.steamId) == "function"
+            and not IKST_Identity.steamId(player) then
+            if not IKST_Debug then
+                require "IKST_Debug"
+            end
+            if IKST_Debug and IKST_Debug.logVerbose then
+                IKST_Debug.logVerbose("identity", "MP player without SteamID: " .. IKST_Debug.playerBrief(player))
+            end
+        end
     end
 
     local pluginId, spec, tier = nil, nil, nil
@@ -392,6 +412,8 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "invalid password"
     elseif msg == "bad_vehicle" then
         msg = "invalid vehicle"
+    elseif msg == "economy_unavailable" then
+        msg = "economy module unavailable"
     end
     if IKST_AuditLog and IKST_AuditLog.record then
         IKST_AuditLog.record(player, command, args, false, msg)

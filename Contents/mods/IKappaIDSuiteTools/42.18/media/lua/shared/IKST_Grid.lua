@@ -25,16 +25,21 @@ function IKST_Grid.squareFromObject(obj)
     return nil
 end
 
-function IKST_Grid.squareFromWorldObjects(worldobjects)
+function IKST_Grid.squareFromWorldObjects(worldobjects, player)
     if not worldobjects then
         return nil
     end
-    local best, bestZ = nil, -1
+    player = IKST.resolvePlayer(player)
+    local playerZ = player and math.floor(player:getZ()) or 0
+    local best, bestDist = nil, -1
     for i = 1, #worldobjects do
         local sq = IKST_Grid.squareFromObject(worldobjects[i])
-        if sq and sq.getZ and sq:getZ() >= bestZ then
-            bestZ = sq:getZ()
-            best = sq
+        if sq and sq.getZ then
+            local dist = math.abs(sq:getZ() - playerZ)
+            if best == nil or dist < bestDist or (dist == bestDist and sq:getZ() > best:getZ()) then
+                bestDist = dist
+                best = sq
+            end
         end
     end
     return best
@@ -48,6 +53,16 @@ function IKST_Grid.getMaxZ()
         end
     end
     return 7
+end
+
+function IKST_Grid.getMinZ()
+    if getCell then
+        local cell = getCell()
+        if cell and cell.getMinZ then
+            return cell:getMinZ()
+        end
+    end
+    return -32
 end
 
 function IKST_Grid.isRoofObject(obj)
@@ -115,7 +130,8 @@ function IKST_Grid.scoreSquareForPick(square, playerZ)
     if not square then
         return -1
     end
-    local score = square:getZ() * 10
+    local z = square:getZ()
+    local score = -math.abs(z - playerZ) * 100
     if IKST_Grid.squareHasRoof(square) then
         score = score + 500
     end
@@ -129,9 +145,6 @@ function IKST_Grid.scoreSquareForPick(square, playerZ)
     local objects = square.getObjects and square:getObjects()
     if objects then
         score = score + objects:size()
-    end
-    if square:getZ() < playerZ then
-        score = score - 1000
     end
     return score
 end
@@ -184,10 +197,11 @@ function IKST_Grid.bestSquareAtWorldXY(wx, wy, player)
     local ix = math.floor(wx + 0.5)
     local iy = math.floor(wy + 0.5)
     local playerZ = math.floor(player:getZ())
+    local minZ = IKST_Grid.getMinZ()
     local maxZ = IKST_Grid.getMaxZ()
     local best, bestScore = nil, -1
 
-    for z = playerZ, maxZ do
+    for z = minZ, maxZ do
         local sq = IKST_Grid.getSquare(ix, iy, z)
         if sq then
             local score = IKST_Grid.scoreSquareForPick(sq, playerZ)
@@ -234,10 +248,11 @@ function IKST_Grid.squareFromScreen(screenX, screenY, player)
     end
 
     local playerZ = math.floor(player:getZ())
+    local minZ = IKST_Grid.getMinZ()
     local maxZ = IKST_Grid.getMaxZ()
     local best, bestScore = nil, -1
 
-    for z = playerZ, maxZ do
+    for z = minZ, maxZ do
         local sq = IKST_Grid.pickSquareFromScreenAtZ(mx, my, player, z)
         if sq then
             local score = IKST_Grid.scoreSquareForPick(sq, playerZ)

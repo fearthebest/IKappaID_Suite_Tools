@@ -6,6 +6,7 @@ require "IKST_Shared"
 require "IKST_Plugins"
 require "IKST_Access"
 require "IKST_JobLayout"
+require "IKST_ClaimIcons"
 
 IKST_HubNav = IKST_HubNav or {}
 IKST_HubNav.SIDEBAR_W = 112
@@ -17,14 +18,15 @@ IKST_HubNav.WORKSPACES = {
         title = "Utilities",
         descKey = "IGUI_IKST_WS_Utilities_Desc",
         desc = "Server tools: self, items, players, zombies, world, teleport",
+        icon = "media/textures/CellPhoneMod/icon_911.png",
         adminOnly = true,
         tools = {
-            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", order = 10 },
-            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", order = 20 },
-            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", order = 30 },
-            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", order = 40 },
-            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "Server tools", order = 50 },
-            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", order = 60 },
+            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", icon = "media/textures/CellPhoneMod/icon_avatar.png", order = 10 },
+            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", icon = "media/textures/CellPhoneMod/icon_in.png", order = 20 },
+            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", icon = "media/textures/CellPhoneMod/icon_people.png", order = 30 },
+            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", icon = "media/textures/CellPhoneMod/icon_delete.png", order = 40 },
+            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "Server tools", icon = "media/textures/CellPhoneMod/icon_more.png", order = 50 },
+            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", icon = "media/textures/CellPhoneMod/icon_out.png", order = 60 },
         },
     },
     {
@@ -33,9 +35,10 @@ IKST_HubNav.WORKSPACES = {
         title = "Claim",
         descKey = "IGUI_IKST_WS_Claim_Desc",
         desc = "Claim a safehouse or vehicle",
+        icon = "media/textures/CellPhoneMod/icon_avatar.png",
         tools = {
-            { id = "safehouses", titleKey = "IGUI_IKST_Claim_Safehouse", title = "Claim safehouse", order = 10 },
-            { id = "vehicleclaim", titleKey = "IGUI_IKST_Claim_Vehicle", title = "Claim vehicle", order = 20 },
+            { id = "safehouses", titleKey = "IGUI_IKST_Claim_Safehouse", title = "Claim safehouse", icon = "media/ui/ikst/safehouse_claim.png", order = 10 },
+            { id = "vehicleclaim", titleKey = "IGUI_IKST_Claim_Vehicle", title = "Claim vehicle", icon = "media/ui/ikst/vehicle_claim.png", order = 20 },
         },
     },
     {
@@ -44,6 +47,7 @@ IKST_HubNav.WORKSPACES = {
         title = "World",
         descKey = "IGUI_IKST_WS_World_Desc",
         desc = "Remove, paint, inspect, blueprints, protection",
+        icon = "media/textures/CellPhoneMod/icon_compose.png",
         pluginId = "tiles",
         adminOnly = true,
         tools = nil,
@@ -54,6 +58,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Vehicles",
         descKey = "IGUI_IKST_WS_Vehicles_Desc",
         desc = "Spawn, repair, prune — admin vehicle tools",
+        icon = "media/textures/CellPhoneMod/icon_phone.png",
         pluginId = "vehicles",
         adminOnly = true,
         tools = nil,
@@ -64,6 +69,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Everyone",
         descKey = "IGUI_IKST_WS_Everyone_Desc",
         desc = "Useful info and claim lists for everyday play",
+        icon = "media/textures/CellPhoneMod/icon_people.png",
         tools = nil,
     },
     {
@@ -72,6 +78,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Economy",
         descKey = "IGUI_IKST_WS_Economy_Desc",
         desc = "Balances, vending, and transfers",
+        icon = "media/textures/CellPhoneMod/icon_send.png",
         pluginId = "economy",
         tools = nil,
     },
@@ -81,6 +88,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Loot",
         descKey = "IGUI_IKST_WS_Loot_Desc",
         desc = "Repopulate containers with vanilla loot",
+        icon = "media/textures/CellPhoneMod/icon_in.png",
         pluginId = "loot",
         adminOnly = true,
         tools = nil,
@@ -440,20 +448,30 @@ function IKST_HubNav.hasSidebar(view)
 end
 
 function IKST_HubNav.buildSidebar(panel)
-    if not panel or not IKST_HubNav.hasSidebar(panel.view) then
+    if not panel or not IKST_HubNav.hasSidebar(panel.view) or not panel.q1Panel then
         return
     end
     local tools = IKST_HubNav.toolsForWorkspace(panel.view)
     local state = IKST.getPlayerState(panel.player)
     local activeTool = state and state.navTool or IKST_HubNav.defaultTool(panel.view)
-    local y = IKST_JobLayout.toLayerY(panel, panel.jobHeaderY or IKST_JobLayout.chromeContentTop(panel))
+    local y = 4
     local x = 4
-    local w = IKST_HubNav.SIDEBAR_W - 8
+    local w = IKST_JobLayout.Q1_W - 8
     for _, tool in ipairs(tools) do
         local label = IKST_HubNav.toolLabel(tool)
-        panel:makeChromeButton(x, y, w, 24, label, function()
+        local btn = ISButton:new(x, y, w, 24, label, panel, function()
             panel:enterNav(panel.view, tool.id)
-        end, activeTool == tool.id)
+        end)
+        btn:initialise()
+        if tool.icon and IKST_ClaimIcons and IKST_ClaimIcons.applyButtonIcon then
+            IKST_ClaimIcons.applyButtonIcon(btn, tool.icon)
+        end
+        if activeTool == tool.id then
+            IKST_Chrome.stylePrimaryButton(btn)
+        else
+            IKST_Chrome.styleSecondaryButton(btn)
+        end
+        panel:addQ1Widget(btn)
         y = y + 26
     end
 end
@@ -470,7 +488,7 @@ function IKST_HubNav.drawHomeModes(panel, bodyY)
     for _, ws in ipairs(IKST_HubNav.visibleWorkspaces(panel.player)) do
         local title = IKST_HubNav.modeLabel(ws)
         local desc = IKST.text(ws.descKey, ws.desc or "")
-        IKST_Chrome.drawJobCard(panel, IKST_JobLayout.MARGIN, y, w, cardH, title, desc)
+        IKST_Chrome.drawJobCard(panel, IKST_JobLayout.MARGIN, y, w, cardH, title, desc, ws.icon)
         table.insert(panel.homeHits, { x = IKST_JobLayout.MARGIN, y = y, w = w, h = cardH, mode = ws.id })
         y = y + cardH + gap
     end

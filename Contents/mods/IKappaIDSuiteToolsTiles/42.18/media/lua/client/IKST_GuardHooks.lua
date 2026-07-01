@@ -16,6 +16,8 @@ IKST_GuardHooks = IKST_GuardHooks or {}
 IKST_GuardHooks._shApplied = IKST_GuardHooks._shApplied or {}
 IKST_GuardHooks._shLastTick = 0
 IKST_GuardHooks._shBorderOn = false
+IKST_GuardHooks._shBordersSnapshot = false
+IKST_GuardHooks._shBordersSynced = false
 IKST_GuardHooks.SH_THROTTLE_MS = 400
 IKST_GuardHooks.SH_VIEW_RANGE = 90
 
@@ -76,53 +78,6 @@ function IKST_GuardHooks.safehouseActionBlocked(player, square, action, messageK
     return false
 end
 
-function IKST_GuardHooks.wrapDestroy()
-    if IKST_GuardHooks.destroyWrapped then
-        return
-    end
-    if not ISDestroyCursor then
-        return
-    end
-    IKST_GuardHooks.destroyWrapped = true
-    local vanillaCanDestroy = ISDestroyCursor.canDestroy
-    if not vanillaCanDestroy then
-        return
-    end
-    ISDestroyCursor.canDestroy = function(self, object)
-        if object and IKST_TileCheck.isProtected(object, "destroy", self and self.character) then
-            IKST_TileCheck.notifyDestroyBlocked(self.character, object)
-            return false
-        end
-        local sq = object and object.getSquare and object:getSquare() or nil
-        if sq and IKST_GuardHooks.safehouseActionBlocked(self.character, sq, "destroy", "IGUI_IKST_Claim_SafehouseDenied", "This safe area is claimed by another player.") then
-            return false
-        end
-        return vanillaCanDestroy(self, object)
-    end
-end
-
-function IKST_GuardHooks.wrapPickup()
-    if IKST_GuardHooks.pickupWrapped or not ISMoveableSpriteTool then
-        return
-    end
-    IKST_GuardHooks.pickupWrapped = true
-    local vanillaPickup = ISMoveableSpriteTool.walkTo
-    if not vanillaPickup then
-        return
-    end
-    ISMoveableSpriteTool.walkTo = function(self, obj, ...)
-        if obj and IKST_TileCheck.isProtected(obj, "pickup", self and self.character) then
-            IKST_TileCheck.notifyBlocked(self.character, "IGUI_IKST_Guard_PickupProtected", "Pickup blocked.")
-            return false
-        end
-        local sq = obj and obj.getSquare and obj:getSquare() or nil
-        if sq and IKST_GuardHooks.safehouseActionBlocked(self.character, sq, "loot", "IGUI_IKST_Claim_SafehouseDenied", "This safe area is claimed by another player.") then
-            return false
-        end
-        return vanillaPickup(self, obj, ...)
-    end
-end
-
 function IKST_GuardHooks.applyCatchSync(player, args)
     if not player or not args then
         return
@@ -163,18 +118,197 @@ function IKST_GuardHooks.onPlayerUpdate(player)
 end
 
 function IKST_GuardHooks.isBordersEnabled()
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if not IKST_GuardHooks._shBordersSynced then
+            return false
+        end
+        return IKST_GuardHooks._shBordersSnapshot == true
+    end
     local data = ModData.getOrCreate("IKST_WorldRules")
     return data.showSafehouseBorders == true
 end
 
 function IKST_GuardHooks.setBordersEnabled(on)
-    local data = ModData.getOrCreate("IKST_WorldRules")
-    data.showSafehouseBorders = on == true
+    IKST_GuardHooks._shBordersSnapshot = on == true
+    IKST_GuardHooks._shBordersSynced = true
     IKST_GuardHooks.forceSafehouseRefresh()
 end
 
-function IKST_GuardHooks.forceSafehouseRefresh()
+function IKST_GuardHooks.applyWorldRulesSnapshot(data)
+    if not data then
+        return
+    end
+    if data.showSafehouseBorders ~= nil then
+        IKST_GuardHooks._shBordersSnapshot = data.showSafehouseBorders == true
+        IKST_GuardHooks._shBordersSynced = true
+    end
+end
+
+function IKST_GuardHooks.safehouseStillListed(sh)
+    if not sh or not SafeHouse or not SafeHouse.getSafehouseList then
+        return false
+    end
+    local list = SafeHouse.getSafehouseList()
+    if list and list.contains and list:contains(sh) then
+        return true
+    end
+    local onlineId = sh.getOnlineID and sh:getOnlineID()
+    if onlineId and SafeHouse.getSafeHouse then
+        local byId = SafeHouse.getSafeHouse(onlineId)
+        if byId then
+            return true
+        end
+    end
+    return false
+end
+
+function IKST_GuardHooks.findSafehouseForRemoval(args)
+    if not SafeHouse or not args then
+        return nil
+    end
+    local onlineId = tonumber(args.removedOnlineId)
+    if onlineId and SafeHouse.getSafeHouse then
+        local byId = SafeHouse.getSafeHouse(onlineId)
+        if byId then
+            return byId
+        end
+    end
+    local x = math.floor(tonumber(args.x) or 0)
+    local y = math.floor(tonumber(args.y) or 0)
+    local w = math.floor(tonumber(args.w) or 0)
+    local h = math.floor(tonumber(args.h) or 0)
+    if w > 0 and h > 0 and SafeHouse.getSafeHouse then
+        return SafeHouse.getSafeHouse(x, y, w, h)
+    end
+    return nil
+end
+
+-- MP: server SafeHouse mutations do not push SyncSafehousePacket; mirror idempotently on clients.
+function IKST_GuardHooks.applyVanillaSafehouseAdded(args)
+    if not IKST or not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return false
+    end
+    if not SafeHouse or not SafeHouse.addSafeHouse or not args then
+        return false
+    end
+    local owner = args.owner
+    if not owner or owner == "" then
+        return false
+    end
+    local x = math.floor(tonumber(args.x) or 0)
+    local y = math.floor(tonumber(args.y) or 0)
+    local w = math.floor(tonumber(args.w) or 0)
+    local h = math.floor(tonumber(args.h) or 0)
+    if w < 1 or h < 1 then
+        return false
+    end
+    local onlineId = tonumber(args.onlineId)
+    if onlineId and SafeHouse.getSafeHouse then
+        local byId = SafeHouse.getSafeHouse(onlineId)
+        if byId then
+            return true
+        end
+    end
+    if SafeHouse.getSafeHouse then
+        local existing = SafeHouse.getSafeHouse(x, y, w, h)
+        if existing then
+            return true
+        end
+    end
+    local sh = SafeHouse.addSafeHouse(x, y, w, h, owner)
+    if sh and args.title and args.title ~= "" and sh.setTitle then
+        sh:setTitle(tostring(args.title))
+    end
+    if SafeHouse.updateSafehousePlayersConnected then
+        SafeHouse.updateSafehousePlayersConnected()
+    end
+    IKST_GuardHooks.forceSafehouseRefresh()
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logEffect then
+        local detail = "onlineId=" .. tostring(args.onlineId) .. " @" .. tostring(x) .. "," .. tostring(y)
+        IKST_Debug.logEffect("safehouse", "clientVanillaAdd", detail, nil)
+    end
+    return sh ~= nil
+end
+
+-- MP: server removeSafeHouse does not push SyncSafehousePacket; mirror removal locally.
+function IKST_GuardHooks.applyVanillaSafehouseRemoved(args)
+    if not IKST or not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return false
+    end
+    if not SafeHouse or not SafeHouse.removeSafeHouse then
+        return false
+    end
+    local sh = IKST_GuardHooks.findSafehouseForRemoval(args)
+    if not sh then
+        return false
+    end
+    SafeHouse.removeSafeHouse(sh)
+    if SafeHouse.updateSafehousePlayersConnected then
+        SafeHouse.updateSafehousePlayersConnected()
+    end
+    IKST_GuardHooks.forceSafehouseRefresh()
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logEffect then
+        local detail = "onlineId=" .. tostring(args and args.removedOnlineId)
+        if args and args.x then
+            detail = detail .. " @" .. tostring(args.x) .. "," .. tostring(args.y)
+        end
+        IKST_Debug.logEffect("safehouse", "clientVanillaRemove", detail, nil)
+    end
+    return true
+end
+
+function IKST_GuardHooks.closeStaleSafehouseUIs()
+    if ISSafehouseUI and ISSafehouseUI.OnSafehousesChanged then
+        ISSafehouseUI.OnSafehousesChanged()
+    end
+    if ISSafehousesList and ISSafehousesList.OnSafehousesChanged then
+        ISSafehousesList.OnSafehousesChanged()
+    end
+    if ISAdminPanelUI and ISAdminPanelUI.OnSafehousesChanged then
+        ISAdminPanelUI.OnSafehousesChanged()
+    end
+end
+
+function IKST_GuardHooks.applyVanillaSafehouseMirror(args)
+    if not args then
+        return false
+    end
+    if args.action == "add" then
+        return IKST_GuardHooks.applyVanillaSafehouseAdded(args)
+    end
+    if args.action == "remove" or args.removedOnlineId then
+        return IKST_GuardHooks.applyVanillaSafehouseRemoved(args)
+    end
+    return false
+end
+
+function IKST_GuardHooks.forceSafehouseRefresh(args)
     IKST_GuardHooks._shLastTick = 0
+    if not SafeHouse then
+        return
+    end
+    if args then
+        IKST_GuardHooks.applyVanillaSafehouseMirror(args)
+    end
+    if SafeHouse.updateSafehousePlayersConnected then
+        SafeHouse.updateSafehousePlayersConnected()
+    end
+    local player = getPlayer and getPlayer()
+    if player and SafeHouse.hasSafehouse then
+        local mine = SafeHouse.hasSafehouse(player)
+        if mine and not IKST_GuardHooks.safehouseStillListed(mine) then
+            if SafeHouse.updateSafehousePlayersConnected then
+                SafeHouse.updateSafehousePlayersConnected()
+            end
+        end
+    end
+    IKST_GuardHooks.closeStaleSafehouseUIs()
 end
 
 function IKST_GuardHooks.iterSafehouses(visitor)
@@ -343,8 +477,9 @@ end
 
 function IKST_GuardHooks.init()
     IKST_GuardHooks.wrapTransfer()
-    IKST_GuardHooks.wrapDestroy()
-    IKST_GuardHooks.wrapPickup()
+    if IKST_EnforcementTiles and IKST_EnforcementTiles.init then
+        IKST_EnforcementTiles.init()
+    end
 end
 
 if Events then

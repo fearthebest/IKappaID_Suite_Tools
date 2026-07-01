@@ -167,6 +167,15 @@ function IKST_RateLimit.playerKey(player)
     if not player then
         return "?"
     end
+    if not IKST_Identity then
+        require "IKST_Identity"
+    end
+    if IKST_Identity and IKST_Identity.accountKey then
+        local account = IKST_Identity.accountKey(player)
+        if account and account ~= "" and account ~= "local:anonymous" then
+            return account
+        end
+    end
     if player.getUsername then
         local name = player:getUsername()
         if name and name ~= "" then

@@ -421,6 +421,26 @@ function IKST_PreviewOverlay.setJobVehicle(vehicleId, colorKey)
     IKST_PreviewOverlay.highlightSquareFloors(squares, colorKey or "claim", 0.50, IKST_PreviewOverlay._jobHighlightedSquares)
 end
 
+function IKST_PreviewOverlay.setLootJobPreview(preview)
+    IKST_PreviewOverlay.clearJob()
+    if not preview or preview.count == 0 then
+        return
+    end
+    if preview.squares and #preview.squares > 0 then
+        IKST_PreviewOverlay.highlightSquareFloors(preview.squares, "accent", 0.42)
+    end
+    if type(preview.containers) ~= "table" then
+        return
+    end
+    local r, g, b, a = previewRGBA("accent", 0.88)
+    for _, container in ipairs(preview.containers) do
+        local parent = container and container.getParent and container:getParent()
+        if parent and applyObjectHighlight(parent, r, g, b, a) then
+            IKST_PreviewOverlay._jobHighlightedObjects[#IKST_PreviewOverlay._jobHighlightedObjects + 1] = parent
+        end
+    end
+end
+
 function IKST_PreviewOverlay.clearHover()
     clearHoverHighlights()
     IKST_PreviewOverlay._hoverKey = nil

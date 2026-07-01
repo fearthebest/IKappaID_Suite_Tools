@@ -1,9 +1,11 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.6.5"
+IKST.VERSION = "0.2.7.0"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
+IKST.RESTORE_MAX_PERK_LEVEL = 10
+IKST.QUICK_BROADCAST_MAX_LEN = 512
 
 IKST.CMD = {
     inspectSquare = "inspectSquare",
@@ -43,6 +45,7 @@ IKST.CMD = {
     giveKit = "giveKit",
     setTime = "setTime",
     setWeather = "setWeather",
+    weatherMirror = "weatherMirror",
     clearWeather = "clearWeather",
     clearZombies = "clearZombies",
     healTarget = "healTarget",
@@ -120,6 +123,8 @@ IKST.CMD = {
     safehouseList = "safehouseList",
     safehouseListResult = "safehouseListResult",
     safehouseClientRefresh = "safehouseClientRefresh",
+    safehouseClaimMirror = "safehouseClaimMirror",
+    safehouseClaimResult = "safehouseClaimResult",
     safehouseRelease = "safehouseRelease",
     safehouseClaim = "safehouseClaim",
     safehouseTp = "safehouseTp",
@@ -133,6 +138,8 @@ IKST.CMD = {
     vehicleClaimSetPerms = "vehicleClaimSetPerms",
     vehicleClaimList = "vehicleClaimList",
     vehicleClaimListResult = "vehicleClaimListResult",
+    vehicleClaimMirror = "vehicleClaimMirror",
+    vehicleClaimResult = "vehicleClaimResult",
     vehicleClaimNearby = "vehicleClaimNearby",
     safehouseAddMember = "safehouseAddMember",
     safehouseRemoveMember = "safehouseRemoveMember",
@@ -632,9 +639,17 @@ function IKST.clampRadius(r)
     return math.max(1, math.min(math.floor(r), IKST.getMaxCleanupRadius()))
 end
 
+function IKST.getMaxCleanupCubeHalf()
+    local sv = SandboxVars and SandboxVars.IKappaIDSuiteToolsTiles
+    if sv and sv.MaxCleanupCubeHalf then
+        return sv.MaxCleanupCubeHalf
+    end
+    return 10
+end
+
 function IKST.clampCubeHalf(h)
     h = tonumber(h) or IKST.CUBE_PRESETS.M
-    return math.max(0, math.min(math.floor(h), IKST.getMaxCleanupRadius()))
+    return math.max(0, math.min(math.floor(h), IKST.getMaxCleanupCubeHalf()))
 end
 
 function IKST.getVehicleNearRadius()
@@ -769,6 +784,14 @@ function IKST.isRemoteClient()
         and type(isServer) == "function" and not isServer()
 end
 
+-- IKFRVP-style gate: remote MP clients execute server vehicle mirror payloads only.
+function IKST.clientExecutesServerMirror()
+    if IKST_Authority and IKST_Authority.usesMirrorExecuteClient then
+        return IKST_Authority.usesMirrorExecuteClient()
+    end
+    return IKST.isRemoteClient()
+end
+
 -- MP listen host runs client + server JVMs; world edits must hit the server JVM.
 function IKST.isListenHostClient()
     return IKST.isMultiplayerSession()
@@ -807,6 +830,23 @@ end
 
 function IKST.runsOnServerJvm()
     return type(isServer) == "function" and isServer()
+end
+
+-- IKFRVP trunk pattern: remote MP + listen-host client JVMs never mutate synced world state.
+function IKST.mayMutateWorldState()
+    if IKST_Authority and IKST_Authority.mayMutateWorldState then
+        return IKST_Authority.mayMutateWorldState()
+    end
+    if IKST.isRemoteClient and IKST.isRemoteClient() then
+        return false
+    end
+    if IKST.isListenHostClient and IKST.isListenHostClient() then
+        return false
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        return IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+    end
+    return true
 end
 
 function IKST.distance2d(x1, y1, x2, y2)
@@ -850,12 +890,7 @@ function IKST.dispatchCommand(player, command, args)
     if IKST_Debug and IKST_Debug.logNet then
         IKST_Debug.logNet("client->dispatch", command, player, args, "")
     end
-    -- Co-op host: client command does not loop back to the server.
-    if IKST.isCoopHostPlayer(player) then
-        IKST.runServerCommand(player, command, args)
-        return
-    end
-    -- MP listen host: route through server JVM (same as remote clients).
+    -- MP listen host: route through authoritative server JVM (must run before co-op shortcut).
     if IKST.isListenHostClient() then
         if IKST.enqueueClientCommand then
             IKST.enqueueClientCommand(player, command, args)
@@ -865,6 +900,11 @@ function IKST.dispatchCommand(player, command, args)
             sendClientCommand(player, IKST.MODULE, command, args)
             return
         end
+    end
+    -- Integrated co-op host (single JVM): sendClientCommand does not loop to server handlers.
+    if IKST.isCoopHostPlayer(player) then
+        IKST.runServerCommand(player, command, args)
+        return
     end
     -- Integrated SP or dedicated server JVM: run world edits directly.
     if not IKST.isRemoteClient() then
@@ -891,6 +931,9 @@ function IKST.shouldNotifyResult(mode)
         return false
     end
     if mode == IKST.CMD.vehicleClaimList or mode == IKST.CMD.safehouseList then
+        return false
+    end
+    if mode == IKST.CMD.lootRepopulateZone or mode == IKST.CMD.lootRepopulateContainer then
         return false
     end
     return true

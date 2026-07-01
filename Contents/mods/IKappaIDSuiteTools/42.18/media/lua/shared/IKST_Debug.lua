@@ -148,17 +148,75 @@ function IKST_Debug.logDeny(command, player, reason, args)
     ))
 end
 
-function IKST_Debug.logResult(command, player, ok, msg)
+function IKST_Debug.logResult(command, player, ok, msg, extra)
     if not IKST_Debug.enabled() then
         return
     end
-    IKST_Debug.log("result", string.format(
+    local line = string.format(
         "cmd=%s ok=%s user=%s msg=%s",
         tostring(command),
         ok == true and "yes" or "no",
         IKST_Debug.playerBrief(player),
         tostring(msg or "")
-    ))
+    )
+    if extra and type(extra) == "table" then
+        if extra.x ~= nil and extra.y ~= nil then
+            line = line .. string.format(" @ %s,%s,%s", tostring(extra.x), tostring(extra.y), tostring(extra.z or 0))
+        end
+        if extra.plugin then
+            line = line .. " plugin=" .. tostring(extra.plugin)
+        end
+    end
+    IKST_Debug.log("result", line)
+end
+
+function IKST_Debug.logAction(tag, action, player, detail)
+    if not IKST_Debug.enabled() then
+        return
+    end
+    local parts = { tostring(action or "?") }
+    if player then
+        parts[#parts + 1] = "user=" .. IKST_Debug.playerBrief(player)
+    end
+    if detail and detail ~= "" then
+        parts[#parts + 1] = tostring(detail)
+    end
+    IKST_Debug.log(tag or "action", table.concat(parts, " "))
+end
+
+function IKST_Debug.logEffect(module, action, detail, player)
+    if not IKST_Debug.enabled() then
+        return
+    end
+    local msg = tostring(module or "?") .. "/" .. tostring(action or "?")
+    if detail and detail ~= "" then
+        msg = msg .. " " .. tostring(detail)
+    end
+    if player then
+        msg = msg .. " user=" .. IKST_Debug.playerBrief(player)
+    end
+    IKST_Debug.log("effect", msg)
+end
+
+function IKST_Debug.logVerbose(tag, msg)
+    if not IKST_Debug.verbose() then
+        return
+    end
+    IKST_Debug.log(tag or "verbose", tostring(msg or ""))
+end
+
+function IKST_Debug.logAuth(command, player, meta)
+    if not IKST_Debug.enabled() then
+        return
+    end
+    local line = "cmd=" .. tostring(command) .. " user=" .. IKST_Debug.playerBrief(player)
+    if meta and meta.plugin then
+        line = line .. " plugin=" .. tostring(meta.plugin)
+    end
+    if meta and meta.tier then
+        line = line .. " tier=" .. tostring(meta.tier)
+    end
+    IKST_Debug.log("auth", line)
 end
 
 function IKST_Debug.modFlags()

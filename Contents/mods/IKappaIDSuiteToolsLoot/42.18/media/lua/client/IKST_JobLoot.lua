@@ -7,6 +7,7 @@ require "IKST_Chrome"
 require "IKST_JobLayout"
 require "IKST_ActionLog"
 require "IKST_Loot"
+require "IKST_LootOps"
 require "IKST_LootWorldPick"
 
 IKST_JobLoot = IKST_JobLoot or {}
@@ -38,6 +39,9 @@ function IKST_JobLoot.syncArm(panel)
     end
     if state.armed and state.armedJob == IKST.VIEW.loot then
         IKST_LootWorldPick.arm(panel.player, IKST.getLootScope(state), true)
+    end
+    if IKST_Preview and IKST_Preview.syncForPanel then
+        IKST_Preview.syncForPanel(panel)
     end
 end
 
@@ -79,6 +83,73 @@ function IKST_JobLoot.describeState(state)
     return IKST.text("IGUI_IKST_Loot_Repopulate", "Repopulate loot") .. " · " .. IKST.lootScopeLabel(IKST.getLootScope(state), state)
 end
 
+function IKST_JobLoot.previewAt(panel, x, y, z)
+    if not panel or not IKST_LootOps or not IKST_LootOps.previewZone then
+        return nil
+    end
+    local state = IKST.getPlayerState(panel.player)
+    if not state then
+        return nil
+    end
+    return IKST_LootOps.previewZone(x, y, z, IKST.getLootScope(state), {
+        radius = state.cleanupRadius,
+    })
+end
+
+function IKST_JobLoot.previewAtPlayer(panel)
+    local player = panel and panel.player
+    if not player then
+        return nil
+    end
+    return IKST_JobLoot.previewAt(panel, math.floor(player:getX()), math.floor(player:getY()), math.floor(player:getZ()))
+end
+
+function IKST_JobLoot.notifyPreview(player, preview, ok)
+    if not player or not preview then
+        return
+    end
+    local line = IKST_LootOps.previewSummary(preview)
+    if line ~= "" then
+        IKST.notify(player, line, ok == true)
+    end
+end
+
+function IKST_JobLoot.tryDispatchZone(player, x, y, z, scope, radius)
+    if not player or not IKST_LootOps or not IKST_LootOps.previewZone then
+        return false
+    end
+    local preview = IKST_LootOps.previewZone(x, y, z, scope, { radius = radius })
+    if preview.count == 0 then
+        IKST_JobLoot.notifyPreview(player, preview, false)
+        return false
+    end
+    IKST.dispatchCommand(player, IKST.CMD.lootRepopulateZone, {
+        x = x,
+        y = y,
+        z = z,
+        scope = scope,
+        radius = radius,
+    })
+    return true
+end
+
+function IKST_JobLoot.onServerResult(panel, args)
+    if not args then
+        return
+    end
+    if args.mode ~= IKST.CMD.lootRepopulateZone and args.mode ~= IKST.CMD.lootRepopulateContainer then
+        return
+    end
+    local player = panel and panel.player
+    if not player then
+        return
+    end
+    local msg = IKST_LootOps.formatResultMessage(args.message)
+    if msg and msg ~= "" then
+        IKST.notify(player, msg, args.success == true)
+    end
+end
+
 function IKST_JobLoot.repopulateAtPlayer(panel)
     local player = panel.player
     if not player then
@@ -91,13 +162,7 @@ function IKST_JobLoot.repopulateAtPlayer(panel)
     local x = math.floor(player:getX())
     local y = math.floor(player:getY())
     local z = math.floor(player:getZ())
-    IKST.dispatchCommand(player, IKST.CMD.lootRepopulateZone, {
-        x = x,
-        y = y,
-        z = z,
-        scope = IKST.getLootScope(state),
-        radius = state.cleanupRadius,
-    })
+    IKST_JobLoot.tryDispatchZone(player, x, y, z, IKST.getLootScope(state), state.cleanupRadius)
 end
 
 function IKST_JobLoot.build(panel)
@@ -117,9 +182,12 @@ function IKST_JobLoot.build(panel)
     if state.armed and state.armedJob == IKST.VIEW.loot then
         active = active .. " [" .. IKST.text("IGUI_IKST_Armed", "READY — click the ground") .. "]"
     end
+    local preview = IKST_JobLoot.previewAtPlayer(panel)
+    local previewLine = IKST_LootOps.previewSummary(preview)
 
     local barW = panel.contentW or (panel.width - 24)
-    local bar = ISPanel:new(IKST_JobLayout.MARGIN, y, barW, 30)
+    local barH = previewLine ~= "" and 44 or 30
+    local bar = ISPanel:new(IKST_JobLayout.MARGIN, y, barW, barH)
     bar.backgroundColor = IKST_Chrome.colors.bgToolbar
     bar.borderColor = IKST_Chrome.colors.accentDim
     bar:initialise()
@@ -128,6 +196,10 @@ function IKST_JobLoot.build(panel)
         local cc = IKST_Chrome.colors
         p:drawText(IKST.text("IGUI_IKST_Active", "Ready") .. ": " .. active, 8, 7,
             cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
+        if previewLine ~= "" then
+            p:drawText(IKST.text("IGUI_IKST_Loot_Preview_Label", "Affected") .. ": " .. previewLine, 8, 22,
+                cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small)
+        end
     end
     panel:addJobWidget(bar)
 
@@ -141,7 +213,7 @@ function IKST_JobLoot.build(panel)
             panel:refreshJobUI()
         end, false)
 
-    y = y + 40
+    y = y + barH + 8
 
     panel:makeJobButton(IKST_JobLayout.MARGIN, y, barW, 28,
         IKST.text("IGUI_IKST_Loot_Arm", "Click ground to repopulate"), function()
@@ -163,4 +235,7 @@ function IKST_JobLoot.enter(panel)
         state.lootScope = IKST.CLEANUP_SCOPES.single
     end
     IKST_JobLoot.syncArm(panel)
+    if IKST_Preview and IKST_Preview.syncForPanel then
+        IKST_Preview.syncForPanel(panel)
+    end
 end

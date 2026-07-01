@@ -71,10 +71,18 @@ function IKST_EconomyOps.sendSnapshot(player, extra)
 end
 
 function IKST_EconomyOps.sendVendList(player, x, y, z, entries)
+    local owner = IKST_EconomyOps.vendOwnerAt(x, y, z)
+    local isVending = owner ~= nil and owner ~= ""
     local payload = {
         x = x, y = y, z = z,
         entries = entries or {},
-        owner = IKST_EconomyOps.vendOwnerAt(x, y, z),
+        owner = owner,
+        isVending = isVending,
+        canClaim = not isVending,
+        canManage = isVending and (
+            IKST_Identity.playerOwnsKey(player, owner)
+            or (IKST_Access and IKST_Access.canUseTools(player))
+        ),
     }
     if IKST.deliverClientCommand then
         IKST.deliverClientCommand(player, IKST.CMD.economyVendListResult, payload)
@@ -1311,6 +1319,9 @@ function IKST_EconomyOps.vendSetPrice(player, x, y, z, args)
     end
     local owner = IKST_EconomyOps.vendOwnerAt(x, y, z)
     local me = IKST_Economy.accountName(player)
+    if not owner and not IKST_Access.canUseTools(player) then
+        return false, "claim shop first"
+    end
     if owner and not IKST_Identity.playerOwnsKey(player, owner) and not IKST_Access.canUseTools(player) then
         return false, "not your shop"
     end

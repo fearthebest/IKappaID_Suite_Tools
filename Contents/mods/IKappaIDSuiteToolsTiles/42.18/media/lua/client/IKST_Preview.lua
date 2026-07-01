@@ -63,6 +63,24 @@ function IKST_Preview.syncForPanel(panel)
         return
     end
 
+    if view == IKST.VIEW.loot and state and IKST_LootOps and IKST_LootOps.previewZone then
+        local ax, ay, az = cx, cy, cz
+        if state.armed and state.armedJob == IKST.VIEW.loot
+            and IKST_LootWorldPick and IKST_LootWorldPick.hoverSquare then
+            local hs = IKST_LootWorldPick.hoverSquare
+            ax = hs:getX()
+            ay = hs:getY()
+            az = hs:getZ()
+        end
+        local preview = IKST_LootOps.previewZone(ax, ay, az, IKST.getLootScope(state), {
+            radius = state.cleanupRadius,
+        })
+        if IKST_PreviewOverlay.setLootJobPreview then
+            IKST_PreviewOverlay.setLootJobPreview(preview)
+        end
+        return
+    end
+
     if view == IKST.VIEW.inspector and state and state.lastInspect then
         local li = state.lastInspect
         local sq = IKST_Grid.getSquare(li.x, li.y, li.z or 0)
@@ -160,6 +178,15 @@ local function previewMoveKey(panel)
     parts[#parts + 1] = panel.threatRadius or ""
     parts[#parts + 1] = tostring(panel.guardVehicleId or panel.selectedVehicleId or "")
     parts[#parts + 1] = tostring(panel.guardSelectedSH and panel.guardSelectedSH.id or "")
+    if state then
+        parts[#parts + 1] = state.lootScope or ""
+        parts[#parts + 1] = state.cleanupRadius or ""
+        parts[#parts + 1] = tostring(state.armed and state.armedJob == IKST.VIEW.loot)
+        if IKST_LootWorldPick and IKST_LootWorldPick.hoverSquare then
+            local hs = IKST_LootWorldPick.hoverSquare
+            parts[#parts + 1] = tostring(hs:getX()) .. "," .. tostring(hs:getY())
+        end
+    end
     if panel.guardShWEntry and IKST_JobGuard and IKST_JobGuard.readEntry then
         parts[#parts + 1] = IKST_JobGuard.readEntry(panel.guardShWEntry)
         parts[#parts + 1] = IKST_JobGuard.readEntry(panel.guardShHEntry)

@@ -16,7 +16,7 @@ local function readHostFile(sectionId)
         return nil
     end
     local path = "IKST/Briefing/" .. tostring(sectionId) .. ".txt"
-    local reader = getFileReader(path, true)
+    local reader = getFileReader(path, false)
     if not reader then
         return nil
     end

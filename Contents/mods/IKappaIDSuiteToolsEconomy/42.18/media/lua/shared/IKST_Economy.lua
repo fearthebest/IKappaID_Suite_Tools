@@ -1,6 +1,7 @@
 -- IKST player economy (bank, wire, vending, valuables) — uses PhoneShop physical cash when loaded.
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_Identity"
 require "IKST_EconomyBridge"
 require "IKST_Grid"
@@ -906,6 +907,9 @@ function IKST_Economy.getStore()
 end
 
 function IKST_Economy.mayMutateStore()
+    if IKST_Authority and IKST_Authority.guardServerMutate then
+        return IKST_Authority.guardServerMutate()
+    end
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return true
     end
@@ -943,15 +947,27 @@ function IKST_Economy.readClientPending(player)
     return math.floor(tonumber(md.IKST_pending_cache) or 0)
 end
 
-function IKST_Economy.isMpRemoteClient()
+function IKST_Economy.usesClientSnapshot()
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return false
     end
-    if type(isClient) == "function" and isClient()
-        and type(isServer) == "function" and not isServer() then
-        return true
+    if type(isClient) ~= "function" or not isClient() then
+        return false
     end
-    return false
+    return (IKST.isRemoteClient and IKST.isRemoteClient())
+        or (IKST.isListenHostClient and IKST.isListenHostClient())
+end
+
+function IKST_Economy.isMpRemoteClient()
+    return IKST_Economy.usesClientSnapshot()
+end
+
+function IKST_Economy.peekAccountByKey(key)
+    local store = IKST_Economy.getStore()
+    if not store or not key or key == "" then
+        return nil
+    end
+    return store.accounts[key]
 end
 
 function IKST_Economy.getAccountByKey(key)
@@ -960,10 +976,14 @@ function IKST_Economy.getAccountByKey(key)
         return { bank = 0, pending = 0 }
     end
     local row = store.accounts[key]
-    if not row then
-        row = { bank = 0, pending = 0 }
-        store.accounts[key] = row
+    if row then
+        return row
     end
+    if not IKST_Economy.mayMutateStore() then
+        return { bank = 0, pending = 0 }
+    end
+    row = { bank = 0, pending = 0 }
+    store.accounts[key] = row
     return row
 end
 
@@ -978,7 +998,7 @@ function IKST_Economy.getBank(player)
     if not player then
         return 0
     end
-    if IKST_Economy.isMpRemoteClient() then
+    if IKST_Economy.usesClientSnapshot() then
         return IKST_Economy.readClientBank(player)
     end
     local row = IKST_Economy.getAccount(player)
@@ -989,7 +1009,7 @@ function IKST_Economy.getPending(player)
     if not player then
         return 0
     end
-    if IKST_Economy.isMpRemoteClient() then
+    if IKST_Economy.usesClientSnapshot() then
         return IKST_Economy.readClientPending(player)
     end
     local row = IKST_Economy.getAccount(player)

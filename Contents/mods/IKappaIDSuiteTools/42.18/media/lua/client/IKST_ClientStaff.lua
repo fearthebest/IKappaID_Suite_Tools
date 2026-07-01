@@ -4,6 +4,7 @@ end
 
 require "IKST_Shared"
 require "IKST_ClimatePresets"
+require "IKST_VehicleMirror"
 
 IKST_ClientStaff = IKST_ClientStaff or {}
 
@@ -24,6 +25,13 @@ function IKST_ClientStaff.runWeather(player, preset)
     if not player or not preset then
         return
     end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if not IKST_ClientStaff.mayRunWeather(player) then
+            return
+        end
+        IKST.dispatchCommand(player, IKST.CMD.setWeather, { preset = preset })
+        return
+    end
     if type(isClient) == "function" and isClient() then
         if not IKST_ClientStaff.mayRunWeather(player) then
             return
@@ -40,6 +48,13 @@ end
 function IKST_ClientStaff.runClearWeather(player)
     player = IKST.resolvePlayer(player)
     if not player then
+        return
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if not IKST_ClientStaff.mayRunWeather(player) then
+            return
+        end
+        IKST.dispatchCommand(player, IKST.CMD.clearWeather, {})
         return
     end
     if type(isClient) == "function" and isClient() then
@@ -101,49 +116,8 @@ function IKST_ClientStaff.applyPlayerModes(player, args)
 end
 
 function IKST_ClientStaff.applyVehicleSync(args)
-    if not args then
-        return
-    end
-    local vehicleId = tonumber(args.vehicleId)
-    if vehicleId == nil then
-        return
-    end
-    local v = nil
-    if getVehicleById then
-        v = getVehicleById(vehicleId)
-    end
-    if not v and IKST_VehicleUtil and IKST_VehicleUtil.getVehicle then
-        v = IKST_VehicleUtil.getVehicle(vehicleId)
-    end
-    if not v then
-        return
-    end
-    if args.deleted == true then
-        if v.removeFromWorld then
-            v:removeFromWorld()
-        end
-        return
-    end
-    local x = tonumber(args.x)
-    local y = tonumber(args.y)
-    local z = tonumber(args.z)
-    if x and v.setX then
-        v:setX(x)
-    end
-    if y and v.setY then
-        v:setY(y)
-    end
-    if z ~= nil and v.setZ then
-        v:setZ(z)
-    end
-    if args.angle and v.setAngles then
-        v:setAngles(0, tonumber(args.angle) or 0, 0)
-    end
-    if v.flipUpright and args.flipped == true then
-        v:flipUpright()
-    end
-    if v.updatePhysicsNetwork then
-        v:updatePhysicsNetwork()
+    if IKST_VehicleMirror and IKST_VehicleMirror.applyServerState then
+        IKST_VehicleMirror.applyServerState(args)
     end
 end
 

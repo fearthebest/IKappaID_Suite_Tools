@@ -18,6 +18,8 @@ require "IKST_EconomyBridge"
 
 require "IKST_EconomyUI"
 
+require "IKST_EconomyVendClient"
+
 require "IKST_EconomyContext"
 
 require "IKST_Chrome"
@@ -158,15 +160,13 @@ function IKST_JobEconomy.populateVendList(panel)
 end
 
 function IKST_JobEconomy.onVendList(args)
-
-    IKST_JobEconomy._vendEntries = args and args.entries or {}
-
-    if IKST_JobsPanel.instance then
-
-        IKST_JobsPanel.instance:refreshJobUI()
-
+    if IKST_EconomyVendClient and IKST_EconomyVendClient.onVendListResult then
+        IKST_EconomyVendClient.onVendListResult(args)
     end
-
+    IKST_JobEconomy._vendEntries = args and args.entries or {}
+    if IKST_JobsPanel.instance then
+        IKST_JobsPanel.instance:refreshJobUI()
+    end
 end
 
 

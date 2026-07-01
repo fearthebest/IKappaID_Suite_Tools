@@ -7,9 +7,11 @@ require "IKST_Access"
 require "IKST_Grid"
 require "IKST_Loot"
 require "IKST_LootOps"
+require "IKST_LootOps"
 
 IKST_LootWorldPick = IKST_LootWorldPick or {}
 IKST_LootWorldPick.activePlayer = nil
+IKST_LootWorldPick.hoverSquare = nil
 IKST_LootWorldPick.mouseHooked = false
 IKST_LootWorldPick._pickCooldown = 0
 IKST_LootWorldPick._mouseWasDown = false
@@ -42,6 +44,15 @@ end
 function IKST_LootWorldPick.dispatchZone(player, square, state)
     if not player or not square or not state then
         return false
+    end
+    if IKST_JobLoot and IKST_JobLoot.tryDispatchZone then
+        return IKST_JobLoot.tryDispatchZone(
+            player,
+            square:getX(),
+            square:getY(),
+            square:getZ(),
+            IKST.getLootScope(state),
+            state.cleanupRadius)
     end
     IKST.dispatchCommand(player, IKST.CMD.lootRepopulateZone, {
         x = square:getX(),
@@ -108,6 +119,10 @@ function IKST_LootWorldPick.handleWorldClick(screenX, screenY)
 end
 
 function IKST_LootWorldPick.onMouseDown(x, y)
+    if IKST_LootWorldPick._objectClickConsumed then
+        IKST_LootWorldPick._objectClickConsumed = false
+        return
+    end
     IKST_LootWorldPick.handleWorldClick(x, y)
 end
 
@@ -135,7 +150,15 @@ function IKST_LootWorldPick.onTick()
         IKST_LootWorldPick._mouseWasDown = false
         IKST_LootWorldPick._deferScreenPick = 0
         IKST_LootWorldPick._objectClickConsumed = false
+        IKST_LootWorldPick.hoverSquare = nil
         return
+    end
+
+    local mx, my = IKST_LootWorldPick.getMouseScreenXY()
+    if mx ~= nil and my ~= nil then
+        IKST_LootWorldPick.hoverSquare = IKST_Grid.squareFromScreen(mx, my, player)
+    else
+        IKST_LootWorldPick.hoverSquare = nil
     end
 
     if IKST_LootWorldPick._deferScreenPick > 0 then
@@ -224,8 +247,12 @@ function IKST_LootWorldPick.arm(player, scope, silent)
         IKST_HubNav.syncArmedTab(state, IKST.VIEW.loot)
     end
     IKST_LootWorldPick.activePlayer = player
+    IKST_LootWorldPick.hoverSquare = nil
     if IKST_JobsPanel and IKST_JobsPanel.instance then
         IKST_JobsPanel.instance:refreshJobUI()
+    end
+    if IKST_Preview and IKST_Preview.syncForPanel and IKST_JobsPanel.instance then
+        IKST_Preview.syncForPanel(IKST_JobsPanel.instance)
     end
     if not silent then
         IKST.notify(player, IKST.text("IGUI_IKST_ClickWorld", "Click a square on the ground"), true)

@@ -1,6 +1,7 @@
 -- Tile lock helpers: server-only passwords, public locked flags for clients.
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_ModDataSync"
 
 IKST_Locks = IKST_Locks or {}
@@ -29,8 +30,15 @@ function IKST_Locks.publicStore()
     return ModData.getOrCreate(IKST_Locks.PUBLIC_KEY)
 end
 
+function IKST_Locks.requireServerMutate()
+    if IKST_Authority and IKST_Authority.guardServerMutate then
+        return IKST_Authority.guardServerMutate()
+    end
+    return IKST_Locks.runsOnServer()
+end
+
 function IKST_Locks.rebuildPublic()
-    if not IKST_Locks.runsOnServer() then
+    if not IKST_Locks.requireServerMutate() then
         return
     end
     local sec = IKST_Locks.secretsStore()
@@ -60,7 +68,7 @@ function IKST_Locks.getPassword(x, y, z)
 end
 
 function IKST_Locks.setPassword(x, y, z, password)
-    if not IKST_Locks.runsOnServer() then
+    if not IKST_Locks.requireServerMutate() then
         return false
     end
     local data = IKST_Locks.secretsStore()
@@ -112,7 +120,7 @@ function IKST_Locks.mayAccess(player, x, y, z)
 end
 
 function IKST_Locks.tryUnlock(player, x, y, z, password)
-    if not IKST_Locks.runsOnServer() then
+    if not IKST_Locks.requireServerMutate() then
         return false, "server only"
     end
     if not IKST_Locks.isLocked(x, y, z) then

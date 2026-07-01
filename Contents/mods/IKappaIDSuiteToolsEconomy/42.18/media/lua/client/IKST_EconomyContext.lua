@@ -12,6 +12,7 @@ require "IKST_EconomyIcons"
 require "IKST_JobsPanel"
 require "IKST_EconomyShopKit"
 require "IKST_EconomyAtmKit"
+require "IKST_EconomyVendClient"
 
 IKST_EconomyContext = IKST_EconomyContext or {}
 
@@ -72,7 +73,26 @@ function IKST_EconomyContext.shopObjectAtPlayer(player)
     return obj, square:getX(), square:getY(), square:getZ()
 end
 
-function IKST_EconomyContext.isVending(obj)
+function IKST_EconomyContext.shopUiState(player, x, y, z, obj)
+    return IKST_EconomyVendClient.uiState(player, x, y, z, obj)
+end
+
+function IKST_EconomyContext.prefetchShopSnapshot(player, x, y, z)
+    if not player or not IKST_Authority or not IKST_Authority.uiUsesServerSnapshots() then
+        return
+    end
+    IKST.dispatchCommand(player, IKST.CMD.economyVendList, {
+        x = math.floor(tonumber(x) or 0),
+        y = math.floor(tonumber(y) or 0),
+        z = math.floor(tonumber(z) or 0),
+    })
+end
+
+function IKST_EconomyContext.isVending(obj, player, x, y, z)
+    local state = IKST_EconomyContext.shopUiState(player, x, y, z, obj)
+    if state then
+        return state.isVending == true
+    end
     if not obj or not obj.getModData then
         return false
     end
@@ -80,22 +100,29 @@ function IKST_EconomyContext.isVending(obj)
     return md and md[IKST_Economy.VEND_TAG] == true
 end
 
-function IKST_EconomyContext.canClaimShop(obj)
+function IKST_EconomyContext.canClaimShop(obj, player, x, y, z)
+    local state = IKST_EconomyContext.shopUiState(player, x, y, z, obj)
+    if state then
+        if state.stale then
+            return false
+        end
+        return state.canClaim == true
+    end
     if not obj or not IKST_Economy.isShopTileObject(obj) then
         return false
     end
-    if not IKST_EconomyContext.isVending(obj) then
-        return true
-    end
-    local owner = IKST_Economy.vendOwnerOfObject(obj)
-    return not owner or owner == ""
+    return not IKST_EconomyContext.isVending(obj, player, x, y, z)
 end
 
-function IKST_EconomyContext.isShopOwner(player, obj)
+function IKST_EconomyContext.isShopOwner(player, obj, x, y, z)
+    local state = IKST_EconomyContext.shopUiState(player, x, y, z, obj)
+    if state then
+        return state.canManage == true
+    end
     if not player or not obj then
         return false
     end
-    if not IKST_EconomyContext.isVending(obj) then
+    if not IKST_EconomyContext.isVending(obj, player, x, y, z) then
         return false
     end
     return IKST_Identity.playerOwnsKey(player, IKST_Economy.vendOwnerOfObject(obj))
@@ -145,18 +172,21 @@ function IKST_EconomyContext.fillEconomyMenu(sub, player, square, worldobjects)
     if not obj then
         obj = IKST_EconomyContext.containerFromWorldObjects(worldobjects)
     end
+    if obj then
+        IKST_EconomyContext.prefetchShopSnapshot(player, x, y, z)
+    end
 
-    if obj and IKST_EconomyContext.canClaimShop(obj) then
+    if obj and IKST_EconomyContext.canClaimShop(obj, player, x, y, z) then
         IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_ClaimShop", "Open my shop here"), player, function()
             IKST_EconomyContext.claimShop(player, x, y, z)
         end)
     end
 
-    if obj and IKST_EconomyContext.isVending(obj) then
+    if obj and IKST_EconomyContext.isVending(obj, player, x, y, z) then
         IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_BrowseShop", "Browse shop"), player, function()
             IKST_EconomyUI.openVendShop(player, x, y, z)
         end)
-        if IKST_EconomyContext.isShopOwner(player, obj) or IKST_Access.canUseTools(player) then
+        if IKST_EconomyContext.isShopOwner(player, obj, x, y, z) or IKST_Access.canUseTools(player) then
             IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_ManageShop", "Manage shop prices"), player, function()
                 if IKST_Access.canUseTools(player) then
                     IKST_JobsPanel.open(player)
@@ -178,7 +208,7 @@ function IKST_EconomyContext.fillEconomyMenu(sub, player, square, worldobjects)
                 end
             end)
         end
-        if IKST_EconomyContext.isShopOwner(player, obj) then
+        if IKST_EconomyContext.isShopOwner(player, obj, x, y, z) then
             IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_CloseShop", "Close my shop"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.economyVendDisable, { x = x, y = y, z = z })
             end)
@@ -208,12 +238,12 @@ function IKST_EconomyContext.fillEconomyMenu(sub, player, square, worldobjects)
     end
 
     if IKST_Access.canUseTools(player) and obj then
-        if IKST_Economy.isShopTileObject(obj) and not IKST_EconomyContext.isVending(obj) then
+        if IKST_Economy.isShopTileObject(obj) and not IKST_EconomyContext.isVending(obj, player, x, y, z) then
             IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_EnableShop", "Enable shop terminal (admin)"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.economyVendEnable, { x = x, y = y, z = z })
             end)
         end
-        if IKST_EconomyContext.isVending(obj) then
+        if IKST_EconomyContext.isVending(obj, player, x, y, z) then
             IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_DisableShop", "Disable player shop (admin)"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.economyVendDisable, { x = x, y = y, z = z })
             end)

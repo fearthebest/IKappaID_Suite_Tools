@@ -173,7 +173,8 @@ function IKST_RestoreOps.setPerkLevel(player, perkId, level)
     if not perk or not player or not player.getPerkLevel then
         return
     end
-    level = math.max(0, math.floor(tonumber(level) or 0))
+    local maxLevel = IKST.RESTORE_MAX_PERK_LEVEL or 10
+    level = math.max(0, math.min(maxLevel, math.floor(tonumber(level) or 0)))
     while player:getPerkLevel(perk) < level do
         if player.LevelPerk then
             player:LevelPerk(perk, false)

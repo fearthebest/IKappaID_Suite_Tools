@@ -84,6 +84,10 @@ function IKST_TilesGuardOps.blueprintCopy(player, x1, y1, x2, y2, z)
     local minY = math.min(math.floor(y1), math.floor(y2))
     local maxY = math.max(math.floor(y1), math.floor(y2))
     z = tonumber(z) or 0
+    local maxSpan = IKST.getMaxCleanupRadius and IKST.getMaxCleanupRadius() or 50
+    if (maxX - minX) > maxSpan or (maxY - minY) > maxSpan then
+        return false, "blueprint area too large"
+    end
     for x = minX, maxX do
         for y = minY, maxY do
             local sq = IKST_TilesWorldOps.getSquare(x, y, z)

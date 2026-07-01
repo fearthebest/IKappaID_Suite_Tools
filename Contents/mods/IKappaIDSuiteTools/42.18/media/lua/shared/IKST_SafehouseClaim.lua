@@ -1,6 +1,7 @@
 -- Safehouse ownership permissions (server-authoritative ModData, keyed by bounds).
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_ClaimPolicy"
 require "IKST_ClaimSocial"
 require "IKST_SafehousePermissions"
@@ -52,6 +53,49 @@ function IKST_SafehouseClaim.ensureEntryShape(entry)
     return entry
 end
 
+function IKST_SafehouseClaim.copyEntryPlain(entry)
+    if not entry then
+        return nil
+    end
+    local out = {
+        key = entry.key,
+        owner = entry.owner,
+        x = entry.x,
+        y = entry.y,
+        w = entry.w,
+        h = entry.h,
+        claimedAt = entry.claimedAt,
+        expiresAt = entry.expiresAt,
+        groups = {},
+        users = {},
+    }
+    if entry.groups then
+        for key, value in pairs(entry.groups) do
+            out.groups[key] = value
+        end
+    end
+    if entry.users then
+        for key, value in pairs(entry.users) do
+            out.users[key] = value
+        end
+    end
+    return out
+end
+
+function IKST_SafehouseClaim.entryForDisplay(x, y, w, h)
+    local entry = IKST_SafehouseClaim.get(x, y, w, h)
+    if not entry then
+        return nil
+    end
+    if IKST_Authority and IKST_Authority.guardServerMutate() then
+        IKST_SafehouseClaim.ensureEntryShape(entry)
+        return entry
+    end
+    local plain = IKST_SafehouseClaim.copyEntryPlain(entry)
+    IKST_SafehouseClaim.ensureEntryShape(plain)
+    return plain
+end
+
 function IKST_SafehouseClaim.boundsFromSafehouse(sh)
     if not sh then
         return nil
@@ -100,6 +144,9 @@ function IKST_SafehouseClaim.pointInside(x, y, bx, by, bw, bh)
 end
 
 function IKST_SafehouseClaim.ensureOnClaim(owner, x, y, w, h)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false
+    end
     if not owner or x == nil or y == nil then
         return false
     end
@@ -134,6 +181,9 @@ function IKST_SafehouseClaim.ensureOnClaim(owner, x, y, w, h)
 end
 
 function IKST_SafehouseClaim.release(x, y, w, h)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false
+    end
     local key = IKST_SafehouseClaim.keyFor(x, y, w, h)
     if IKST_SafehouseClaim.store().byKey[key] then
         IKST_SafehouseClaim.store().byKey[key] = nil
@@ -144,6 +194,9 @@ function IKST_SafehouseClaim.release(x, y, w, h)
 end
 
 function IKST_SafehouseClaim.syncFromVanilla(sh)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false
+    end
     if not sh then
         return false
     end
@@ -162,6 +215,9 @@ function IKST_SafehouseClaim.syncFromVanilla(sh)
 end
 
 function IKST_SafehouseClaim.setPermissions(x, y, w, h, scope, username, perms)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     local entry = IKST_SafehouseClaim.get(x, y, w, h)
     if not entry then
         return false, "not claimed"
@@ -260,6 +316,20 @@ function IKST_SafehouseClaim.canAtSquare(player, square, action)
     end
     local entry, sh = IKST_SafehouseClaim.entryForSquare(square)
     if not entry then
+        if IKST_Authority and IKST_Authority.mpClientEnforcementActive and IKST_Authority.mpClientEnforcementActive() then
+            if sh then
+                if IKST_SafehouseClaimClient and not IKST_SafehouseClaimClient.listBootstrapped then
+                    return false
+                end
+                local x, y, w, h = IKST_SafehouseClaim.boundsFromSafehouse(sh)
+                if x and IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.rowForBounds then
+                    local row = IKST_SafehouseClaimClient.rowForBounds(x, y, w, h)
+                    if row and row.claimed == true then
+                        return false
+                    end
+                end
+            end
+        end
         return nil
     end
     if IKST_SafehouseClaim.isEntryExpired(entry) then

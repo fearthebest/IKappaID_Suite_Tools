@@ -51,6 +51,21 @@ function IKST_ModDataSync.installClient()
     Events.OnReceiveGlobalModData.Add(function(key, data)
         if IKST_ModDataSync.isSyncedKey(key) then
             IKST_ModDataSync.apply(key, data)
+            if key == IKST.ModDataKeys.VehicleClaim then
+                if IKST_VehicleClaimClient and IKST_VehicleClaimClient.onMirroredModData then
+                    IKST_VehicleClaimClient.onMirroredModData()
+                end
+            end
+            if key == IKST.ModDataKeys.SafehouseClaim then
+                if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.onMirroredModData then
+                    IKST_SafehouseClaimClient.onMirroredModData()
+                end
+            end
+            if key == IKST.ModDataKeys.WorldRules then
+                if IKST_GuardHooks and IKST_GuardHooks.applyWorldRulesSnapshot then
+                    IKST_GuardHooks.applyWorldRulesSnapshot(data)
+                end
+            end
         end
     end)
     IKST_ModDataSync.clientInstalled = true

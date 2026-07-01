@@ -27,6 +27,7 @@ require "IKST_QuickDrawer"
 require "IKST_HudChip"
 require "IKST_VehicleClaimUI"
 require "IKST_VehicleContext"
+require "IKST_SafehouseClaimClient"
 require "IKST_SafehouseClaimUI"
 require "IKST_SafehouseContext"
 require "IKST_ClaimIcons"
@@ -68,9 +69,17 @@ local function onServerCommand(module, command, args)
     end
 
     if command == IKST.CMD.result then
-        if args and args.success and args.message then
-            local line = tostring(args.mode or "action") .. " @ " .. tostring(args.x) .. "," .. tostring(args.y) .. "," .. tostring(args.z) .. " — " .. tostring(args.message)
-            IKST.pushLog(player, line)
+        if IKST_Debug and IKST_Debug.logResult then
+            IKST_Debug.logResult(args and args.mode or command, player, args and args.success, args and args.message, args)
+        end
+        if args and args.message then
+            local line = tostring(args.mode or "action") .. " @ " .. tostring(args.x) .. "," .. tostring(args.y) .. "," .. tostring(args.z)
+                .. " — " .. tostring(args.message)
+            if args.success then
+                IKST.pushLog(player, line)
+            else
+                IKST.pushLog(player, "DENIED: " .. line)
+            end
         end
         if IKST_EconomyUI and IKST_EconomyUI.onServerResult then
             IKST_EconomyUI.onServerResult(args or {})
@@ -79,6 +88,12 @@ local function onServerCommand(module, command, args)
             IKST_JobsPanel.instance:onServerResult(args or {})
         end
         return
+    end
+
+    if command == IKST.CMD.vehicleListResult then
+        if IKST_VehicleClaimClient and IKST_VehicleClaimClient.onNearbyResult then
+            IKST_VehicleClaimClient.onNearbyResult(args and args.vehicles)
+        end
     end
 
     if IKST.Plugins.onServerCommand(command, args, player) then
@@ -151,6 +166,9 @@ local function onServerCommand(module, command, args)
     end
 
     if command == IKST.CMD.safehouseListResult then
+        if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.onSafehouseListResult then
+            IKST_SafehouseClaimClient.onSafehouseListResult(args)
+        end
         if IKST_JobGuard and IKST_JobGuard.onSafehouseListResult then
             IKST_JobGuard.onSafehouseListResult(args)
         end
@@ -158,15 +176,61 @@ local function onServerCommand(module, command, args)
     end
 
     if command == IKST.CMD.safehouseClientRefresh then
-        if Events and Events.OnSafehousesChanged then
-            Events.OnSafehousesChanged.trigger()
+        if IKST_GuardHooks and IKST_GuardHooks.forceSafehouseRefresh then
+            IKST_GuardHooks.forceSafehouseRefresh(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseClaimResult then
+        if args and args.message then
+            IKST.notify(player, tostring(args.message), args.ok == true)
+        end
+        if IKST_GuardHooks and IKST_GuardHooks.forceSafehouseRefresh then
+            IKST_GuardHooks.forceSafehouseRefresh()
+        end
+        if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.forceRefresh then
+            IKST_SafehouseClaimClient.forceRefresh()
+        end
+        if IKST_JobsPanel and IKST_JobsPanel.instance then
+            IKST_JobsPanel.instance:refreshJobUI()
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseClaimMirror then
+        if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.forceRefresh then
+            IKST_SafehouseClaimClient.forceRefresh(args)
         end
         return
     end
 
     if command == IKST.CMD.vehicleClaimListResult then
+        if IKST_VehicleClaimClient and IKST_VehicleClaimClient.onClaimListResult then
+            IKST_VehicleClaimClient.onClaimListResult(args)
+        end
         if IKST_JobGuard and IKST_JobGuard.onClaimListResult then
             IKST_JobGuard.onClaimListResult(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimMirror then
+        if IKST_VehicleClaimClient and IKST_VehicleClaimClient.forceRefresh then
+            IKST_VehicleClaimClient.forceRefresh(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimResult then
+        if args and args.message then
+            IKST.notify(player, tostring(args.message), args.ok == true)
+        end
+        if IKST_VehicleClaimClient and IKST_VehicleClaimClient.forceRefresh then
+            IKST_VehicleClaimClient.forceRefresh()
+        end
+        if IKST_JobsPanel and IKST_JobsPanel.instance then
+            IKST_JobsPanel.instance:refreshJobUI()
         end
         return
     end
@@ -213,6 +277,20 @@ local function onServerCommand(module, command, args)
         end
         if IKST_JobsPanel and IKST_JobsPanel.instance then
             IKST_JobsPanel.instance:refreshJobUI()
+        end
+        return
+    end
+
+    if command == IKST.CMD.weatherMirror then
+        if not IKST_ClimatePresets then
+            require "IKST_ClimatePresets"
+        end
+        if IKST_ClimatePresets then
+            if args and args.clear == true and IKST_ClimatePresets.clearWeather then
+                IKST_ClimatePresets.clearWeather()
+            elseif args and args.preset and IKST_ClimatePresets.applyPreset then
+                IKST_ClimatePresets.applyPreset(args.preset)
+            end
         end
         return
     end
@@ -270,6 +348,16 @@ local function onGameStart()
         IKST_Debug.log("boot", "v" .. IKST.VERSION .. " client JVM ready — grep console for [IKST-DEBUG]")
     end
     print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (client)")
+    local player = getPlayer and getPlayer() or nil
+    if not player and getSpecificPlayer then
+        player = getSpecificPlayer(0)
+    end
+    if player and IKST_VehicleClaimClient and IKST_VehicleClaimClient.bootstrap then
+        IKST_VehicleClaimClient.bootstrap(player)
+    end
+    if player and IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.bootstrap then
+        IKST_SafehouseClaimClient.bootstrap(player)
+    end
 end
 
 if Events then

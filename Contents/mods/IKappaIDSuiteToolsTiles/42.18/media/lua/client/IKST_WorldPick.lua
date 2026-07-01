@@ -23,7 +23,29 @@ function IKST_WorldPick.modeToCommand(mode)
     return IKST.actionToCommand(mode)
 end
 
-function IKST_WorldPick.dispatchCleanup(player, square, state)
+function IKST_WorldPick.objectIndexOnSquare(square, obj)
+    if not square or not obj then
+        return nil
+    end
+    if obj.getObjectIndex then
+        local index = obj:getObjectIndex()
+        if index ~= nil then
+            return index
+        end
+    end
+    local objects = square.getObjects and square:getObjects()
+    if not objects then
+        return nil
+    end
+    for i = 0, objects:size() - 1 do
+        if objects:get(i) == obj then
+            return i
+        end
+    end
+    return nil
+end
+
+function IKST_WorldPick.dispatchCleanup(player, square, state, clickedObj)
     local action = IKST.getCleanupAction(state)
     local scope = IKST.getCleanupScope(state)
     local x = square:getX()
@@ -77,9 +99,16 @@ function IKST_WorldPick.dispatchCleanup(player, square, state)
         })
         return true
     end
-    IKST.dispatchCommand(player, IKST.actionToCommand(action), {
+    local payload = {
         x = x, y = y, z = z,
-    })
+    }
+    if clickedObj and scope == IKST.CLEANUP_SCOPES.single then
+        local objectIndex = IKST_WorldPick.objectIndexOnSquare(square, clickedObj)
+        if objectIndex ~= nil then
+            payload.objectIndex = objectIndex
+        end
+    end
+    IKST.dispatchCommand(player, IKST.actionToCommand(action), payload)
     return true
 end
 
@@ -150,7 +179,7 @@ function IKST_WorldPick.isMouseOverPanel()
     return mx >= px and mx <= px + panel.width and my >= py and my <= py + panel.height
 end
 
-function IKST_WorldPick.applySquare(player, square)
+function IKST_WorldPick.applySquare(player, square, clickedObj)
     if not player or not square or not IKST_Access.canUseTools(player) then
         return false
     end
@@ -158,10 +187,10 @@ function IKST_WorldPick.applySquare(player, square)
     if not state or not state.armed or state.armedJob ~= IKST.VIEW.cleanup then
         return false
     end
-    return IKST_WorldPick.dispatchCleanup(player, square, state)
+    return IKST_WorldPick.dispatchCleanup(player, square, state, clickedObj)
 end
 
-function IKST_WorldPick.tryPickSquare(player, square, screenX, screenY, fromObject)
+function IKST_WorldPick.tryPickSquare(player, square, screenX, screenY, fromObject, clickedObj)
     if not fromObject and IKST_WorldPick._pickCooldown > 0 then
         return false
     end
@@ -172,7 +201,7 @@ function IKST_WorldPick.tryPickSquare(player, square, screenX, screenY, fromObje
         return false
     end
     IKST_WorldPick._pickCooldown = 2
-    if IKST_WorldPick.applySquare(player, square) then
+    if IKST_WorldPick.applySquare(player, square, clickedObj) then
         return true
     end
     IKST_WorldPick._pickCooldown = 0
@@ -251,6 +280,11 @@ function IKST_WorldPick.handleWorldClick(screenX, screenY)
 end
 
 function IKST_WorldPick.onMouseDown(x, y)
+    -- OnObjectLeftMouseButtonDown already dispatched for this click; skip second fire on MP clients.
+    if IKST_WorldPick._objectClickConsumed then
+        IKST_WorldPick._objectClickConsumed = false
+        return
+    end
     IKST_WorldPick.handleWorldClick(x, y)
 end
 
@@ -268,7 +302,7 @@ function IKST_WorldPick.onObjectLeftMouseDown(obj, x, y)
     if IKST_WorldPick.isInspectorArmed(player) then
         IKST_WorldPick.tryInspectSquare(player, square, nil, nil, true)
     else
-        IKST_WorldPick.tryPickSquare(player, square, nil, nil, true)
+        IKST_WorldPick.tryPickSquare(player, square, nil, nil, true, obj)
     end
 end
 

@@ -74,7 +74,14 @@ function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
         require "IKST_Debug"
     end
     if IKST_Debug and IKST_Debug.logResult then
-        IKST_Debug.logResult(mode, player, ok, message)
+        IKST_Debug.logResult(mode, player, ok, message, extra)
+    end
+    if ok and IKST_Debug and IKST_Debug.logEffect then
+        local detail = tostring(message or "")
+        if x ~= nil and y ~= nil then
+            detail = detail .. string.format(" @ %s,%s,%s", tostring(x), tostring(y), tostring(z or 0))
+        end
+        IKST_Debug.logEffect("world", tostring(mode or "result"), detail, player)
     end
     local payload = {
         success = ok,

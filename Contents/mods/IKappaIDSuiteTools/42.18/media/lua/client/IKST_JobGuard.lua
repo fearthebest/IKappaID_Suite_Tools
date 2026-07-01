@@ -6,6 +6,7 @@ require "ISUI/ISTextEntryBox"
 require "IKST_Shared"
 require "IKST_Claim"
 require "IKST_VehicleClaim"
+require "IKST_VehicleClaimClient"
 require "IKST_VehicleClaimUI"
 require "IKST_Chrome"
 require "IKST_ActionLog"
@@ -25,8 +26,8 @@ function IKST_JobGuard.requestSafehouses(player)
 end
 
 function IKST_JobGuard.requestClaims(player)
-    local all = IKST_Access and IKST_Access.canUseTools(player)
-    IKST.dispatchCommand(player, IKST.CMD.vehicleClaimList, { all = all == true })
+    local showAll = IKST_Access and IKST_Access.canUseTools(player)
+    IKST.dispatchCommand(player, IKST.CMD.vehicleClaimList, { all = showAll == true })
 end
 
 function IKST_JobGuard.requestNearbyVehicles(player)
@@ -39,6 +40,9 @@ function IKST_JobGuard.requestNearbyVehicles(player)
 end
 
 function IKST_JobGuard.resolveVehicleId(panel)
+    if panel.guardSelectedClaimId then
+        return panel.guardSelectedClaimId
+    end
     if panel.guardVehicleId then
         return panel.guardVehicleId
     end
@@ -57,15 +61,55 @@ function IKST_JobGuard.vehicleLabel(entry)
         return "?"
     end
     local label = (entry.script or "?") .. " #" .. tostring(entry.id) .. " (" .. tostring(entry.distance or "?") .. "m)"
-    local claim = IKST_VehicleClaim.get(entry.id)
-    if claim then
-        label = label .. " " .. IKST_VehicleClaim.claimLabel(claim)
+    if entry.claimed and entry.ownerLabel then
+        label = label .. " [" .. tostring(entry.ownerLabel) .. "]"
+    elseif entry.claimNote and entry.claimNote ~= "" then
+        label = label .. " [" .. tostring(entry.claimNote) .. "]"
+    end
+    if entry.hoursRemainingText and entry.hoursRemainingText ~= "" then
+        label = label .. " · " .. entry.hoursRemainingText
     end
     return label
 end
 
-function IKST_JobGuard.claimLabelForId(vehicleId)
-    return IKST_VehicleClaim.claimLabel(IKST_VehicleClaim.get(vehicleId))
+function IKST_JobGuard.claimLineText(claim, isAdmin)
+    if not claim then
+        return "?"
+    end
+    local line = "#" .. tostring(claim.id) .. " " .. tostring(claim.displayLabel or claim.script or "?")
+    if claim.hoursRemainingText and claim.hoursRemainingText ~= "" then
+        line = line .. " · " .. claim.hoursRemainingText
+    end
+    if claim.x and claim.y then
+        line = line .. " @ " .. claim.x .. "," .. claim.y
+    end
+    if isAdmin and claim.ownerLabel and not claim.isMine then
+        line = line .. " [" .. claim.ownerLabel .. "]"
+    end
+    return line
+end
+
+function IKST_JobGuard.claimLabelForId(vehicleId, player)
+    local row = IKST_VehicleClaimClient and IKST_VehicleClaimClient.uiState(vehicleId, player)
+    if not row or not row.claimed then
+        return ""
+    end
+    local s = "[" .. tostring(row.ownerLabel or "?")
+    if row.displayLabel and row.displayLabel ~= "" then
+        s = s .. ": " .. row.displayLabel
+    end
+    if row.hoursRemainingText and row.hoursRemainingText ~= "" then
+        s = s .. " · " .. row.hoursRemainingText
+    end
+    return s .. "]"
+end
+
+function IKST_JobGuard.targetUiState(panel)
+    local vid = IKST_JobGuard.resolveVehicleId(panel)
+    if not vid or not IKST_VehicleClaimClient then
+        return nil, vid
+    end
+    return IKST_VehicleClaimClient.uiState(vid, panel.player), vid
 end
 
 function IKST_JobGuard.readEntry(entry)
@@ -319,21 +363,23 @@ function IKST_JobGuard.buildSafehouses(panel, y)
         end
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_SH_AddMember", "Add member username:"), UIFont.Small)
         y = y + 16
-        panel.guardShMemberEntry = ISTextEntryBox:new("", 12, y, 160, 22)
-        panel.guardShMemberEntry:initialise()
-        panel.guardShMemberEntry:instantiate()
-        panel:addJobWidget(panel.guardShMemberEntry)
-        panel:makeJobButton(180, y, 90, 22, IKST.text("IGUI_IKST_SH_Add", "Add"), function()
-            local member = IKST_JobGuard.readEntry(panel.guardShMemberEntry)
-            if member == "" then
-                return
-            end
-            IKST.dispatchCommand(p, IKST.CMD.safehouseAddMember, {
-                x = sel.x, y = sel.y, w = sel.w, h = sel.h, id = sel.id, owner = sel.owner, member = member,
-            })
-            IKST_JobGuard.requestSafehouses(p)
-        end, false)
-        y = y + 28
+        if sel.canEdit then
+            panel.guardShMemberEntry = ISTextEntryBox:new("", 12, y, 160, 22)
+            panel.guardShMemberEntry:initialise()
+            panel.guardShMemberEntry:instantiate()
+            panel:addJobWidget(panel.guardShMemberEntry)
+            panel:makeJobButton(180, y, 90, 22, IKST.text("IGUI_IKST_SH_Add", "Add"), function()
+                local member = IKST_JobGuard.readEntry(panel.guardShMemberEntry)
+                if member == "" then
+                    return
+                end
+                IKST.dispatchCommand(p, IKST.CMD.safehouseAddMember, {
+                    x = sel.x, y = sel.y, w = sel.w, h = sel.h, id = sel.id, owner = sel.owner, member = member,
+                })
+                IKST_JobGuard.requestSafehouses(p)
+            end, false)
+            y = y + 28
+        end
         y = IKST_JobLayout.flowRow(panel, y, {
             { label = IKST.text("IGUI_IKST_Guard_SH_Tp", "TP"), w = 90, primary = true, fn = function()
                 local sel = panel.guardSelectedSH
@@ -341,34 +387,54 @@ function IKST_JobGuard.buildSafehouses(panel, y)
                     x = sel.x, y = sel.y, z = sel.z or 0, w = sel.w, h = sel.h,
                 })
             end },
-            { label = IKST.text("IGUI_IKST_Guard_SH_Release", "Release"), w = 100, icon = IKST_ClaimIcons.SAFEHOUSE_UNCLAIM, fn = function()
-                local sel = panel.guardSelectedSH
-                IKST.dispatchCommand(p, IKST.CMD.safehouseRelease, {
-                    x = sel.x, y = sel.y, w = sel.w, h = sel.h, id = sel.id, owner = sel.owner,
-                })
-                panel.guardSelectedSH = nil
-                IKST_JobGuard.requestSafehouses(p)
-            end },
-            { label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"), w = 110, icon = IKST_ClaimIcons.PERMS, fn = function()
-                local sel = panel.guardSelectedSH
-                if IKST_SafehouseClaimUI and IKST_SafehouseClaimUI.open then
-                    IKST_SafehouseClaimUI.open(p, sel.x, sel.y, sel.w, sel.h)
-                end
-            end },
         }, 6, 24)
-        y = IKST_JobLayout.flowRow(panel, y, {
-            { label = IKST.text("IGUI_IKST_SH_RemoveMember", "Remove member"), w = 130, fn = function()
-                local sel = panel.guardSelectedSH
-                local member = IKST_JobGuard.readEntry(panel.guardShMemberEntry)
-                if member == "" then
-                    return
-                end
-                IKST.dispatchCommand(p, IKST.CMD.safehouseRemoveMember, {
-                    x = sel.x, y = sel.y, w = sel.w, h = sel.h, id = sel.id, owner = sel.owner, member = member,
-                })
-                IKST_JobGuard.requestSafehouses(p)
-            end },
-        }, 6, 24)
+        local releaseActions = {}
+        if sel.canRelease then
+            releaseActions[#releaseActions + 1] = {
+                label = IKST.text("IGUI_IKST_Guard_SH_Release", "Release"),
+                w = 100,
+                icon = IKST_ClaimIcons.SAFEHOUSE_UNCLAIM,
+                fn = function()
+                    local selRow = panel.guardSelectedSH
+                    IKST.dispatchCommand(p, IKST.CMD.safehouseRelease, {
+                        x = selRow.x, y = selRow.y, w = selRow.w, h = selRow.h, id = selRow.id, owner = selRow.owner,
+                    })
+                    panel.guardSelectedSH = nil
+                    IKST_JobGuard.requestSafehouses(p)
+                end,
+            }
+        end
+        if sel.canEdit then
+            releaseActions[#releaseActions + 1] = {
+                label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"),
+                w = 110,
+                icon = IKST_ClaimIcons.PERMS,
+                fn = function()
+                    local selRow = panel.guardSelectedSH
+                    if IKST_SafehouseClaimUI and IKST_SafehouseClaimUI.open then
+                        IKST_SafehouseClaimUI.open(p, selRow.x, selRow.y, selRow.w, selRow.h)
+                    end
+                end,
+            }
+        end
+        if #releaseActions > 0 then
+            y = IKST_JobLayout.flowRow(panel, y, releaseActions, 6, 24)
+        end
+        if sel.canEdit then
+            y = IKST_JobLayout.flowRow(panel, y, {
+                { label = IKST.text("IGUI_IKST_SH_RemoveMember", "Remove member"), w = 130, fn = function()
+                    local selRow = panel.guardSelectedSH
+                    local member = IKST_JobGuard.readEntry(panel.guardShMemberEntry)
+                    if member == "" then
+                        return
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.safehouseRemoveMember, {
+                        x = selRow.x, y = selRow.y, w = selRow.w, h = selRow.h, id = selRow.id, owner = selRow.owner, member = member,
+                    })
+                    IKST_JobGuard.requestSafehouses(p)
+                end },
+            }, 6, 24)
+        end
     end
     return y
 end
@@ -382,7 +448,49 @@ function IKST_JobGuard.buildVehicles(panel, y)
         IKST_JobGuard.requestClaims(p)
     end, false)
     y = y + 28
-    local nearby = IKST_JobVehicle.listCache or {}
+    local claims = IKST_JobGuard.claims or {}
+    local claimsTitle = isAdmin
+        and IKST.text("IGUI_IKST_Guard_Vehicle_ClaimsAdmin", "Vehicle claims (server list):")
+        or IKST.text("IGUI_IKST_Guard_Vehicle_Claims", "Your claims (click to target):")
+    if #claims > 0 then
+        panel:makeJobLabel(12, y, claimsTitle, UIFont.Small)
+        y = y + 18
+        local contentW = panel.contentW or (panel.width - 24)
+        for i, claim in ipairs(claims) do
+            if i > 8 then
+                break
+            end
+            local line = IKST_JobGuard.claimLineText(claim, isAdmin)
+            local claimId = claim.id
+            local selectW = contentW
+            if claim.canRelease or claim.canEdit then
+                selectW = contentW - 130
+            end
+            panel:makeJobButton(IKST_JobLayout.MARGIN, y, selectW, 22, line, function()
+                panel.guardSelectedClaimId = claimId
+                panel.guardVehicleId = claimId
+                panel.selectedVehicleId = claimId
+                panel:refreshJobUI()
+            end, panel.guardSelectedClaimId == claimId
+                or (not panel.guardSelectedClaimId and panel.guardVehicleId == claimId))
+            local actionX = IKST_JobLayout.MARGIN + selectW + 4
+            if claim.canRelease then
+                panel:makeJobButton(actionX, y, 58, 22, IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Unclaim"), function()
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, { vehicleId = claimId })
+                end, false)
+                actionX = actionX + 62
+            end
+            if claim.canEdit then
+                panel:makeJobButton(actionX, y, 58, 22, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"), function()
+                    if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
+                        IKST_VehicleClaimUI.open(p, claimId)
+                    end
+                end, false)
+            end
+            y = y + 24
+        end
+    end
+    local nearby = IKST_VehicleClaimClient and IKST_VehicleClaimClient.nearby or IKST_JobVehicle.listCache or {}
     if #nearby == 0 then
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Guard_Vehicle_None", "No vehicle nearby. Stand next to one or use Vehicle Wrangler list."), UIFont.Small)
         y = y + 20
@@ -393,18 +501,22 @@ function IKST_JobGuard.buildVehicles(panel, y)
         end
         local label = IKST_JobGuard.vehicleLabel(v)
         panel:makeJobButton(IKST_JobLayout.MARGIN, y, panel.contentW or (panel.width - 24), 22, label, function()
+            panel.guardSelectedClaimId = nil
             panel.guardVehicleId = v.id
             panel.selectedVehicleId = v.id
             panel:refreshJobUI()
         end, panel.guardVehicleId == v.id or (not panel.guardVehicleId and i == 1))
         y = y + 24
     end
-    local vid = IKST_JobGuard.resolveVehicleId(panel)
+    local uiState, vid = IKST_JobGuard.targetUiState(panel)
     if vid then
-        local claimNote = IKST_JobGuard.claimLabelForId(vid)
+        local claimNote = IKST_JobGuard.claimLabelForId(vid, p)
         local targetText = IKST.text("IGUI_IKST_Guard_Vehicle_Target", "Target") .. ": #" .. tostring(vid)
         if claimNote ~= "" then
             targetText = targetText .. " " .. claimNote
+        elseif uiState and uiState.claimed and uiState.ownerLabel then
+            targetText = targetText .. " [" .. IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner")
+                .. ": " .. tostring(uiState.ownerLabel) .. "]"
         end
         panel:makeJobLabel(12, y, targetText, UIFont.Small)
         y = y + 18
@@ -426,8 +538,12 @@ function IKST_JobGuard.buildVehicles(panel, y)
     panel.guardVehicleLabelEntry:instantiate()
     panel:addJobWidget(panel.guardVehicleLabelEntry)
     y = y + 28
-    local vehicleActions = {
-        {
+    local canClaim = uiState and uiState.canClaim == true
+    local canRelease = uiState and uiState.canRelease == true
+    local canEdit = uiState and uiState.canEdit == true
+    local vehicleActions = {}
+    if canClaim then
+        vehicleActions[#vehicleActions + 1] = {
             label = IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"),
             w = 120,
             primary = true,
@@ -443,11 +559,11 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     owner = isAdmin and IKST_JobGuard.readEntry(panel.guardVehicleOwnerEntry) or "",
                     label = IKST_JobGuard.readEntry(panel.guardVehicleLabelEntry),
                 })
-                IKST_JobGuard.requestClaims(p)
-                panel:refreshJobUI()
             end,
-        },
-        {
+        }
+    end
+    if canRelease then
+        vehicleActions[#vehicleActions + 1] = {
             label = IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"),
             w = 120,
             icon = IKST_ClaimIcons.VEHICLE_UNCLAIM,
@@ -458,11 +574,9 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     return
                 end
                 IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, { vehicleId = targetId })
-                IKST_JobGuard.requestClaims(p)
-                panel:refreshJobUI()
             end,
-        },
-    }
+        }
+    end
     if isAdmin then
         vehicleActions[#vehicleActions + 1] = {
             label = IKST.text("IGUI_IKST_Guard_TransferClaim", "Transfer"),
@@ -485,8 +599,9 @@ function IKST_JobGuard.buildVehicles(panel, y)
         }
     end
     y = IKST_JobLayout.flowRow(panel, y, vehicleActions, 6, 24)
-    local secondaryActions = {
-        {
+    local secondaryActions = {}
+    if vid and uiState and uiState.claimed and (canEdit or isAdmin) then
+        secondaryActions[#secondaryActions + 1] = {
             label = IKST.text("IGUI_IKST_Guard_SetClaimLabel", "Set label"),
             w = 120,
             fn = function()
@@ -499,24 +614,20 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     vehicleId = targetId,
                     label = IKST_JobGuard.readEntry(panel.guardVehicleLabelEntry),
                 })
-                IKST_JobGuard.requestClaims(p)
             end,
-        },
-    }
-    if vid then
-        local claim = IKST_VehicleClaim.get(vid)
-        if claim and IKST_VehicleClaim.playerMayEdit(claim, p) then
-            secondaryActions[#secondaryActions + 1] = {
-                label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"),
-                w = 130,
-                icon = IKST_ClaimIcons.PERMS,
-                fn = function()
-                    if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
-                        IKST_VehicleClaimUI.open(p, vid)
-                    end
-                end,
-            }
-        end
+        }
+    end
+    if vid and (canEdit or isAdmin) then
+        secondaryActions[#secondaryActions + 1] = {
+            label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"),
+            w = 130,
+            icon = IKST_ClaimIcons.PERMS,
+            fn = function()
+                if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
+                    IKST_VehicleClaimUI.open(p, vid)
+                end
+            end,
+        }
     end
     y = IKST_JobLayout.flowRow(panel, y, secondaryActions, 6, 24)
     if isStaff then
@@ -531,15 +642,6 @@ function IKST_JobGuard.buildVehicles(panel, y)
             end
         end, false)
         y = y + 30
-    end
-    for i, claim in ipairs(IKST_JobGuard.claims or {}) do
-        if i > 8 then break end
-        local line = "#" .. tostring(claim.id) .. " " .. IKST_VehicleClaim.claimLabel(claim)
-        if claim.x and claim.y then
-            line = line .. " @ " .. claim.x .. "," .. claim.y
-        end
-        panel:makeJobLabel(12, y, line, UIFont.Small)
-        y = y + 18
     end
     return y
 end

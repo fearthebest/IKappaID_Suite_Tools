@@ -51,7 +51,7 @@ function IKST_TilesOps.handle(command, player, args)
         if argMode == IKST.CLEANUP_MODES.vegetation or argMode == "vegetation" then
             mode = IKST.CLEANUP_MODES.vegetation
         end
-        local ok, message = IKST_TilesWorldOps.runCleanup(mode, x, y, z, player, command)
+        local ok, message = IKST_TilesWorldOps.runCleanup(mode, x, y, z, player, command, args.objectIndex)
         if ok then
             IKST.pushLog(player, command .. " @ " .. x .. "," .. y .. "," .. z .. " — " .. tostring(message))
         end

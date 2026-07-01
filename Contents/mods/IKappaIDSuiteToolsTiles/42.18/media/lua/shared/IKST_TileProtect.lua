@@ -1,9 +1,14 @@
 -- Server ModData: protected tiles, vehicles, dropboxes, readonly containers.
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_Grid"
 
 IKST_TileProtect = IKST_TileProtect or {}
+
+local function requireServerMutate()
+    return IKST_Authority and IKST_Authority.guardServerMutate()
+end
 
 function IKST_TileProtect.store()
     local data = ModData.getOrCreate("IKST_Protect")
@@ -26,6 +31,9 @@ function IKST_TileProtect.isTileProtected(x, y, z)
 end
 
 function IKST_TileProtect.protectTile(x, y, z, label)
+    if not requireServerMutate() then
+        return false
+    end
     local data = IKST_TileProtect.store()
     local k = IKST_TileProtect.key(x, y, z)
     data.tiles[k] = { label = label or "protected", x = math.floor(x), y = math.floor(y), z = z }
@@ -33,6 +41,9 @@ function IKST_TileProtect.protectTile(x, y, z, label)
 end
 
 function IKST_TileProtect.unprotectTile(x, y, z)
+    if not requireServerMutate() then
+        return false
+    end
     local data = IKST_TileProtect.store()
     local k = IKST_TileProtect.key(x, y, z)
     if data.tiles[k] then
@@ -43,6 +54,9 @@ function IKST_TileProtect.unprotectTile(x, y, z)
 end
 
 function IKST_TileProtect.protectRadius(cx, cy, cz, radius)
+    if not requireServerMutate() then
+        return 0
+    end
     local squares = IKST_Grid.squaresInRadius(cx, cy, cz, radius)
     local n = 0
     for _, sq in ipairs(squares) do
@@ -54,6 +68,9 @@ function IKST_TileProtect.protectRadius(cx, cy, cz, radius)
 end
 
 function IKST_TileProtect.unprotectRadius(cx, cy, cz, radius)
+    if not requireServerMutate() then
+        return 0
+    end
     local squares = IKST_Grid.squaresInRadius(cx, cy, cz, radius)
     local n = 0
     for _, sq in ipairs(squares) do
@@ -98,6 +115,9 @@ function IKST_TileProtect.isVehicleProtected(vehicleId)
 end
 
 function IKST_TileProtect.protectVehicle(vehicleId)
+    if not requireServerMutate() then
+        return false
+    end
     if vehicleId == nil then
         return false
     end
@@ -106,6 +126,9 @@ function IKST_TileProtect.protectVehicle(vehicleId)
 end
 
 function IKST_TileProtect.unprotectVehicle(vehicleId)
+    if not requireServerMutate() then
+        return false
+    end
     if vehicleId == nil then
         return false
     end
@@ -118,6 +141,9 @@ function IKST_TileProtect.unprotectVehicle(vehicleId)
 end
 
 function IKST_TileProtect.setDropbox(x, y, z, owner)
+    if not requireServerMutate() then
+        return
+    end
     local k = IKST_TileProtect.key(x, y, z)
     if owner and owner ~= "" then
         IKST_TileProtect.store().dropboxes[k] = owner
@@ -131,6 +157,9 @@ function IKST_TileProtect.getDropboxOwner(x, y, z)
 end
 
 function IKST_TileProtect.setReadonly(x, y, z, on)
+    if not requireServerMutate() then
+        return
+    end
     local k = IKST_TileProtect.key(x, y, z)
     if on then
         IKST_TileProtect.store().readonly[k] = true

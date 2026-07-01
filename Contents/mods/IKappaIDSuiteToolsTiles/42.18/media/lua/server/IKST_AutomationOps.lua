@@ -142,11 +142,22 @@ function IKST_AutomationOps.moveCorpsesToSquare(fromSquare, toSquare)
     for i = objects:size() - 1, 0, -1 do
         local obj = objects:get(i)
         if obj and instanceof(obj, "IsoDeadBody") then
-            if obj.setX and obj.setY and obj.setZ then
-                obj:setX(toSquare:getX())
-                obj:setY(toSquare:getY())
-                obj:setZ(toSquare:getZ())
+            if fromSquare.removeCorpse then
+                fromSquare:removeCorpse(obj, false)
+            elseif obj.removeFromSquare then
+                obj:removeFromSquare()
+            end
+            if toSquare.addCorpse then
+                toSquare:addCorpse(obj, false)
                 moved = moved + 1
+                if not IKST_Debug then
+                    require "IKST_Debug"
+                end
+                if IKST_Debug and IKST_Debug.logEffect then
+                    IKST_Debug.logEffect("tiles", "corpse-move",
+                        string.format("%s,%s -> %s,%s", tostring(fromSquare:getX()), tostring(fromSquare:getY()),
+                            tostring(toSquare:getX()), tostring(toSquare:getY())), nil)
+                end
             end
         end
     end

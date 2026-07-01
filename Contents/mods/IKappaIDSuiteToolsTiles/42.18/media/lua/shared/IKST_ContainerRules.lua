@@ -4,6 +4,7 @@ require "IKST_Shared"
 require "IKST_TileProtect"
 require "IKST_Access"
 require "IKST_Locks"
+require "IKST_Identity"
 
 IKST_ContainerRules = IKST_ContainerRules or {}
 
@@ -80,8 +81,13 @@ function IKST_ContainerRules.transferAllowed(item, srcContainer, destContainer, 
         end
         local owner = IKST_TileProtect.getDropboxOwner(x, y, z)
         if owner and owner ~= "" then
-            local name = IKST_ContainerRules.playerName(player)
-            if takingOut and name ~= owner then
+            local allowed = false
+            if IKST_Identity and IKST_Identity.playerOwnsKey then
+                allowed = IKST_Identity.playerOwnsKey(player, owner)
+            else
+                allowed = IKST_ContainerRules.playerName(player) == owner
+            end
+            if takingOut and not allowed then
                 if not quiet and player then
                     IKST.notify(player, IKST.text("IGUI_IKST_Guard_DropboxBlock", "Dropbox: deposit only."), false)
                 end

@@ -1,6 +1,7 @@
 -- Vehicle ownership claims (server-authoritative ModData).
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_ClaimPolicy"
 require "IKST_ClaimSocial"
 require "IKST_VehiclePermissions"
@@ -100,6 +101,9 @@ function IKST_VehicleClaim.isEntryExpired(entry)
 end
 
 function IKST_VehicleClaim.purgeExpired()
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return 0
+    end
     local data = IKST_VehicleClaim.store()
     local removed = {}
     for k, entry in pairs(data.byId) do
@@ -144,6 +148,9 @@ function IKST_VehicleClaim.ensureEntryShape(entry)
 end
 
 function IKST_VehicleClaim.claim(vehicleId, ownerKey, meta)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     IKST_VehicleClaim.purgeExpired()
     if not vehicleId then
         return false, "no vehicle selected"
@@ -185,6 +192,9 @@ function IKST_VehicleClaim.claim(vehicleId, ownerKey, meta)
 end
 
 function IKST_VehicleClaim.release(vehicleId)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     local k = tostring(vehicleId)
     local entry = IKST_VehicleClaim.get(k)
     if not entry then
@@ -197,7 +207,42 @@ function IKST_VehicleClaim.release(vehicleId)
     return true, "released"
 end
 
+-- After admin relocate respawns the vehicle with a new engine id, keep the claim row.
+function IKST_VehicleClaim.remapVehicleId(oldId, newId, coords)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false
+    end
+    if oldId == nil or newId == nil then
+        return false
+    end
+    local oldKey = tostring(oldId)
+    local newKey = tostring(newId)
+    if oldKey == newKey then
+        return true
+    end
+    local entry = IKST_VehicleClaim.get(oldKey)
+    if not entry then
+        return false
+    end
+    local data = IKST_VehicleClaim.store()
+    entry.id = tonumber(newId) or newId
+    if coords then
+        entry.x = coords.x
+        entry.y = coords.y
+        entry.z = coords.z
+    end
+    data.byId[oldKey] = nil
+    data.byId[newKey] = entry
+    IKST_VehicleClaim.removeFromOwnerList(entry.owner, oldKey)
+    IKST_VehicleClaim.addToOwnerList(entry.owner, newKey)
+    IKST_VehicleClaim.transmit()
+    return true
+end
+
 function IKST_VehicleClaim.transfer(vehicleId, newOwner)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     if not newOwner or newOwner == "" then
         return false, "no new owner"
     end
@@ -225,6 +270,9 @@ function IKST_VehicleClaim.transfer(vehicleId, newOwner)
 end
 
 function IKST_VehicleClaim.setLabel(vehicleId, label)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     local entry = IKST_VehicleClaim.get(vehicleId)
     if not entry then
         return false, "not claimed"
@@ -235,6 +283,9 @@ function IKST_VehicleClaim.setLabel(vehicleId, label)
 end
 
 function IKST_VehicleClaim.setPermissions(vehicleId, scope, username, perms)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     local entry = IKST_VehicleClaim.get(vehicleId)
     if not entry then
         return false, "not claimed"
@@ -286,6 +337,48 @@ function IKST_VehicleClaim.isOwner(entry, playerOrKey)
     return IKST_ClaimPolicy.usernamesEqual(entry.owner, playerOrKey)
 end
 
+-- True when this vehicle id is on the player's server owner list (listForOwner index).
+function IKST_VehicleClaim.playerListedClaim(player, vehicleId)
+    if not player or vehicleId == nil then
+        return false
+    end
+    if not IKST_Identity or type(IKST_Identity.accountKey) ~= "function" then
+        return false
+    end
+    local ownerKey = IKST_Identity.accountKey(player)
+    local listKey = IKST_VehicleClaim.ownerListKey(ownerKey)
+    local list = listKey and IKST_VehicleClaim.store().byOwner[listKey]
+    if not list then
+        return false
+    end
+    local want = tostring(vehicleId)
+    for _, id in ipairs(list) do
+        if tostring(id) == want then
+            return true
+        end
+    end
+    return false
+end
+
+function IKST_VehicleClaim.playerMayRelease(entry, player, vehicleId)
+    if not player then
+        return false
+    end
+    if IKST_VehicleClaim.adminMayBypass(player) then
+        return true
+    end
+    if not entry then
+        return false
+    end
+    if IKST_VehicleClaim.playerMayEdit(entry, player) then
+        return true
+    end
+    if vehicleId ~= nil and IKST_VehicleClaim.playerListedClaim(player, vehicleId) then
+        return true
+    end
+    return false
+end
+
 function IKST_VehicleClaim.playerOwnerKey(player)
     return IKST_ClaimSocial.accountKey(player)
 end
@@ -311,6 +404,17 @@ function IKST_VehicleClaim.canUseVehicle(player, vehicle, action)
     end
     local entry = IKST_VehicleClaim.get(vid)
     if not entry or IKST_VehicleClaim.isEntryExpired(entry) then
+        if IKST_Authority and IKST_Authority.mpClientEnforcementActive and IKST_Authority.mpClientEnforcementActive() then
+            if IKST_VehicleClaimClient and not IKST_VehicleClaimClient.listBootstrapped then
+                return false
+            end
+            if IKST_VehicleClaimClient and IKST_VehicleClaimClient.rowForVehicle then
+                local row = IKST_VehicleClaimClient.rowForVehicle(vid)
+                if row and row.claimed == true then
+                    return false
+                end
+            end
+        end
         return true
     end
     return IKST_VehiclePermissions.resolve(entry, player, action)
@@ -349,6 +453,50 @@ function IKST_VehicleClaim.listAll()
     local out = {}
     for _, entry in pairs(IKST_VehicleClaim.store().byId) do
         out[#out + 1] = entry
+    end
+    return out
+end
+
+function IKST_VehicleClaim.entryForDisplay(vehicleId)
+    local entry = IKST_VehicleClaim.get(vehicleId)
+    if not entry then
+        return nil
+    end
+    if IKST_Authority and IKST_Authority.guardServerMutate() then
+        IKST_VehicleClaim.ensureEntryShape(entry)
+        return entry
+    end
+    local plain = IKST_VehicleClaim.copyEntryPlain(entry)
+    IKST_VehicleClaim.ensureEntryShape(plain)
+    return plain
+end
+
+function IKST_VehicleClaim.copyEntryPlain(entry)
+    if not entry then
+        return nil
+    end
+    local out = {
+        id = entry.id,
+        owner = entry.owner,
+        label = entry.label or "",
+        script = entry.script or "",
+        x = entry.x,
+        y = entry.y,
+        z = entry.z,
+        claimedAt = entry.claimedAt,
+        expiresAt = entry.expiresAt,
+        groups = {},
+        users = {},
+    }
+    if entry.groups then
+        for key, value in pairs(entry.groups) do
+            out.groups[key] = value
+        end
+    end
+    if entry.users then
+        for key, value in pairs(entry.users) do
+            out.users[key] = value
+        end
     end
     return out
 end

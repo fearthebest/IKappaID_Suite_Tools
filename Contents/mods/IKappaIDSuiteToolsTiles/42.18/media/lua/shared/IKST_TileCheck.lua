@@ -28,6 +28,49 @@ function IKST_TileCheck.squareOf(object)
     return nil
 end
 
+function IKST_TileCheck.isWorldContainerObject(object)
+    if not object or not object.getContainer then
+        return false
+    end
+    if not object:getContainer() then
+        return false
+    end
+    if object.getObjectName and object:getObjectName() == "Thumpable" then
+        return false
+    end
+    return true
+end
+
+function IKST_TileCheck.isReadonlySquareBlocked(object, player)
+    if not object or not IKST_TileProtect then
+        return false
+    end
+    if player and IKST_Access.canUseTools(player) then
+        return false
+    end
+    local sq = IKST_TileCheck.squareOf(object)
+    if not sq then
+        return false
+    end
+    return IKST_TileProtect.isReadonly(sq:getX(), sq:getY(), sq:getZ())
+end
+
+function IKST_TileCheck.blocksVanillaWorldEdit(object, mode, player)
+    if not object then
+        return false
+    end
+    if IKST_TileCheck.isProtected(object, mode, player) then
+        return true
+    end
+    if mode == "pickup" or mode == "destroy" then
+        if IKST_TileCheck.isWorldContainerObject(object)
+            and IKST_TileCheck.isReadonlySquareBlocked(object, player) then
+            return true
+        end
+    end
+    return false
+end
+
 function IKST_TileCheck.isProtected(object, mode, player)
     if not object then
         return false
@@ -68,6 +111,11 @@ end
 
 function IKST_TileCheck.notifyDestroyBlocked(player, object)
     if not player then
+        return
+    end
+    if object and IKST_TileCheck.isWorldContainerObject(object)
+        and IKST_TileCheck.isReadonlySquareBlocked(object, player) then
+        IKST_TileCheck.notifyBlocked(player, "IGUI_IKST_Guard_ReadonlyBlock", "This storage is locked.")
         return
     end
     local rules = IKST_WorldRules.getRules()

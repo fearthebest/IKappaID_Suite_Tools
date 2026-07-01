@@ -115,6 +115,54 @@ function IKST_GuardOps.enforceCaughtPosition(player)
     end
 end
 
+function IKST_GuardOps.enforceVehicleClaim(player)
+    if not player or not IKST_ClaimPolicy or not IKST_ClaimPolicy.playerClaimsEnabled then
+        return
+    end
+    if not IKST_ClaimPolicy.playerClaimsEnabled() then
+        return
+    end
+    if not player.getVehicle then
+        return
+    end
+    local vehicle = player:getVehicle()
+    if not vehicle or not IKST_VehicleClaim or not IKST_VehicleClaim.canUseVehicle then
+        return
+    end
+    if not IKST_VehicleClaim.canUseVehicle(player, vehicle, "enter") then
+        if vehicle.shutOff then
+            vehicle:shutOff()
+        end
+        if vehicle.exit then
+            vehicle:exit(player)
+        end
+        local seat = 0
+        if vehicle.getSeat then
+            seat = vehicle:getSeat(player) or 0
+        end
+        if vehicle.setCharacterPosition then
+            vehicle:setCharacterPosition(player, seat, "outside")
+        end
+        if not IKST_Debug then
+            require "IKST_Debug"
+        end
+        if IKST_Debug and IKST_Debug.logEffect then
+            IKST_Debug.logEffect("vehicle", "claim-eject", "vid=" .. tostring(vehicle.getId and vehicle:getId() or "?"), player)
+        end
+        return
+    end
+    if vehicle.isEngineRunning and vehicle:isEngineRunning() then
+        if not IKST_VehicleClaim.canUseVehicle(player, vehicle, "engine") then
+            if vehicle.shutOff then
+                vehicle:shutOff()
+            end
+            if IKST_Debug and IKST_Debug.logVerbose then
+                IKST_Debug.logVerbose("vehicle", "claim engine shutoff vid=" .. tostring(vehicle.getId and vehicle:getId() or "?"))
+            end
+        end
+    end
+end
+
 function IKST_GuardOps.toggleCreative(player)
     if not player or not player.setBuildCheat or not player.isBuildCheat then
         return false, "unavailable"
@@ -211,7 +259,7 @@ function IKST_GuardOps.safehouseToTable(sh)
         expiresAt = entry.expiresAt
     end
     return {
-        id = IKST_SafeHouse.id(sh),
+        id = IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh),
         owner = sh.getOwner and sh:getOwner() or "?",
         x = x,
         y = y,
@@ -316,6 +364,220 @@ function IKST_GuardOps.actorIsAdmin(actor)
     return IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(actor)
 end
 
+function IKST_GuardOps.normalizeVehicleId(raw)
+    local vidNum = tonumber(raw)
+    if not vidNum then
+        return nil
+    end
+    return vidNum
+end
+
+function IKST_GuardOps.canManageVehicleClaim(actor, entry, vehicleId)
+    if IKST_GuardOps.actorIsAdmin(actor) then
+        return true
+    end
+    return IKST_VehicleClaim.playerMayRelease(entry, actor, vehicleId)
+end
+
+function IKST_GuardOps.safehouseRowForViewer(row, viewer)
+    if not row then
+        return nil
+    end
+    local out = {
+        id = row.id,
+        owner = row.owner,
+        x = row.x,
+        y = row.y,
+        w = row.w,
+        h = row.h,
+        title = row.title or "",
+        expiresAt = row.expiresAt,
+        members = row.members,
+        claimed = true,
+    }
+    local entry = nil
+    if row.x and row.y and row.w and row.h then
+        entry = IKST_SafehouseClaim.get(row.x, row.y, row.w, row.h)
+    end
+    local isOwner = IKST_ClaimPolicy.usernamesEqual(row.owner, IKST_GuardOps.username(viewer))
+    if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
+        isOwner = isOwner or IKST_SafehouseClaim.isOwner(entry, viewer)
+    end
+    out.isMine = isOwner
+    out.canRelease = IKST_GuardOps.actorIsAdmin(viewer) or isOwner
+    out.canEdit = out.canRelease and (
+        IKST_GuardOps.actorIsAdmin(viewer)
+        or (entry and IKST_SafehouseClaim.playerMayEdit(entry, viewer))
+        or isOwner
+    )
+    out.hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(row.expiresAt or (entry and entry.expiresAt))
+    return out
+end
+
+function IKST_GuardOps.afterSafehouseClaimMutation(actor, action, x, y, w, h)
+    if not action or x == nil or y == nil or not w or not h then
+        return
+    end
+    local mirrorArgs = {
+        action = action,
+        x = x,
+        y = y,
+        w = w,
+        h = h,
+    }
+    if action == "set" then
+        local entry = IKST_SafehouseClaim.get(x, y, w, h)
+        if entry then
+            mirrorArgs.entry = IKST_SafehouseClaim.copyEntryPlain(entry)
+        end
+    end
+    IKST_GuardOps.broadcastSafehouseClaimMirror(actor, mirrorArgs)
+end
+
+function IKST_GuardOps.broadcastSafehouseClaimMirror(actor, mirrorArgs)
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return
+    end
+    if not IKST_StaffOps or not IKST_StaffOps.forEachOnline then
+        return
+    end
+    IKST_StaffOps.forEachOnline(function(p)
+        IKST.deliverClientCommand(p, IKST.CMD.safehouseClaimMirror, mirrorArgs or {})
+    end)
+end
+
+function IKST_GuardOps.finishSafehouseClaimCommand(actor, ok, msg, x, y, w, h, action)
+    if ok and x and action then
+        IKST_GuardOps.afterSafehouseClaimMutation(actor, action, x, y, w, h)
+    end
+    return ok, msg
+end
+
+function IKST_GuardOps.claimRowForViewer(entry, viewer)
+    if not entry then
+        return nil
+    end
+    local row = IKST_VehicleClaim.copyEntryPlain(entry)
+    row.ownerLabel = IKST_Identity.labelForKey(entry.owner)
+    row.isMine = IKST_VehicleClaim.isOwner(entry, viewer)
+        or IKST_VehicleClaim.playerListedClaim(viewer, entry.id)
+    row.claimed = true
+    row.canClaim = false
+    row.canRelease = IKST_GuardOps.canManageVehicleClaim(viewer, entry, entry.id)
+    row.canEdit = row.canRelease
+        and (IKST_VehicleClaim.playerMayEdit(entry, viewer) or IKST_GuardOps.actorIsAdmin(viewer))
+    row.hoursRemaining = IKST_ClaimPolicy.hoursRemaining(entry.expiresAt)
+    row.hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt)
+    if entry.label and entry.label ~= "" then
+        row.displayLabel = entry.label
+    elseif entry.script and entry.script ~= "" then
+        row.displayLabel = entry.script
+    else
+        row.displayLabel = "#" .. tostring(entry.id)
+    end
+    return row
+end
+
+function IKST_GuardOps.enrichNearbyRow(row, viewer)
+    if not row or row.id == nil then
+        return row
+    end
+    local entry = IKST_VehicleClaim.get(row.id)
+    if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
+        local claimRow = IKST_GuardOps.claimRowForViewer(entry, viewer)
+        row.claimed = true
+        row.ownerLabel = claimRow.ownerLabel
+        row.isMine = claimRow.isMine
+        row.canClaim = false
+        row.canRelease = claimRow.canRelease
+        row.canEdit = claimRow.canEdit
+        row.hoursRemainingText = claimRow.hoursRemainingText
+        row.displayLabel = claimRow.displayLabel
+        if entry.label and entry.label ~= "" then
+            row.claimNote = entry.label
+        end
+    else
+        row.claimed = false
+        row.canClaim = true
+        row.canRelease = false
+        row.canEdit = false
+        row.isMine = false
+        row.ownerLabel = nil
+    end
+    return row
+end
+
+function IKST_GuardOps.notifyVehicleClaimResult(player, ok, message, extra)
+    if not player or not IKST.deliverClientCommand then
+        return
+    end
+    local payload = {
+        ok = ok == true,
+        message = tostring(message or ""),
+    }
+    if extra then
+        for key, value in pairs(extra) do
+            payload[key] = value
+        end
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimResult, payload)
+end
+
+function IKST_GuardOps.afterVehicleClaimMutation(actor, action, vehicleId)
+    if not action or not vehicleId then
+        return
+    end
+    local mirrorArgs = {
+        action = action,
+        vehicleId = vehicleId,
+    }
+    if action == "set" then
+        local entry = IKST_VehicleClaim.get(vehicleId)
+        if entry then
+            mirrorArgs.entry = IKST_VehicleClaim.copyEntryPlain(entry)
+        end
+    end
+    IKST_GuardOps.broadcastVehicleClaimChange(actor, mirrorArgs)
+end
+
+function IKST_GuardOps.broadcastVehicleClaimChange(actor, mirrorArgs)
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return
+    end
+    if not IKST_StaffOps or not IKST_StaffOps.forEachOnline then
+        return
+    end
+    IKST_VehicleClaim.purgeExpired()
+    IKST_StaffOps.forEachOnline(function(p)
+        local rawList
+        if IKST_GuardOps.actorIsAdmin(p) then
+            rawList = IKST_VehicleClaim.listAll()
+        else
+            rawList = IKST_VehicleClaim.listForOwner(IKST_Identity.accountKey(p))
+        end
+        local rows = {}
+        for _, entry in ipairs(rawList) do
+            rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(entry, p)
+        end
+        IKST_GuardOps.sendClaimList(p, rows)
+        IKST.deliverClientCommand(p, IKST.CMD.vehicleClaimMirror, mirrorArgs or {})
+    end)
+end
+
+function IKST_GuardOps.finishVehicleClaimCommand(actor, ok, msg, vehicleId, action)
+    if ok and vehicleId and action then
+        IKST_GuardOps.afterVehicleClaimMutation(actor, action, vehicleId)
+    end
+    IKST_GuardOps.notifyVehicleClaimResult(actor, ok, msg, { vehicleId = vehicleId })
+    return ok, msg
+end
+
 function IKST_GuardOps.removeSafehouseInstance(sh, actor, force)
     return IKST_SafeHouse.remove(sh, actor, force)
 end
@@ -352,13 +614,21 @@ function IKST_GuardOps.releaseSafehouse(owner, x, y, w, h, id, actor)
     local sy = sh.getY and sh:getY() or y
     local sw = sh.getW and sh:getW() or w
     local shh = sh.getH and sh:getH() or h
+    local shOnlineId = sh.getOnlineID and sh:getOnlineID() or nil
     if not IKST_GuardOps.removeSafehouseInstance(sh, actor, force) then
         return false, "release failed"
     end
     if sx and sy and sw and shh then
         IKST_GuardOps.clearSafehouseClaimData(sx, sy, sw, shh)
     end
-    IKST_GuardOps.broadcastSafehouseChange(actor)
+    IKST_GuardOps.broadcastSafehouseChange(actor, {
+        action = "remove",
+        removedOnlineId = shOnlineId,
+        x = sx,
+        y = sy,
+        w = sw,
+        h = shh,
+    })
     return true, "released"
 end
 
@@ -399,6 +669,11 @@ function IKST_GuardOps.addSafehouseMember(actor, args)
         return false, "addPlayer unavailable"
     end
     sh:addPlayer(member)
+    local memberPlayer = nil
+    if getPlayerFromUsername then
+        memberPlayer = getPlayerFromUsername(member)
+    end
+    IKST_SafeHouse.afterMutation(sh, memberPlayer or actor)
     return true, "member added"
 end
 
@@ -414,12 +689,18 @@ function IKST_GuardOps.removeSafehouseMember(actor, args)
     if not member or member == "" then
         return false, "no member name"
     end
+    local memberPlayer = nil
+    if getPlayerFromUsername then
+        memberPlayer = getPlayerFromUsername(member)
+    end
     if sh.removePlayer then
         sh:removePlayer(member)
+        IKST_SafeHouse.afterMutation(sh, memberPlayer or actor)
         return true, "member removed"
     end
     if sh.removeFromList then
         sh:removeFromList(member)
+        IKST_SafeHouse.afterMutation(sh, memberPlayer or actor)
         return true, "member removed"
     end
     return false, "removePlayer unavailable"
@@ -540,7 +821,17 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
     if not sh then
         return false, "claim failed"
     end
-    IKST_SafeHouse.afterMutation(sh, claimPlayer or player)
+    local row = IKST_GuardOps.safehouseToTable(sh)
+    IKST_SafeHouse.afterMutation(sh, claimPlayer or player, {
+        action = "add",
+        onlineId = row and row.id or nil,
+        owner = row and row.owner or user,
+        title = row and row.title or "",
+        x = row and row.x or x,
+        y = row and row.y or y,
+        w = row and row.w or 0,
+        h = row and row.h or 0,
+    })
     local sx = sh.getX and sh:getX() or x
     local sy = sh.getY and sh:getY() or y
     local sw = sh.getW and sh:getW() or 0
@@ -561,7 +852,7 @@ function IKST_GuardOps.backupSafehouses()
     return true, "backed up " .. #backup
 end
 
-function IKST_GuardOps.restoreSafehouses()
+function IKST_GuardOps.restoreSafehouses(actor)
     local backup = IKST_GuardOps.worldRulesData().safehouseBackup
     if not backup or #backup == 0 then
         return false, "no backup"
@@ -581,6 +872,12 @@ function IKST_GuardOps.restoreSafehouses()
             end
         end
     end
+    if restored > 0 then
+        IKST_SafeHouse.sync()
+        if actor then
+            IKST_GuardOps.broadcastSafehouseChange(actor)
+        end
+    end
     return true, "restored " .. restored
 end
 
@@ -593,10 +890,18 @@ function IKST_GuardOps.sendSafehouseList(player, list)
         end
         list = trimmed
     end
-    IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, { safehouses = list })
+    local rows = {}
+    for _, item in ipairs(list) do
+        if item and item.canRelease ~= nil then
+            rows[#rows + 1] = item
+        elseif item then
+            rows[#rows + 1] = IKST_GuardOps.safehouseRowForViewer(item, player)
+        end
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, { safehouses = rows })
 end
 
-function IKST_GuardOps.broadcastSafehouseChange(actor)
+function IKST_GuardOps.broadcastSafehouseChange(actor, syncInfo)
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return
     end
@@ -608,14 +913,99 @@ function IKST_GuardOps.broadcastSafehouseChange(actor)
     end
     IKST_GuardOps.purgeExpiredSafehouses()
     local list = IKST_GuardOps.listSafehouses()
+    local refreshArgs = {}
+    if type(syncInfo) == "number" then
+        refreshArgs.action = "remove"
+        refreshArgs.removedOnlineId = syncInfo
+    elseif type(syncInfo) == "table" then
+        refreshArgs.action = syncInfo.action
+        if syncInfo.action == "remove" or syncInfo.removedOnlineId then
+            refreshArgs.action = "remove"
+            refreshArgs.removedOnlineId = syncInfo.removedOnlineId or syncInfo.onlineId
+            refreshArgs.x = syncInfo.x
+            refreshArgs.y = syncInfo.y
+            refreshArgs.w = syncInfo.w
+            refreshArgs.h = syncInfo.h
+        elseif syncInfo.action == "add" then
+            refreshArgs.onlineId = syncInfo.onlineId
+            refreshArgs.owner = syncInfo.owner
+            refreshArgs.title = syncInfo.title
+            refreshArgs.x = syncInfo.x
+            refreshArgs.y = syncInfo.y
+            refreshArgs.w = syncInfo.w
+            refreshArgs.h = syncInfo.h
+        end
+    end
+    local mirrorArgs = nil
+    if type(syncInfo) == "table" and syncInfo.x and syncInfo.y and syncInfo.w and syncInfo.h then
+        if syncInfo.action == "remove" then
+            mirrorArgs = {
+                action = "remove",
+                x = syncInfo.x,
+                y = syncInfo.y,
+                w = syncInfo.w,
+                h = syncInfo.h,
+            }
+        elseif syncInfo.action == "add" or syncInfo.action == "set" then
+            mirrorArgs = {
+                action = "set",
+                x = syncInfo.x,
+                y = syncInfo.y,
+                w = syncInfo.w,
+                h = syncInfo.h,
+            }
+            local entry = IKST_SafehouseClaim.get(syncInfo.x, syncInfo.y, syncInfo.w, syncInfo.h)
+            if entry then
+                mirrorArgs.entry = IKST_SafehouseClaim.copyEntryPlain(entry)
+            end
+        end
+    end
     IKST_StaffOps.forEachOnline(function(p)
         local filtered = list
         if not IKST_GuardOps.actorIsAdmin(p) then
             filtered = IKST_GuardOps.filterSafehousesForPlayer(list, IKST_GuardOps.username(p))
         end
         IKST_GuardOps.sendSafehouseList(p, filtered)
-        IKST.deliverClientCommand(p, IKST.CMD.safehouseClientRefresh, {})
+        IKST.deliverClientCommand(p, IKST.CMD.safehouseClientRefresh, refreshArgs)
+        if mirrorArgs then
+            IKST.deliverClientCommand(p, IKST.CMD.safehouseClaimMirror, mirrorArgs)
+        end
     end)
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logEffect then
+        local detail = "count=" .. tostring(#list)
+        if refreshArgs.action then
+            detail = detail .. " action=" .. tostring(refreshArgs.action)
+        end
+        if refreshArgs.removedOnlineId then
+            detail = detail .. " removed=" .. tostring(refreshArgs.removedOnlineId)
+        end
+        if refreshArgs.onlineId then
+            detail = detail .. " added=" .. tostring(refreshArgs.onlineId)
+        end
+        if refreshArgs.x then
+            detail = detail .. " @" .. tostring(refreshArgs.x) .. "," .. tostring(refreshArgs.y)
+        end
+        IKST_Debug.logEffect("safehouse", "broadcast", detail, actor)
+    end
+end
+
+function IKST_GuardOps.notifySafehouseClaimResult(player, ok, message, extra)
+    if not player or not IKST.deliverClientCommand then
+        return
+    end
+    local payload = {
+        ok = ok == true,
+        message = tostring(message or ""),
+    }
+    if extra then
+        for key, value in pairs(extra) do
+            payload[key] = value
+        end
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.safehouseClaimResult, payload)
 end
 
 function IKST_GuardOps.enforceVanillaClaimRules(player, square, claimPlayer)
@@ -647,11 +1037,23 @@ function IKST_GuardOps.sendClaimList(player, list)
         end
         list = trimmed
     end
-    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = list })
+    local rows = {}
+    for _, item in ipairs(list) do
+        if item and item.canRelease ~= nil then
+            rows[#rows + 1] = item
+        elseif item then
+            rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(item, player)
+        end
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = rows })
 end
 
 function IKST_GuardOps.sendNearbyVehicles(player, list)
-    IKST.deliverClientCommand(player, IKST.CMD.vehicleListResult, { vehicles = list })
+    local rows = {}
+    for _, row in ipairs(list or {}) do
+        rows[#rows + 1] = IKST_GuardOps.enrichNearbyRow(row, player)
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleListResult, { vehicles = rows })
 end
 
 function IKST_GuardOps.handle(command, admin, args)
@@ -716,14 +1118,25 @@ function IKST_GuardOps.handle(command, admin, args)
             args.owner = IKST_GuardOps.username(admin)
             local dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
             if not IKST_Args.actorNearCoord(admin, ax, ay, az, dist) then
+                IKST_GuardOps.notifySafehouseClaimResult(admin, false, "too far", { x = ax, y = ay, z = az })
                 return false, "too far"
             end
         end
-        return IKST_GuardOps.claimSafehouse(admin, ax, ay, az, args.size, args.owner, args.claimMode, args.w, args.h)
+        local ok, msg = IKST_GuardOps.claimSafehouse(admin, ax, ay, az, args.size, args.owner, args.claimMode, args.w, args.h)
+        IKST_GuardOps.notifySafehouseClaimResult(admin, ok, msg, {
+            x = ax, y = ay, z = az,
+            w = args.w, h = args.h,
+            claimMode = args.claimMode,
+        })
+        return ok, msg
     end
 
     if command == IKST.CMD.safehouseRelease then
-        return IKST_GuardOps.releaseSafehouse(args.owner, args.x, args.y, args.w, args.h, args.id, admin)
+        local ok, msg = IKST_GuardOps.releaseSafehouse(args.owner, args.x, args.y, args.w, args.h, args.id, admin)
+        IKST_GuardOps.notifySafehouseClaimResult(admin, ok, msg, {
+            x = args.x, y = args.y, w = args.w, h = args.h, id = args.id,
+        })
+        return ok, msg
     end
 
     if command == IKST.CMD.safehouseAddMember then
@@ -743,7 +1156,7 @@ function IKST_GuardOps.handle(command, admin, args)
     end
 
     if command == IKST.CMD.restoreSafehouses then
-        return IKST_GuardOps.restoreSafehouses()
+        return IKST_GuardOps.restoreSafehouses(admin)
     end
 
     if command == IKST.CMD.toggleSafehouseBorders then
@@ -762,17 +1175,19 @@ function IKST_GuardOps.handle(command, admin, args)
         if not vid then
             return false, "no vehicle nearby — pick one in the list"
         end
+        local vidNum = tonumber(vid)
+        if not vidNum then
+            return false, "invalid vehicle id"
+        end
+        vid = vidNum
+        local claimVehicle = IKST_VehicleUtil.getVehicle(vidNum)
+        if not claimVehicle then
+            return false, "vehicle not found"
+        end
         if not IKST_GuardOps.actorIsAdmin(admin) then
-            local vidNum = tonumber(vid)
-            if vidNum then
-                local v = IKST_VehicleUtil.getVehicle(vidNum)
-                if not v then
-                    return false, "vehicle not found"
-                end
-                local vz = v.getZ and v:getZ() or 0
-                if not IKST_Args.actorNearCoord(admin, v:getX(), v:getY(), vz, IKST.getVehicleNearRadius()) then
-                    return false, "too far"
-                end
+            local vz = claimVehicle.getZ and claimVehicle:getZ() or 0
+            if not IKST_Args.actorNearCoord(admin, claimVehicle:getX(), claimVehicle:getY(), vz, IKST.getVehicleNearRadius()) then
+                return false, "too far"
             end
         end
         local ownerKey = IKST_Identity.accountKey(admin)
@@ -800,7 +1215,7 @@ function IKST_GuardOps.handle(command, admin, args)
             return false, "no owner"
         end
         local meta = { label = args.label or "" }
-        local v = IKST_VehicleUtil.getVehicle(vid)
+        local v = claimVehicle
         if v then
             if v.getScriptName then
                 meta.script = v:getScriptName() or ""
@@ -809,11 +1224,12 @@ function IKST_GuardOps.handle(command, admin, args)
             meta.y = math.floor(v:getY())
             meta.z = v.getZ and v:getZ() or 0
         end
-        return IKST_VehicleClaim.claim(vid, ownerKey, meta)
+        local ok, msg = IKST_VehicleClaim.claim(vid, ownerKey, meta)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleReleaseClaim then
-        local vid = args.vehicleId
+        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
         if not vid and admin then
             vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
         end
@@ -821,15 +1237,14 @@ function IKST_GuardOps.handle(command, admin, args)
             return false, "no vehicle selected"
         end
         local entry = IKST_VehicleClaim.get(vid)
-        if not IKST_GuardOps.actorIsAdmin(admin) then
-            if not entry then
-                return false, "not claimed"
-            end
-            if not IKST_VehicleClaim.isOwner(entry, admin) then
-                return false, "not your claim"
-            end
+        if not entry then
+            return false, "not claimed"
         end
-        return IKST_VehicleClaim.release(vid)
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
+            return false, "not your claim"
+        end
+        local ok, msg = IKST_VehicleClaim.release(vid)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "remove" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimTransfer then
@@ -855,28 +1270,12 @@ function IKST_GuardOps.handle(command, admin, args)
                 newOwner = IKST_Identity.resolveWhitelistKey(newOwner)
             end
         end
-        return IKST_VehicleClaim.transfer(vid, newOwner)
+        local ok, msg = IKST_VehicleClaim.transfer(vid, newOwner)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, tonumber(vid), ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimSetLabel then
-        local vid = args.vehicleId
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
-        end
-        if not vid then
-            return false, "no vehicle selected"
-        end
-        local entry = IKST_VehicleClaim.get(vid)
-        if not IKST_GuardOps.actorIsAdmin(admin) then
-            if not entry or not IKST_VehicleClaim.playerMayEdit(entry, admin) then
-                return false, "not your claim"
-            end
-        end
-        return IKST_VehicleClaim.setLabel(vid, args.label)
-    end
-
-    if command == IKST.CMD.vehicleClaimSetPerms then
-        local vid = args.vehicleId
+        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
         if not vid and admin then
             vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
         end
@@ -887,10 +1286,30 @@ function IKST_GuardOps.handle(command, admin, args)
         if not entry then
             return false, "not claimed"
         end
-        if not IKST_GuardOps.actorIsAdmin(admin) and not IKST_VehicleClaim.playerMayEdit(entry, admin) then
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
             return false, "not your claim"
         end
-        return IKST_VehicleClaim.setPermissions(vid, args.scope, args.username, args.perms)
+        local ok, msg = IKST_VehicleClaim.setLabel(vid, args.label)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
+    end
+
+    if command == IKST.CMD.vehicleClaimSetPerms then
+        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
+        if not vid and admin then
+            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
+        end
+        if not vid then
+            return false, "no vehicle selected"
+        end
+        local entry = IKST_VehicleClaim.get(vid)
+        if not entry then
+            return false, "not claimed"
+        end
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
+            return false, "not your claim"
+        end
+        local ok, msg = IKST_VehicleClaim.setPermissions(vid, args.scope, args.username, args.perms)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
     end
 
     if command == IKST.CMD.safehouseClaimSetPerms then
@@ -920,7 +1339,8 @@ function IKST_GuardOps.handle(command, admin, args)
         if not IKST_GuardOps.actorIsAdmin(admin) and not IKST_SafehouseClaim.playerMayEdit(entry, admin) then
             return false, "not your safehouse"
         end
-        return IKST_SafehouseClaim.setPermissions(x, y, w, h, args.scope, args.username, args.perms)
+        local ok, msg = IKST_SafehouseClaim.setPermissions(x, y, w, h, args.scope, args.username, args.perms)
+        return IKST_GuardOps.finishSafehouseClaimCommand(admin, ok, msg, x, y, w, h, ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimList then
@@ -932,8 +1352,12 @@ function IKST_GuardOps.handle(command, admin, args)
         else
             list = IKST_VehicleClaim.listForOwner(IKST_Identity.accountKey(admin))
         end
-        IKST_GuardOps.sendClaimList(admin, list)
-        return true, #list .. " claim(s)"
+        local rows = {}
+        for _, entry in ipairs(list) do
+            rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(entry, admin)
+        end
+        IKST_GuardOps.sendClaimList(admin, rows)
+        return true, #rows .. " claim(s)"
     end
 
     if command == IKST.CMD.vehicleClaimNearby then

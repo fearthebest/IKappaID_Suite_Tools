@@ -5,6 +5,7 @@ end
 require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_VehicleClaim"
+require "IKST_VehicleClaimClient"
 require "IKST_VehiclePermissions"
 require "IKST_Access"
 require "IKST_ClaimIcons"
@@ -56,31 +57,39 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
     if vid == nil then
         return
     end
-    local entry = IKST_VehicleClaim.get(vid)
-    local username = IKST_VehicleClaim.playerUsername(player)
-    local isAdmin = IKST_Access.canUseTools(player)
-    local isOwner = entry and IKST_VehicleClaim.isOwner(entry, username)
-    local canEdit = entry and IKST_VehicleClaim.playerMayEdit(entry, player)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, player)
 
     local root = context:addOption(IKST.text("IGUI_IKST_VehicleClaim_Menu", "Vehicle claim"))
     IKST_ClaimIcons.applyContextIcon(root, IKST_ClaimIcons.VEHICLE_CLAIM)
     local sub = ISContextMenu:getNew(context)
     context:addSubMenu(root, sub)
 
-    if not entry or IKST_VehicleClaim.isEntryExpired(entry) then
-        IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"), player, function()
-            IKST.dispatchCommand(player, IKST.CMD.vehicleClaim, { vehicleId = vid })
-        end, IKST_ClaimIcons.VEHICLE_CLAIM)
+    if not uiState or not uiState.claimed then
+        if uiState and uiState.canClaim == true then
+            IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"), player, function()
+                IKST.dispatchCommand(player, IKST.CMD.vehicleClaim, { vehicleId = vid })
+            end, IKST_ClaimIcons.VEHICLE_CLAIM)
+        elseif uiState and uiState.stale then
+            sub:addOption(IKST.text("IGUI_IKST_Guard_Vehicle_RefreshClaims", "Refresh claims list"), player, function()
+                IKST.dispatchCommand(player, IKST.CMD.vehicleClaimList, { all = false })
+                IKST.dispatchCommand(player, IKST.CMD.vehicleClaimNearby, {
+                    x = math.floor(player:getX()),
+                    y = math.floor(player:getY()),
+                    z = player:getZ(),
+                    radius = IKST.getVehicleNearRadius(),
+                })
+            end)
+        end
         return
     end
 
-    if isOwner or isAdmin then
+    if uiState.canRelease then
         IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"), player, function()
             IKST.dispatchCommand(player, IKST.CMD.vehicleReleaseClaim, { vehicleId = vid })
         end, IKST_ClaimIcons.VEHICLE_UNCLAIM)
     end
 
-    if canEdit then
+    if uiState.canEdit then
         IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"), player, function()
             if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
                 IKST_VehicleClaimUI.open(player, vid)
@@ -88,8 +97,9 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
         end, IKST_ClaimIcons.PERMS)
     end
 
-    if IKST.Plugins and IKST.Plugins.isActive("vehicles") and entry and not IKST_VehicleClaim.isEntryExpired(entry) then
-        local mayRecover = isOwner or canEdit or IKST_VehicleKeys.playerHasVehicleKey(player, vehicle)
+    if IKST.Plugins and IKST.Plugins.isActive("vehicles") and uiState.claimed then
+        local mayRecover = uiState.canEdit or uiState.canRelease
+            or IKST_VehicleKeys.playerHasVehicleKey(player, vehicle)
         if mayRecover then
             IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_FieldRecovery", "Field recovery"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.vehicleFieldRecovery, { vehicleId = vid })
@@ -97,8 +107,11 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
         end
     end
 
-    if entry then
-        sub:addOption(IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner") .. ": " .. tostring(entry.owner or "?"), nil, nil)
+    if uiState.ownerLabel then
+        sub:addOption(IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner") .. ": " .. tostring(uiState.ownerLabel), nil, nil)
+    end
+    if uiState.hoursRemainingText and uiState.hoursRemainingText ~= "" then
+        sub:addOption(IKST.text("IGUI_IKST_VehicleClaim_Expires", "Time left") .. ": " .. uiState.hoursRemainingText, nil, nil)
     end
 end
 

@@ -273,6 +273,36 @@ function IKST_ClaimPolicy.isExpired(expiresAt)
     return IKST_ClaimPolicy.nowHours() >= tonumber(expiresAt)
 end
 
+function IKST_ClaimPolicy.hoursRemaining(expiresAt)
+    if expiresAt == nil then
+        return nil
+    end
+    local remain = tonumber(expiresAt) - IKST_ClaimPolicy.nowHours()
+    if remain <= 0 then
+        return 0
+    end
+    return remain
+end
+
+function IKST_ClaimPolicy.hoursRemainingLabel(expiresAt)
+    if expiresAt == nil then
+        return ""
+    end
+    local hours = IKST_ClaimPolicy.hoursRemaining(expiresAt)
+    if hours == nil then
+        return ""
+    end
+    if hours <= 0 then
+        return "expired"
+    end
+    local days = math.floor(hours / 24)
+    local hrs = math.floor(hours % 24)
+    if days > 0 then
+        return tostring(days) .. "d " .. tostring(hrs) .. "h left"
+    end
+    return tostring(hrs) .. "h left"
+end
+
 function IKST_ClaimPolicy.usernamesEqual(a, b)
     if IKST_Identity and IKST_Identity.keysEqual then
         return IKST_Identity.keysEqual(a, b)
@@ -297,6 +327,9 @@ function IKST_ClaimPolicy.safehouseMetaStore()
 end
 
 function IKST_ClaimPolicy.recordSafehouseClaim(owner, x, y, w, h)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return
+    end
     local key = IKST_ClaimPolicy.safehouseMetaKey(x, y, w, h)
     IKST_ClaimPolicy.safehouseMetaStore()[key] = {
         owner = owner,

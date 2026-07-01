@@ -84,6 +84,9 @@ IKST.Plugins.register("economy", {
             return true
         end
         if command == IKST.CMD.economyVendListResult then
+            if IKST_EconomyVendClient and IKST_EconomyVendClient.onVendListResult then
+                IKST_EconomyVendClient.onVendListResult(args)
+            end
             if IKST_EconomyUI and IKST_EconomyUI.onVendList then
                 IKST_EconomyUI.onVendList(args)
             end

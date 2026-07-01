@@ -106,34 +106,53 @@ function IKST_JobsPanel:createChildren()
     ISCollapsableWindow.createChildren(self)
 
     self.jobLayer = ISPanel:new(0, 0, self.width, self.height)
-
     self.jobLayer.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-
     self.jobLayer.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-
     self.jobLayer:initialise()
-
     self:addChild(self.jobLayer)
-
     self.jobLayer:setVisible(false)
 
+    -- Q1: NAV
+    self.q1Panel = ISPanel:new(0, 0, 100, 100)
+    self.q1Panel.backgroundColor = { r = 0, g = 0, b = 0, a = 0.1 }
+    self.q1Panel.borderColor = { r = 1, g = 1, b = 1, a = 0.1 }
+    self.q1Panel:initialise()
+    self.jobLayer:addChild(self.q1Panel)
 
+    -- Q2: TARGET
+    self.q2Panel = ISPanel:new(0, 0, 100, 100)
+    self.q2Panel.backgroundColor = { r = 0, g = 0, b = 0, a = 0.1 }
+    self.q2Panel.borderColor = { r = 1, g = 1, b = 1, a = 0.1 }
+    self.q2Panel:initialise()
+    self.jobLayer:addChild(self.q2Panel)
 
-    self.jobScroll = ISPanel:new(0, 0, self.width, self.height)
+    -- Q3: ACTIONS
+    self.q3Panel = ISPanel:new(0, 0, 100, 100)
+    self.q3Panel.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
+    self.q3Panel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+    self.q3Panel:initialise()
+    self.jobLayer:addChild(self.q3Panel)
 
+    self.jobScroll = ISPanel:new(0, 0, 100, 100)
     self.jobScroll.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-
     self.jobScroll.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-
     self.jobScroll:initialise()
-
     self.jobScroll:setScrollChildren(true)
+    self.q3Panel:addChild(self.jobScroll)
 
-    self.jobLayer:addChild(self.jobScroll)
+    -- Q4: LOG
+    self.q4Panel = ISPanel:new(0, 0, 100, 100)
+    self.q4Panel.backgroundColor = { r = 0, g = 0, b = 0, a = 0.05 }
+    self.q4Panel.borderColor = { r = 1, g = 1, b = 1, a = 0.1 }
+    self.q4Panel:initialise()
+    self.jobLayer:addChild(self.q4Panel)
 
     self.homeNavBtn = ISButton:new(6, 0, 52, 20, IKST.text("IGUI_IKST_BackHome", "Home"), self, IKST_JobsPanel.onHomeNavClick)
     self.homeNavBtn:initialise()
     IKST_Chrome.styleSecondaryButton(self.homeNavBtn)
+    if IKST_ClaimIcons and IKST_ClaimIcons.applyButtonIcon then
+        IKST_ClaimIcons.applyButtonIcon(self.homeNavBtn, "media/textures/CellPhoneMod/icon_back.png")
+    end
     self:addChild(self.homeNavBtn)
     self.homeNavBtn:setVisible(false)
 
@@ -152,48 +171,50 @@ end
 function IKST_JobsPanel:clearJobLayer()
 
     local list = self.jobWidgets or {}
-
     for i = #list, 1, -1 do
-
         local widget = list[i]
-
-        if widget and self.jobScroll and self.jobScroll.removeChild then
-
-            self.jobScroll:removeChild(widget)
-
+        if widget and widget.parent and widget.parent.removeChild then
+            widget.parent:removeChild(widget)
         end
-
         list[i] = nil
-
     end
-
     self.jobWidgets = {}
 
-    self.economyAmount = nil
-
     local chrome = self.chromeWidgets or {}
-
     for i = #chrome, 1, -1 do
-
         local widget = chrome[i]
-
-        if widget and self.jobLayer and self.jobLayer.removeChild then
-
-            self.jobLayer:removeChild(widget)
-
+        if widget and widget.parent and widget.parent.removeChild then
+            widget.parent:removeChild(widget)
         end
-
         chrome[i] = nil
-
     end
-
     self.chromeWidgets = {}
 
+    self.economyAmount = nil
     self.logPanel = nil
 
 end
 
+function IKST_JobsPanel:addQ1Widget(widget)
+    if not widget or not self.q1Panel then return widget end
+    table.insert(self.chromeWidgets, widget)
+    self.q1Panel:addChild(widget)
+    return widget
+end
 
+function IKST_JobsPanel:addQ2Widget(widget)
+    if not widget or not self.q2Panel then return widget end
+    table.insert(self.chromeWidgets, widget)
+    self.q2Panel:addChild(widget)
+    return widget
+end
+
+function IKST_JobsPanel:addQ4Widget(widget)
+    if not widget or not self.q4Panel then return widget end
+    table.insert(self.chromeWidgets, widget)
+    self.q4Panel:addChild(widget)
+    return widget
+end
 
 function IKST_JobsPanel:addChromeWidget(widget)
 
@@ -555,130 +576,141 @@ end
 
 
 
-function IKST_JobsPanel:refreshJobUI(preserveScroll)
-
-    local state = IKST.getPlayerState(self.player)
-
-    local tool = state and state.navTool
-
-    if preserveScroll == nil then
-
-        preserveScroll = (self._lastBuiltView == self.view and self._lastBuiltTool == tool)
-
-    end
-
-    self:clearJobLayer()
-
-    if not self.jobLayer then
-
-        return
-
-    end
-
-    if IKST_HubNav.isHomeView(self.view) then
-
-        self.jobLayer:setVisible(false)
-
-        IKST_JobLayout.syncHomeNav(self)
-
-        return
-
-    end
-
-    self.jobLayer:setVisible(true)
-
-    self._logHeightOverride = nil
-
-    if self.view == IKST.VIEW.claim then
-
-        self._logHeightOverride = 72
-
-    end
-
-    IKST_JobLayout.begin(self, { preserveScroll = preserveScroll == true })
-
+function IKST_JobsPanel:updateNav()
     if IKST_HubNav.buildSidebar then
-
         IKST_HubNav.buildSidebar(self)
-
     end
+end
 
-    local contentY = 8
+function IKST_JobsPanel:updateTarget()
+    if not self.q2Panel then return end
+    local state = IKST.getPlayerState(self.player)
+    local tool = state and state.navTool
+    local cc = IKST_Chrome.colors
+    local x = 8
+    local y = 4
+    local targetText = IKST_HubNav.labelForNav(self.view, tool)
+    local subText = ""
+    local icon = nil
 
-    if self.view == IKST.VIEW.utilities and IKST_JobUtilities then
-
-        contentY = IKST_JobUtilities.build(self) or contentY
-
-    elseif self.view == IKST.VIEW.claim and IKST_JobClaim then
-
-        contentY = IKST_JobClaim.build(self) or contentY
-
-    elseif self.view == IKST.VIEW.tiles and IKST_JobWorldEdit then
-
-        contentY = IKST_JobWorldEdit.build(self) or contentY
-
-    elseif self.view == IKST.VIEW.vehicles then
-
-        if IKST.Plugins and IKST.Plugins.buildJobTool then
-
-            local st = IKST.getPlayerState(self.player)
-
-            local toolId = st and st.navTool
-
-            contentY = IKST.Plugins.buildJobTool(self, toolId) or contentY
-
-        elseif IKST_JobVehicle then
-
-            contentY = IKST_JobVehicle.build(self) or contentY
-
+    if self.view == IKST.VIEW.tiles then
+        icon = "media/textures/CellPhoneMod/icon_compose.png"
+        if tool == "inspect" and state.lastInspect then
+            targetText = "Square: " .. state.lastInspect.x .. ", " .. state.lastInspect.y .. ", " .. state.lastInspect.z
+            subText = (state.lastInspect.objects or 0) .. " objects"
         end
+    elseif self.view == IKST.VIEW.vehicles then
+        icon = "media/textures/CellPhoneMod/icon_phone.png"
+        local v = IKST_VehicleOps and IKST_VehicleOps.resolveNearVehicle(self.player)
+        if v then
+            targetText = v:getScript():getName() or "Vehicle"
+            subText = "ID: " .. v:getId()
+        end
+    elseif self.view == IKST.VIEW.utilities then
+        icon = "media/textures/CellPhoneMod/icon_911.png"
+    elseif self.view == IKST.VIEW.claim then
+        icon = "media/textures/CellPhoneMod/icon_avatar.png"
+    elseif self.view == IKST.VIEW.economy then
+        icon = "media/textures/CellPhoneMod/icon_send.png"
+    elseif self.view == IKST.VIEW.loot then
+        icon = "media/textures/CellPhoneMod/icon_in.png"
+    elseif self.view == IKST.VIEW.everyone then
+        icon = "media/textures/CellPhoneMod/icon_people.png"
+    end
 
-    elseif self.view == IKST.VIEW.economy and IKST.Plugins and IKST.Plugins.buildJobTool then
+    if icon then
+        local tex = getTexture(icon)
+        if tex then
+            local iconPanel = ISPanel:new(x, y + 2, 24, 24)
+            iconPanel:initialise()
+            iconPanel.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
+            iconPanel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
+            iconPanel.render = function(p)
+                p:drawTextureScaled(tex, 0, 0, 24, 24, 1, 1, 1, 1)
+            end
+            self:addQ2Widget(iconPanel)
+            x = x + 32
+        end
+    end
 
-        contentY = IKST.Plugins.buildJobTool(self, "economy") or contentY
+    local titleColor = cc.textPrimary or cc.textMuted
+    local title = ISLabel:new(x, y, 20, targetText, titleColor.r, titleColor.g, titleColor.b, 1, UIFont.Medium, true)
+    title:initialise()
+    self:addQ2Widget(title)
+    if subText ~= "" then
+        local sub = ISLabel:new(x, y + 20, 16, subText, cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
+        sub:initialise()
+        self:addQ2Widget(sub)
+    end
+end
 
-    elseif self.view == IKST.VIEW.loot and IKST.Plugins and IKST.Plugins.buildJobTool then
-
-        contentY = IKST.Plugins.buildJobTool(self, "loot") or contentY
-
-    elseif self.view == IKST.VIEW.everyone and IKST_JobEveryone then
-
-        contentY = IKST_JobEveryone.build(self) or contentY
-
-    elseif self.view == IKST.VIEW.build and IKST_JobWorldEdit then
-
+function IKST_JobsPanel:updateActions(preserveScroll)
+    IKST_JobLayout.begin(self, { preserveScroll = preserveScroll == true })
+    local contentY = 8
+    if self.view == IKST.VIEW.utilities and IKST_JobUtilities then
+        contentY = IKST_JobUtilities.build(self) or contentY
+    elseif self.view == IKST.VIEW.claim and IKST_JobClaim then
+        contentY = IKST_JobClaim.build(self) or contentY
+    elseif self.view == IKST.VIEW.tiles and IKST_JobWorldEdit then
         contentY = IKST_JobWorldEdit.build(self) or contentY
-
+    elseif self.view == IKST.VIEW.vehicles then
+        if IKST.Plugins and IKST.Plugins.buildJobTool then
+            local st = IKST.getPlayerState(self.player)
+            local toolId = st and st.navTool
+            contentY = IKST.Plugins.buildJobTool(self, toolId) or contentY
+        elseif IKST_JobVehicle then
+            contentY = IKST_JobVehicle.build(self) or contentY
+        end
+    elseif self.view == IKST.VIEW.economy and IKST.Plugins and IKST.Plugins.buildJobTool then
+        contentY = IKST.Plugins.buildJobTool(self, "economy") or contentY
+    elseif self.view == IKST.VIEW.loot and IKST.Plugins and IKST.Plugins.buildJobTool then
+        contentY = IKST.Plugins.buildJobTool(self, "loot") or contentY
+    elseif self.view == IKST.VIEW.everyone and IKST_JobEveryone then
+        contentY = IKST_JobEveryone.build(self) or contentY
+    elseif self.view == IKST.VIEW.build and IKST_JobWorldEdit then
+        contentY = IKST_JobWorldEdit.build(self) or contentY
     elseif self.view == IKST.VIEW.server and IKST_JobWorldEdit then
-
         contentY = IKST_JobWorldEdit.buildForServer(self) or contentY
-
     elseif self.view == IKST.VIEW.quick and IKST_JobGadgets then
-
         contentY = IKST_JobGadgets.build(self) or contentY
-
     end
-
-
-
     self.bodyY = contentY
-
     IKST_JobLayout.finish(self, contentY)
+end
 
-    IKST_JobLayout.syncHomeNav(self)
-
-
-
-    if IKST_Preview and IKST_Preview.syncForPanel then
-
-        IKST_Preview.syncForPanel(self)
-
+function IKST_JobsPanel:updateLog()
+    if not self.q4Panel then return end
+    if IKST_ActionLog and IKST_ActionLog.dock then
+        IKST_ActionLog.dock(self, self.player)
     end
+end
 
+function IKST_JobsPanel:refreshJobUI(preserveScroll)
+    local state = IKST.getPlayerState(self.player)
+    local tool = state and state.navTool
+    if preserveScroll == nil then
+        preserveScroll = (self._lastBuiltView == self.view and self._lastBuiltTool == tool)
+    end
+    self:clearJobLayer()
+    if not self.jobLayer then
+        return
+    end
+    if IKST_HubNav.isHomeView(self.view) then
+        self.jobLayer:setVisible(false)
+        IKST_JobLayout.syncHomeNav(self)
+        return
+    end
+    self.jobLayer:setVisible(true)
+    self:updateNav()
+    self:updateTarget()
+    self:updateActions(preserveScroll)
+    self:updateLog()
+    IKST_JobLayout.syncHomeNav(self)
+    if IKST_Preview and IKST_Preview.syncForPanel then
+        IKST_Preview.syncForPanel(self)
+    end
     self._lastBuiltView = self.view
-
     self._lastBuiltTool = tool
-
 end
 
 
@@ -939,6 +971,14 @@ function IKST_JobsPanel:onServerResult(args)
 
     if args and args.success and IKST_JobStaff and (args.mode == IKST.CMD.saveWaypoint or args.mode == IKST.CMD.delWaypoint) then
         IKST_JobStaff.requestWaypoints(self.player)
+    end
+
+    if args and IKST_JobVehicle and IKST_JobVehicle.onServerResult then
+        IKST_JobVehicle.onServerResult(self, args)
+    end
+
+    if args and IKST_JobLoot and IKST_JobLoot.onServerResult then
+        IKST_JobLoot.onServerResult(self, args)
     end
 
 end

@@ -56,10 +56,7 @@ function IKST_JobEveryone.build(panel)
             if i > 10 then
                 break
             end
-            local line = "#" .. tostring(claim.id) .. " " .. IKST_VehicleClaim.claimLabel(claim)
-            if claim.x and claim.y then
-                line = line .. " @ " .. claim.x .. "," .. claim.y
-            end
+            local line = IKST_JobGuard.claimLineText(claim, false)
             panel:makeJobLabel(12, y, line, UIFont.Small)
             y = y + 18
         end

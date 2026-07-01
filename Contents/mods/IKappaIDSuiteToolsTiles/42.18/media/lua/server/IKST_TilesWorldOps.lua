@@ -60,6 +60,48 @@ function IKST_TilesWorldOps.syncSquare(square)
     end
 end
 
+function IKST_TilesWorldOps.transmitRemove(square, obj)
+    if not square or not obj then
+        return
+    end
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return
+    end
+    if square.transmitRemoveItemFromSquare then
+        square:transmitRemoveItemFromSquare(obj)
+    end
+end
+
+function IKST_TilesWorldOps.removeMultiTileObject(obj)
+    if not obj or not IsoObjectUtils or not IsoObjectUtils.getAllMultiTileObjects or not ArrayList then
+        return false
+    end
+    local list = ArrayList.new()
+    if IsoObjectUtils.getAllMultiTileObjects(obj, list) ~= true or list:size() < 1 then
+        return false
+    end
+    IKST_TilesWorldOps._batchRemoved[obj] = true
+    for i = 0, list:size() - 1 do
+        local part = list:get(i)
+        local partSq = part and part.getSquare and part:getSquare()
+        if partSq then
+            IKST_TilesWorldOps.transmitRemove(partSq, part)
+            if partSq.RemoveTileObject then
+                partSq:RemoveTileObject(part, false)
+            elseif part.removeFromSquare then
+                part:removeFromSquare()
+            end
+        end
+    end
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logEffect then
+        IKST_Debug.logEffect("tiles", "multi-remove", "parts=" .. tostring(list:size()), nil)
+    end
+    return true
+end
+
 function IKST_TilesWorldOps.isVegetationSprite(spriteName)
     if not spriteName or spriteName == "" then
         return false
@@ -92,6 +134,111 @@ function IKST_TilesWorldOps.isFloorSprite(spriteName)
         return true
     end
     return string.find(lower, "blends_natural", 1, true) ~= nil
+end
+
+function IKST_TilesWorldOps.restoreKindOf(obj, square)
+    if not obj then
+        return "object"
+    end
+    if instanceof(obj, "IsoTree") then
+        return "tree"
+    end
+    if instanceof(obj, "IsoBush") then
+        return "bush"
+    end
+    local floor = square and square.getFloor and square:getFloor()
+    if floor and obj == floor then
+        return "floor"
+    end
+    return "object"
+end
+
+function IKST_TilesWorldOps.makeRestoreRecord(obj, square)
+    local spriteName = IKST_TilesWorldOps.spriteNameOf(obj)
+    if not spriteName then
+        return nil
+    end
+    return {
+        sprite = spriteName,
+        kind = IKST_TilesWorldOps.restoreKindOf(obj, square),
+    }
+end
+
+function IKST_TilesWorldOps.normalizeRestoreRecord(item)
+    if type(item) == "string" then
+        local kind = "object"
+        if IKST_TilesWorldOps.isVegetationSprite(item) then
+            local lower = string.lower(item)
+            if string.find(lower, "tree", 1, true) then
+                kind = "tree"
+            else
+                kind = "bush"
+            end
+        elseif IKST_TilesWorldOps.isFloorSprite(item) then
+            kind = "floor"
+        end
+        return { sprite = item, kind = kind }
+    end
+    if type(item) == "table" and item.sprite then
+        return { sprite = item.sprite, kind = item.kind or "object" }
+    end
+    return nil
+end
+
+function IKST_TilesWorldOps.placeTree(square, spriteName)
+    if not square or not spriteName or spriteName == "" then
+        return false
+    end
+    if not IsoTree or not IsoTree.new then
+        return IKST_TilesWorldOps.placeSprite(square, spriteName)
+    end
+    local tree = IsoTree.new(square, spriteName)
+    if not tree then
+        return false
+    end
+    if tree.initTree then
+        tree:initTree()
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() and tree.transmitCompleteItemToClients then
+        tree:transmitCompleteItemToClients()
+    end
+    return true
+end
+
+function IKST_TilesWorldOps.placeBush(square, spriteName)
+    if not square or not spriteName or spriteName == "" then
+        return false
+    end
+    if IsoBush and IsoBush.new then
+        local bush = IsoBush.new(square, spriteName)
+        if bush then
+            if bush.initTree then
+                bush:initTree()
+            end
+            if IKST.isMultiplayerSession and IKST.isMultiplayerSession() and bush.transmitCompleteItemToClients then
+                bush:transmitCompleteItemToClients()
+            end
+            return true
+        end
+    end
+    return IKST_TilesWorldOps.placeSprite(square, spriteName)
+end
+
+function IKST_TilesWorldOps.placeRestored(square, item)
+    local record = IKST_TilesWorldOps.normalizeRestoreRecord(item)
+    if not record then
+        return false
+    end
+    if record.kind == "tree" then
+        return IKST_TilesWorldOps.placeTree(square, record.sprite)
+    end
+    if record.kind == "bush" then
+        return IKST_TilesWorldOps.placeBush(square, record.sprite)
+    end
+    if record.kind == "floor" then
+        return IKST_TilesWorldOps.replaceFloorSprite(square, record.sprite)
+    end
+    return IKST_TilesWorldOps.placeSprite(square, record.sprite)
 end
 
 function IKST_TilesWorldOps.isMultiTileObject(obj)
@@ -221,11 +368,12 @@ function IKST_TilesWorldOps.rewind(player)
         local sq = IKST_TilesWorldOps.getSquare(entry.x, entry.y, entry.z)
         if sq and entry.sprites then
             for i = #entry.sprites, 1, -1 do
-                local spriteName = entry.sprites[i]
-                if allowVegetation
-                    or (not IKST_TilesWorldOps.isVegetationSprite(spriteName)
-                        and not IKST_TilesWorldOps.isFloorSprite(spriteName)) then
-                    if IKST_TilesWorldOps.placeSprite(sq, spriteName) then
+                local record = IKST_TilesWorldOps.normalizeRestoreRecord(entry.sprites[i])
+                if record then
+                    local allow = allowVegetation
+                        or (not IKST_TilesWorldOps.isVegetationSprite(record.sprite)
+                            and not IKST_TilesWorldOps.isFloorSprite(record.sprite))
+                    if allow and IKST_TilesWorldOps.placeRestored(sq, record) then
                         restored = restored + 1
                     end
                 end
@@ -290,20 +438,14 @@ function IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
         if not IKST_TilesWorldOps.multiTilePartsIntact(obj) then
             return false
         end
+        return IKST_TilesWorldOps.removeMultiTileObject(obj)
     end
 
     if safeTileRemove then
         IKST_TilesWorldOps._batchRemoved[obj] = true
-        if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
-            if square.transmitRemoveItemFromSquareOnClients then
-                square:transmitRemoveItemFromSquareOnClients(obj)
-            end
-        end
-        if square.transmitRemoveItemFromSquare then
-            square:transmitRemoveItemFromSquare(obj, true)
-        end
+        IKST_TilesWorldOps.transmitRemove(square, obj)
         if square.RemoveTileObject then
-            square:RemoveTileObject(obj, true)
+            square:RemoveTileObject(obj, false)
             return true
         end
         if square.DeleteTileObject then
@@ -312,12 +454,7 @@ function IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
         end
     end
 
-    if square.transmitRemoveItemFromSquare then
-        square:transmitRemoveItemFromSquare(obj, true)
-    end
-    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() and square.transmitRemoveItemFromSquareOnClients then
-        square:transmitRemoveItemFromSquareOnClients(obj)
-    end
+    IKST_TilesWorldOps.transmitRemove(square, obj)
     if obj.removeFromSquare then
         obj:removeFromSquare()
     end
@@ -389,6 +526,18 @@ function IKST_TilesWorldOps.removeTopObject(square)
         return false, "empty", {}
     end
     local floor = square:getFloor()
+    if IKST_LootOps and IKST_LootOps.countLootObjectsOnSquare and IKST_LootOps.countLootObjectsOnSquare(square) > 1 then
+        for i = objects:size() - 1, 0, -1 do
+            local obj = objects:get(i)
+            if obj and IKST_LootOps.isLootObject(obj, floor) and IKST_LootOps.removeLootObjectFromSquare(square, obj) then
+                local spriteName = IKST_TilesWorldOps.spriteNameOf(obj)
+                if spriteName then
+                    return true, spriteName, { spriteName }
+                end
+                return true, "duplicate container", {}
+            end
+        end
+    end
     for i = objects:size() - 1, 0, -1 do
         local obj = objects:get(i)
         if IKST_Grid.isRoofObject(obj) and IKST_TilesWorldOps.isRemovableObject(obj, floor) then
@@ -438,9 +587,9 @@ function IKST_TilesWorldOps.clearSquare(square)
     for i = objects:size() - 1, 0, -1 do
         local obj = objects:get(i)
         if IKST_TilesWorldOps.isRemovableObject(obj, floor) then
-            local spriteName = IKST_TilesWorldOps.spriteNameOf(obj)
-            if spriteName then
-                sprites[#sprites + 1] = spriteName
+            local record = IKST_TilesWorldOps.makeRestoreRecord(obj, square)
+            if record then
+                sprites[#sprites + 1] = record
             end
             local isTile = IKST_TilesWorldOps.shouldUseSafeTileRemove(square, obj, false)
             IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
@@ -467,9 +616,9 @@ function IKST_TilesWorldOps.removeVegetation(square)
         if floor and obj == floor then
             -- never strip the square floor in vegetation mode
         else
-            local spriteName = IKST_TilesWorldOps.spriteNameOf(obj)
-            if spriteName then
-                sprites[#sprites + 1] = spriteName
+            local record = IKST_TilesWorldOps.makeRestoreRecord(obj, square)
+            if record then
+                sprites[#sprites + 1] = record
             end
             local isTile = false
             IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
@@ -494,7 +643,36 @@ function IKST_TilesWorldOps.cleanupModeToCommand(mode)
     return IKST.CMD.cleanupObject
 end
 
-function IKST_TilesWorldOps.applyCleanupOnSquare(square, mode)
+function IKST_TilesWorldOps.removeObjectAtIndex(square, objectIndex)
+    if not square then
+        return false, "no square", {}
+    end
+    local objects = square:getObjects()
+    if not objects then
+        return false, "empty", {}
+    end
+    objectIndex = math.floor(tonumber(objectIndex) or -1)
+    if objectIndex < 0 or objectIndex >= objects:size() then
+        return false, "no object", {}
+    end
+    local obj = objects:get(objectIndex)
+    local floor = square:getFloor()
+    if not IKST_TilesWorldOps.isRemovableObject(obj, floor) then
+        return false, "protected object", {}
+    end
+    local spriteName = IKST_TilesWorldOps.spriteNameOf(obj)
+    local isTile = IKST_TilesWorldOps.shouldUseSafeTileRemove(square, obj, false)
+    IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
+    if spriteName then
+        return true, spriteName, { spriteName }
+    end
+    return true, "object", {}
+end
+
+function IKST_TilesWorldOps.applyCleanupOnSquare(square, mode, objectIndex)
+    if objectIndex ~= nil and (mode == IKST.CMD.cleanupObject or mode == IKST.CLEANUP_MODES.removeObject) then
+        return IKST_TilesWorldOps.removeObjectAtIndex(square, objectIndex)
+    end
     if mode == IKST.CMD.cleanupTile or mode == IKST.CLEANUP_MODES.removeTile then
         return IKST_TilesWorldOps.removeTile(square)
     end
@@ -507,7 +685,7 @@ function IKST_TilesWorldOps.applyCleanupOnSquare(square, mode)
     return IKST_TilesWorldOps.removeTopObject(square)
 end
 
-function IKST_TilesWorldOps.runCleanup(mode, x, y, z, player, rewindLabel)
+function IKST_TilesWorldOps.runCleanup(mode, x, y, z, player, rewindLabel, objectIndex)
     if IKST_TileProtect and IKST_TileProtect.isTileProtected(x, y, z) then
         return false, "tile protected"
     end
@@ -519,7 +697,7 @@ function IKST_TilesWorldOps.runCleanup(mode, x, y, z, player, rewindLabel)
         return false, "invalid square"
     end
     IKST_TilesWorldOps.beginBatch()
-    local ok, message, sprites = IKST_TilesWorldOps.applyCleanupOnSquare(square, mode)
+    local ok, message, sprites = IKST_TilesWorldOps.applyCleanupOnSquare(square, mode, objectIndex)
     IKST_TilesWorldOps.endBatch()
     IKST_TilesWorldOps.syncSquare(square)
     if ok and player then

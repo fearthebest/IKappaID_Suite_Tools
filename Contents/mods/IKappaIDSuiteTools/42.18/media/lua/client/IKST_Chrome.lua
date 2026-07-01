@@ -133,13 +133,24 @@ function IKST_Chrome.drawCompactToolTile(panel, x, y, w, h, title, active)
     end
 end
 
-function IKST_Chrome.drawJobCard(panel, x, y, w, h, title, desc)
+function IKST_Chrome.drawJobCard(panel, x, y, w, h, title, desc, icon)
     local c = IKST_Chrome.colors
     panel:drawRect(x, y, w, h, c.bgCard.a, c.bgCard.r, c.bgCard.g, c.bgCard.b)
     panel:drawRectBorder(x, y, w, h, 1, c.divider.r, c.divider.g, c.divider.b)
     panel:drawRect(x, y, 4, h, 1, c.accent.r, c.accent.g, c.accent.b)
-    panel:drawText(title, x + 12, y + 8, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)
-    panel:drawText(desc, x + 12, y + 28, c.textMuted.r, c.textMuted.g, c.textMuted.b, 1, UIFont.Small)
+    local textX = x + 12
+    if icon then
+        local tex = icon
+        if type(icon) == "string" then
+            tex = getTexture(icon)
+        end
+        if tex then
+            panel:drawTextureScaled(tex, x + 12, y + 8, 20, 20, 1, 1, 1, 1)
+            textX = x + 40
+        end
+    end
+    panel:drawText(title, textX, y + 8, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)
+    panel:drawText(desc, textX, y + 28, c.textMuted.r, c.textMuted.g, c.textMuted.b, 1, UIFont.Small)
 end
 
 function IKST_Chrome.drawCategoryHeader(panel, x, y, title, subtitle)

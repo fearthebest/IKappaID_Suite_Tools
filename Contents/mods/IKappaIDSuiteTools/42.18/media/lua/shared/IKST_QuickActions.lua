@@ -53,6 +53,9 @@ function IKST_QuickActions.run(player, pinId)
         if IKST_ClientStaff and IKST_ClientStaff.runClearWeather then
             IKST_ClientStaff.runClearWeather(player)
         elseif type(isClient) == "function" and isClient() then
+            if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+                IKST.dispatchCommand(player, IKST.CMD.clearWeather, {})
+            else
             if not IKST_ClimatePresets then
                 require "IKST_ClimatePresets"
             end
@@ -62,6 +65,7 @@ function IKST_QuickActions.run(player, pinId)
             end
             if msg then
                 IKST.notify(player, msg, ok == true)
+            end
             end
         else
             IKST.dispatchCommand(player, IKST.CMD.clearWeather, {})

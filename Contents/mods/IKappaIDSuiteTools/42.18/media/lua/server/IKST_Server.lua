@@ -43,6 +43,8 @@ function IKST_Server.logSuccess(player, command, args, msg)
             logIt = true
         elseif command == IKST.CMD.giveItem or command == IKST.CMD.giveTarget then
             logIt = true
+        elseif command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore then
+            logIt = true
         end
         if logIt then
             IKST_AuditLog.record(player, command, args, true, msg)
@@ -91,12 +93,17 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
         return
     end
 
+    if IKST_Debug and IKST_Debug.logAuth then
+        IKST_Debug.logAuth(command, playerObj, meta)
+    end
+    if IKST_Debug and IKST_Debug.logAction then
+        IKST_Debug.logAction("handle", command, playerObj, IKST_Debug.summarizeArgs(args, command))
+    end
+
     local pluginHandled, ok, msg, pluginSpec = IKST.Plugins.handleServerCommand(command, playerObj, args)
     if pluginHandled then
         if ok and IKST_AuditLog and IKST_AuditLog.record then
-            if pluginSpec and pluginSpec.adminCommands and pluginSpec.adminCommands[command] then
-                IKST_AuditLog.record(playerObj, command, args, true, msg)
-            end
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
         elseif not ok and IKST_AuditLog and IKST_AuditLog.record then
             IKST_AuditLog.record(playerObj, command, args, false, msg)
         end
@@ -197,8 +204,13 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
     end
 
     if command == IKST.CMD.quickBroadcast then
-        if args.message and serverMsg then
-            serverMsg(args.message)
+        local text = args.message and tostring(args.message) or ""
+        local maxLen = IKST.QUICK_BROADCAST_MAX_LEN or 512
+        if #text > maxLen then
+            text = string.sub(text, 1, maxLen)
+        end
+        if text ~= "" and serverMsg then
+            serverMsg(text)
         end
         IKST_Server.logSuccess(playerObj, command, args, "broadcast sent")
         IKST_WorldOps.sendResult(playerObj, true, "broadcast sent", nil, nil, nil, command)
@@ -221,8 +233,8 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
 
     if IKST.GUARD_COMMANDS and IKST.GUARD_COMMANDS[command] then
         ok, msg = IKST_GuardOps.handle(command, playerObj, args)
-        if ok and (command == IKST.CMD.backupSafehouses or command == IKST.CMD.restoreSafehouses) then
-            IKST_Server.logSuccess(playerObj, command, args, msg)
+        if ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
         end
         IKST_WorldOps.sendResult(playerObj, ok, msg, args.x, args.y, args.z, command)
         return
@@ -230,6 +242,11 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
 
     if command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore then
         ok, msg = IKST_RestoreServer.handle(command, playerObj, args)
+        if ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
+        elseif not ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, false, msg)
+        end
         IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
         return
     end
@@ -271,8 +288,13 @@ if type(isServer) == "function" and isServer() then
         end
         for i = 0, list:size() - 1 do
             local p = list:get(i)
-            if p and IKST_GuardOps and IKST_GuardOps.enforceCaughtPosition then
-                IKST_GuardOps.enforceCaughtPosition(p)
+            if p and IKST_GuardOps then
+                if IKST_GuardOps.enforceCaughtPosition then
+                    IKST_GuardOps.enforceCaughtPosition(p)
+                end
+                if IKST_GuardOps.enforceVehicleClaim then
+                    IKST_GuardOps.enforceVehicleClaim(p)
+                end
             end
         end
     end

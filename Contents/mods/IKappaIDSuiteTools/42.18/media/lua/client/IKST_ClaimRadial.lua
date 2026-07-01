@@ -6,7 +6,9 @@ require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_Claim"
 require "IKST_VehicleClaim"
+require "IKST_VehicleClaimClient"
 require "IKST_SafehouseClaim"
+require "IKST_SafehouseClaimClient"
 require "IKST_Access"
 require "IKST_PhunZones"
 require "IKST_SafeHouse"
@@ -101,26 +103,24 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
     if not menu then
         return
     end
-    local entry = IKST_VehicleClaim.get(vid)
-    local username = IKST_VehicleClaim.playerUsername(playerObj)
-    local isAdmin = IKST_Access.canUseTools(playerObj)
-    local isOwner = entry and IKST_VehicleClaim.isOwner(entry, username)
-    local canEdit = entry and IKST_VehicleClaim.playerMayEdit(entry, playerObj)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj)
     local vidKey = tostring(vid)
 
-    if not entry or IKST_VehicleClaim.isEntryExpired(entry) then
-        IKST_ClaimRadial.addSliceOnce(
-            menu, "vehicle_claim_" .. vidKey,
-            IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"),
-            IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_CLAIM),
-            function()
-                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleClaim, { vehicleId = vid })
-            end
-        )
+    if not uiState or not uiState.claimed then
+        if uiState and uiState.canClaim == true then
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "vehicle_claim_" .. vidKey,
+                IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_CLAIM),
+                function()
+                    IKST.dispatchCommand(playerObj, IKST.CMD.vehicleClaim, { vehicleId = vid })
+                end
+            )
+        end
         return
     end
 
-    if isOwner or isAdmin then
+    if uiState.canRelease then
         IKST_ClaimRadial.addSliceOnce(
             menu, "vehicle_release_" .. vidKey,
             IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"),
@@ -131,7 +131,7 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
         )
     end
 
-    if canEdit and IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
+    if uiState.canEdit and IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
         IKST_ClaimRadial.addSliceOnce(
             menu, "vehicle_perms_" .. vidKey,
             IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"),
@@ -139,6 +139,15 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
             function()
                 IKST_VehicleClaimUI.open(playerObj, vid)
             end
+        )
+    end
+
+    if uiState.claimed and not uiState.canRelease and not uiState.canEdit and uiState.ownerLabel then
+        IKST_ClaimRadial.addSliceOnce(
+            menu, "vehicle_info_" .. vidKey,
+            IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner") .. ": " .. tostring(uiState.ownerLabel),
+            nil,
+            function() end
         )
     end
 end
@@ -190,20 +199,18 @@ function IKST_ClaimRadial.addSafehouseSlices(playerObj)
             return
         end
         local areaKey = tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(w) .. "_" .. tostring(h)
-        local entry = IKST_SafehouseClaim.get(x, y, w, h)
-        local username = IKST_SafehouseClaim.playerUsername(playerObj)
+        local uiState = IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.uiState(x, y, w, h, playerObj, owner)
         local isAdmin = IKST_Access.canUseTools(playerObj)
-        local isOwner = entry and IKST_SafehouseClaim.isOwner(entry, username)
-        if not isOwner and owner and IKST_ClaimPolicy.usernamesEqual(owner, username) then
-            isOwner = true
-        end
-        local canEdit = entry and IKST_SafehouseClaim.playerMayEdit(entry, playerObj)
-        if not canEdit and isOwner then
-            canEdit = true
+        local canRelease = isAdmin
+        local canEdit = isAdmin
+        if uiState then
+            canRelease = uiState.canRelease == true or isAdmin
+            canEdit = uiState.canEdit == true or isAdmin
         end
 
-        if isOwner or isAdmin then
-            local shId = IKST_SafeHouse and IKST_SafeHouse.id(sh) or (sh.getId and sh:getId() or nil)
+        if canRelease then
+            local shId = IKST_SafeHouse and (IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh))
+                or (sh.getOnlineID and sh:getOnlineID() or (sh.getId and sh:getId() or nil))
             IKST_ClaimRadial.addSliceOnce(
                 menu, "safehouse_release_" .. areaKey,
                 IKST.text("IGUI_IKST_Guard_SH_Release", "Remove safe area"),

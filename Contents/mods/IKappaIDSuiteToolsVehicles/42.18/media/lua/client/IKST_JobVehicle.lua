@@ -239,6 +239,10 @@ end
 
 function IKST_JobVehicle.dispatchMove(panel)
     local p = panel.player
+    if not panel.selectedVehicleId then
+        IKST.notify(p, IKST.text("IGUI_IKST_SelectVehicle", "Select a vehicle from the list first"), false)
+        return
+    end
     IKST.dispatchCommand(p, IKST.CMD.vehicleMove, {
         vehicleId = panel.selectedVehicleId,
         x = math.floor(p:getX()),
@@ -246,6 +250,21 @@ function IKST_JobVehicle.dispatchMove(panel)
         z = p:getZ(),
         angle = IKST_JobVehicle.playerAngle(p),
     })
+end
+
+function IKST_JobVehicle.onServerResult(panel, args)
+    if not panel or not args or args.success ~= true then
+        return
+    end
+    if args.mode ~= IKST.CMD.vehicleMove then
+        return
+    end
+    if args.newVehicleId ~= nil then
+        panel.selectedVehicleId = tonumber(args.newVehicleId) or args.newVehicleId
+    end
+    if panel.player then
+        IKST_JobVehicle.requestList(panel.player)
+    end
 end
 
 function IKST_JobVehicle.build(panel)

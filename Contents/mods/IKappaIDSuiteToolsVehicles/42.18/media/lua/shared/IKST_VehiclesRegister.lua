@@ -27,8 +27,12 @@ local function vehiclesAfterServer(command, player, args, ok, msg)
     if command == IKST.CMD.vehicleList then
         return
     end
+    local extra = nil
+    if args and args.relocateMeta then
+        extra = args.relocateMeta
+    end
     if IKST_WorldOps and IKST_WorldOps.sendResult then
-        IKST_WorldOps.sendResult(player, ok, msg, args and args.x, args and args.y, args and args.z, command)
+        IKST_WorldOps.sendResult(player, ok, msg, args and args.x, args and args.y, args and args.z, command, extra)
     end
 end
 
@@ -102,6 +106,9 @@ IKST.Plugins.register("vehicles", {
     end,
     onServerCommand = function(command, args, player)
         if command == IKST.CMD.vehicleListResult then
+            if IKST_VehicleClaimClient and IKST_VehicleClaimClient.onNearbyResult then
+                IKST_VehicleClaimClient.onNearbyResult(args and args.vehicles)
+            end
             if IKST_JobVehicle and IKST_JobVehicle.onListResult then
                 IKST_JobVehicle.onListResult(args and args.vehicles)
             end

@@ -1,6 +1,7 @@
 -- Shared command argument helpers (Tier C input hygiene).
 
 require "IKST_Shared"
+require "IKST_Access"
 
 IKST_Args = IKST_Args or {}
 
@@ -13,6 +14,21 @@ function IKST_Args.readCoord(args, key)
         return nil
     end
     return math.floor(v)
+end
+
+function IKST_Args.mapSquareExists(x, y, z)
+    if x == nil or y == nil then
+        return false
+    end
+    if not getCell then
+        return true
+    end
+    local cell = getCell()
+    if not cell or not cell.getGridSquare then
+        return true
+    end
+    z = tonumber(z) or 0
+    return cell:getGridSquare(x, y, z) ~= nil
 end
 
 function IKST_Args.readRadius(args, key, default)
@@ -104,6 +120,13 @@ function IKST_Args.readPassword(args, key)
     return p
 end
 
+function IKST_Args.staffZSpan(player)
+    if player and IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(player) then
+        return 4
+    end
+    return 1
+end
+
 function IKST_Args.actorNearCoord(player, x, y, z, maxDist)
     if not player or x == nil or y == nil then
         return false
@@ -113,7 +136,7 @@ function IKST_Args.actorNearCoord(player, x, y, z, maxDist)
     local px = player:getX()
     local py = player:getY()
     local pz = player:getZ() or 0
-    if math.abs(pz - z) > 1 then
+    if math.abs(pz - z) > IKST_Args.staffZSpan(player) then
         return false
     end
     return IKST.distance2d(px, py, x, y) <= maxDist

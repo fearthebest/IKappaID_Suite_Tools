@@ -123,7 +123,7 @@ function Panel:refreshPolicyUi()
         if IKST_ClaimPolicy.whitelistOnly() then
             lines[#lines + 1] = IKST.text("IGUI_IKST_Claim_WhitelistOnlyHint", "Whitelist mode: only owner + named players.")
         end
-        local entry = IKST_SafehouseClaim.get(self.refX, self.refY, self.refW, self.refH)
+        local entry = IKST_SafehouseClaim.entryForDisplay(self.refX, self.refY, self.refW, self.refH)
         if entry and entry.users then
             local names = {}
             for name in pairs(entry.users) do
@@ -148,11 +148,10 @@ function Panel:refreshScopeHighlight()
 end
 
 function Panel:loadPermsForScope()
-    local entry = IKST_SafehouseClaim.get(self.refX, self.refY, self.refW, self.refH)
+    local entry = IKST_SafehouseClaim.entryForDisplay(self.refX, self.refY, self.refW, self.refH)
     if not entry then
         return
     end
-    IKST_SafehouseClaim.ensureEntryShape(entry)
     local perms
     if self.scope == "user" then
         local name = self.userEntry and self.userEntry:getText() or ""

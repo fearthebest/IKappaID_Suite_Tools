@@ -42,5 +42,5 @@ description=Mod ID: IKappaIDSuiteToolsEconomy
 description=Mod ID: IKappaIDSuiteToolsTiles
 description=Mod ID: IKappaIDSuiteToolsVehicles
 description=Mod ID: IKappaIDSuiteToolsLoot
-tags=Build 42;Balance;Building;Framework;Interface;Items;Misc;Multiplayer;Realistic;Silly/Fun;Vehicles;QoL
+tags=Build 42;Balance;Building;Framework;Interface;Items;Misc;Multiplayer;Realistic;Silly/Fun;Vehicles;QoL;WIP
 visibility=public

@@ -3,6 +3,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
+require "IKST_Authority"
 require "IKST_ClaimPolicy"
 require "IKST_VehicleClaim"
 require "IKST_Access"
@@ -99,6 +100,10 @@ function IKST_VehicleClaimHooks.wrapTimedActions()
 end
 
 function IKST_VehicleClaimHooks.engineWatchdog(player)
+    if IKST_Authority and IKST_Authority.clientReadsMirroredStateOnly
+        and IKST_Authority.clientReadsMirroredStateOnly() then
+        return
+    end
     if not player or not player.isLocalPlayer or not player:isLocalPlayer() then
         return
     end

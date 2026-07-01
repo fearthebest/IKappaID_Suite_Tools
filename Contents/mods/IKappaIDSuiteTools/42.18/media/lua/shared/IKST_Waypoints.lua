@@ -1,4 +1,5 @@
 require "IKST_Shared"
+require "IKST_Authority"
 
 IKST_Waypoints = IKST_Waypoints or {}
 IKST_Waypoints.KEY = "IKST_Waypoints"
@@ -44,6 +45,9 @@ function IKST_Waypoints.find(name)
 end
 
 function IKST_Waypoints.save(player, name)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     player = IKST.resolvePlayer(player)
     name = IKST_Waypoints.normalizeName(name)
     if not player or not name then
@@ -68,6 +72,9 @@ function IKST_Waypoints.save(player, name)
 end
 
 function IKST_Waypoints.delete(name)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     name = IKST_Waypoints.normalizeName(name)
     if not name then
         return false, "enter a name"

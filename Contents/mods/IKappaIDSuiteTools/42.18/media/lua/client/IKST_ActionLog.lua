@@ -12,7 +12,9 @@ function IKST_ActionLog.create(parent, x, y, w, h, player)
     logPanel.backgroundColor = IKST_Chrome.colors.bgCard
     logPanel.borderColor = IKST_Chrome.colors.accentDim
     logPanel:setMargins(8, 8, 8, 8)
-    if parent.addChromeWidget then
+    if parent.addQ4Widget then
+        parent:addQ4Widget(logPanel)
+    elseif parent.addChromeWidget then
         parent:addChromeWidget(logPanel)
     else
         parent:addJobWidget(logPanel)
@@ -22,6 +24,12 @@ function IKST_ActionLog.create(parent, x, y, w, h, player)
 end
 
 function IKST_ActionLog.dock(parent, player, _)
+    if parent.q4Panel then
+        local w = parent.q4Panel:getWidth()
+        local h = parent.q4Panel:getHeight()
+        parent.logPanel = IKST_ActionLog.create(parent, 0, 0, w, h, player)
+        return parent.logPanel
+    end
     local x, y, w, h = IKST_JobLayout.logRect(parent)
     parent.logPanel = IKST_ActionLog.create(parent, x, IKST_JobLayout.toLayerY(parent, y), w, h, player)
     return parent.logPanel
