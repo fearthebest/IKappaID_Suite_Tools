@@ -199,6 +199,118 @@ function IKST_VehicleOps.squareHasVehicle(square, ignoreVehicleId)
     return false
 end
 
+function IKST_VehicleOps.lookupVehicleScript(scriptName)
+    if not scriptName or scriptName == "" then
+        return nil
+    end
+    if getVehicleScript then
+        return getVehicleScript(scriptName)
+    end
+    local sm = getScriptManager and getScriptManager()
+    if sm and sm.getVehicleScript then
+        return sm:getVehicleScript(scriptName)
+    end
+    return nil
+end
+
+function IKST_VehicleOps.vehicleScriptName(vehicle)
+    if not vehicle or not vehicle.getScriptName then
+        return nil
+    end
+    return vehicle:getScriptName()
+end
+
+function IKST_VehicleOps.squareSupportsVehicle(square)
+    if not square then
+        return false
+    end
+    if square.isSolidFloor and not square:isSolidFloor() then
+        return false
+    end
+    if square.getFloor and not square:getFloor() then
+        return false
+    end
+    return true
+end
+
+function IKST_VehicleOps.footprintHalfTiles(scriptName)
+    local halfW = 1
+    local halfL = 2
+    local script = IKST_VehicleOps.lookupVehicleScript(scriptName)
+    if script and script.getExtents then
+        local ext = script:getExtents()
+        if ext and ext.x and ext.z then
+            halfW = math.max(1, math.ceil(math.abs(ext.x) / 2))
+            halfL = math.max(1, math.ceil(math.abs(ext.z) / 2))
+        end
+    end
+    return halfW, halfL
+end
+
+function IKST_VehicleOps.isRelocateDestinationClear(scriptName, x, y, z, ignoreVehicleId)
+    x = math.floor(tonumber(x) or 0)
+    y = math.floor(tonumber(y) or 0)
+    z = tonumber(z) or 0
+    local halfW, halfL = IKST_VehicleOps.footprintHalfTiles(scriptName)
+    for dx = -halfW, halfW do
+        for dy = -halfL, halfL do
+            local square = IKST_VehicleOps.getSpawnSquare(x + dx, y + dy, z)
+            if not square then
+                return false, "footprint blocked"
+            end
+            if not IKST_VehicleOps.squareSupportsVehicle(square) then
+                return false, "no floor"
+            end
+            if IKST_VehicleOps.squareHasVehicle(square, ignoreVehicleId) then
+                return false, "tile blocked"
+            end
+        end
+    end
+    return true, nil
+end
+
+function IKST_VehicleOps.createVehicleAt(scriptName, x, y, z, skinIndex, dir)
+    x = math.floor(tonumber(x) or 0)
+    y = math.floor(tonumber(y) or 0)
+    z = tonumber(z) or 0
+    local square = IKST_VehicleOps.getSpawnSquare(x, y, z)
+    local vehicle = nil
+    -- addVehicle (LuaManager global) tends to work better in tight indoor tiles.
+    if addVehicle then
+        vehicle = addVehicle(scriptName, x + 0.5, y + 0.5, z)
+    end
+    if not vehicle and addVehicleDebug and square and dir then
+        vehicle = addVehicleDebug(scriptName, dir, skinIndex, square)
+    end
+    return vehicle
+end
+
+function IKST_VehicleOps.verifyLiveVehicle(vehicle, x, y, z)
+    if not vehicle then
+        return false, "spawn failed", nil, nil
+    end
+    local id = vehicle.getId and vehicle:getId() or nil
+    if id == nil then
+        return false, "no id", nil, nil
+    end
+    local live = vehicle
+    if getVehicleById then
+        live = getVehicleById(id)
+        if not live then
+            return false, "not registered", nil, id
+        end
+    end
+    if x ~= nil and y ~= nil and live.getX and live.getY then
+        local tol = 5
+        local expectX = math.floor(tonumber(x) or 0) + 0.5
+        local expectY = math.floor(tonumber(y) or 0) + 0.5
+        if math.abs(live:getX() - expectX) > tol or math.abs(live:getY() - expectY) > tol then
+            return false, "spawn misplaced", live, id
+        end
+    end
+    return true, nil, live, id
+end
+
 function IKST_VehicleOps.isSpawnSquareFree(square, ignoreVehicleId)
     if not square then
         return false, "no square"
@@ -269,15 +381,13 @@ function IKST_VehicleOps.spawn(scriptName, x, y, z, angle, repaired, withKey, pl
     if not script or not IKST_VehicleOps.scriptExists(script) then
         return nil, "invalid script"
     end
-    local square = IKST_VehicleOps.getSpawnSquare(x, y, z)
+    local clearOk, clearMsg = IKST_VehicleOps.isRelocateDestinationClear(script, x, y, z, nil)
+    if not clearOk then
+        return nil, clearMsg or "invalid spot"
+    end
     local vehicle = nil
     local dir = IKST_VehicleOps.spawnDirection(playerObj)
-    if addVehicleDebug and square and dir then
-        vehicle = addVehicleDebug(script, dir, -1, square)
-    end
-    if not vehicle and addVehicle then
-        vehicle = addVehicle(script, x, y, z)
-    end
+    vehicle = IKST_VehicleOps.createVehicleAt(script, x, y, z, -1, dir)
     if not vehicle then
         return nil, "spawn failed"
     end
@@ -366,6 +476,12 @@ function IKST_VehicleOps.syncVehicleToClient(player, vehicleId, extra)
 end
 
 function IKST_VehicleOps.broadcastRelocate(oldVehicleId, newVehicleId)
+    oldVehicleId = tonumber(oldVehicleId)
+    newVehicleId = tonumber(newVehicleId)
+    if oldVehicleId ~= nil and newVehicleId ~= nil and oldVehicleId == newVehicleId then
+        IKST_VehicleOps.syncVehicleToClients(newVehicleId, { relocated = true })
+        return
+    end
     if oldVehicleId ~= nil then
         IKST_VehicleOps.syncVehicleToClients(oldVehicleId, { deleted = true, relocated = true })
     end
@@ -375,10 +491,6 @@ function IKST_VehicleOps.broadcastRelocate(oldVehicleId, newVehicleId)
 end
 
 function IKST_VehicleOps.validateRelocateDestination(vehicle, x, y, z)
-    local square = IKST_VehicleOps.getSpawnSquare(x, y, z)
-    if not square then
-        return false, "no square"
-    end
     local ignoreId = nil
     if vehicle and vehicle.getId and vehicle.getX and vehicle.getY then
         local vx = math.floor(vehicle:getX())
@@ -388,7 +500,8 @@ function IKST_VehicleOps.validateRelocateDestination(vehicle, x, y, z)
             ignoreId = vehicle:getId()
         end
     end
-    return IKST_VehicleOps.isSpawnSquareFree(square, ignoreId)
+    local scriptName = IKST_VehicleOps.vehicleScriptName(vehicle)
+    return IKST_VehicleOps.isRelocateDestinationClear(scriptName, x, y, z, ignoreId)
 end
 
 function IKST_VehicleOps.spawnFromSnapshot(snap, x, y, z, angle, playerObj, ignoreVehicleId)
@@ -398,23 +511,17 @@ function IKST_VehicleOps.spawnFromSnapshot(snap, x, y, z, angle, playerObj, igno
     if not IKST_VehicleOps.scriptExists(snap.scriptName) then
         return nil, "invalid script"
     end
-    local square = IKST_VehicleOps.getSpawnSquare(x, y, z)
-    local freeOk, freeMsg = IKST_VehicleOps.isSpawnSquareFree(square, ignoreVehicleId)
-    if not freeOk then
-        return nil, freeMsg or "invalid spot"
+    local scriptName = snap.scriptName
+    local clearOk, clearMsg = IKST_VehicleOps.isRelocateDestinationClear(scriptName, x, y, z, ignoreVehicleId)
+    if not clearOk then
+        return nil, clearMsg or "invalid spot"
     end
     local skinIndex = snap.skinIndex
     if skinIndex == nil or skinIndex < 0 then
         skinIndex = -1
     end
     local dir = IKST_VehicleOps.spawnDirection(playerObj)
-    local vehicle = nil
-    if addVehicleDebug and square and dir then
-        vehicle = addVehicleDebug(snap.scriptName, dir, skinIndex, square)
-    end
-    if not vehicle and addVehicle then
-        vehicle = addVehicle(snap.scriptName, x + 0.5, y + 0.5, z)
-    end
+    local vehicle = IKST_VehicleOps.createVehicleAt(scriptName, x, y, z, skinIndex, dir)
     if not vehicle then
         return nil, "spawn failed"
     end
@@ -425,7 +532,12 @@ function IKST_VehicleOps.spawnFromSnapshot(snap, x, y, z, angle, playerObj, igno
         IKST_VehicleSnapshot.apply(vehicle, snap)
     end
     IKST_VehicleOps.transmitVehicle(vehicle)
-    return vehicle, "spawned"
+    local liveOk, liveMsg, liveVehicle, liveId = IKST_VehicleOps.verifyLiveVehicle(vehicle, x, y, z)
+    if not liveOk then
+        IKST_VehicleOps.removeVehicleFromWorld(vehicle)
+        return nil, liveMsg or "spawn invalid"
+    end
+    return liveVehicle or vehicle, "spawned", liveId
 end
 
 function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
@@ -480,18 +592,18 @@ function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
     if not newVehicle then
         local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(oldId, playerObj)
         if restored then
-            return false, "respawn failed (restored)", nil
+            return false, "respawn failed (restored at origin)", nil
         end
-        return false, spawnMsg or "respawn failed", nil
+        return false, (spawnMsg or "respawn failed") .. " — stored backup kept", nil
     end
     local newId = newVehicle.getId and newVehicle:getId() or nil
     if newId == nil then
         IKST_VehicleOps.removeVehicleFromWorld(newVehicle)
         local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(oldId, playerObj)
         if restored then
-            return false, "respawn missing id (restored)", nil
+            return false, "respawn missing id (restored at origin)", nil
         end
-        return false, "respawn missing id", nil
+        return false, "respawn missing id — stored backup kept", nil
     end
     if IKST_VehicleClaim and IKST_VehicleClaim.remapVehicleId then
         IKST_VehicleClaim.remapVehicleId(oldId, newId, { x = x, y = y, z = z })
@@ -984,6 +1096,47 @@ function IKST_VehicleOps.handle(command, player, args)
         IKST_VehicleOps.sendList(player, IKST_VehicleOps.listNearby(x, y, z, radius))
         return true, "listed"
     end
+    if command == IKST.CMD.vehicleRelocateBackupList then
+        if not mayMutateVehicle() then
+            return false, "server only"
+        end
+        local backups = {}
+        if IKST_VehicleRelocateBackup and IKST_VehicleRelocateBackup.listEntries then
+            backups = IKST_VehicleRelocateBackup.listEntries()
+        end
+        if IKST.deliverClientCommand then
+            IKST.deliverClientCommand(player, IKST.CMD.vehicleRelocateBackupListResult, { backups = backups })
+        end
+        return true, #backups .. " stored"
+    end
+    if command == IKST.CMD.vehicleRelocateRestore then
+        if not mayMutateVehicle() then
+            return false, "server only"
+        end
+        local backupId = args.backupId or args.vehicleId
+        if backupId == nil then
+            return false, "select a backup"
+        end
+        local mode = args.restoreMode or "origin"
+        local rx = readCoord(args, "x")
+        local ry = readCoord(args, "y")
+        local rz = readCoord(args, "z")
+        if mode == "here" then
+            rx = rx or math.floor(player:getX())
+            ry = ry or math.floor(player:getY())
+            rz = rz or player:getZ()
+        end
+        if not IKST_VehicleRelocateBackup or not IKST_VehicleRelocateBackup.restore then
+            return false, "backup unavailable"
+        end
+        local ok, msg, newId = IKST_VehicleRelocateBackup.restore(
+            backupId, mode, player, rx, ry, rz, args.angle)
+        if ok and newId then
+            args.newVehicleId = newId
+            args.vehicleId = newId
+        end
+        return ok, msg
+    end
     if command == IKST.CMD.vehicleSpawn then
         local x = readCoord(args, "x") or math.floor(player:getX())
         local y = readCoord(args, "y") or math.floor(player:getY())
@@ -1018,6 +1171,7 @@ function IKST_VehicleOps.handle(command, player, args)
                 oldVehicleId = oldId,
                 newVehicleId = newId,
             }
+            args.newVehicleId = newId
             args.vehicleId = newId
         end
         return ok, msg

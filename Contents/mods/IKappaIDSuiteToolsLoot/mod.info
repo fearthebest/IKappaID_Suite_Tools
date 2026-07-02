@@ -20,7 +20,7 @@ icon=icon.png
 
 
 
-modversion=0.2.7.0
+modversion=0.3.0.0
 
 
 
@@ -37,4 +37,5 @@ category=Admin
 
 
 tags=Build 42;Admin;Loot;Multiplayer
+
 

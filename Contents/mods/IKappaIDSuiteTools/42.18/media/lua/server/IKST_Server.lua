@@ -21,6 +21,7 @@ require "IKST_RateLimit"
 require "IKST_AuditLog"
 require "IKST_BriefingServer"
 require "IKST_ArrivalServer"
+require "IKST_VehicleClaimSync"
 
 IKST_Server = IKST_Server or {}
 
@@ -146,6 +147,13 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
     if command == IKST.CMD.briefingFetch then
         if IKST_BriefingServer and IKST_BriefingServer.handleFetch then
             IKST_BriefingServer.handleFetch(playerObj, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimPing then
+        if IKST_VehicleClaimSync and IKST_VehicleClaimSync.handlePing then
+            IKST_VehicleClaimSync.handlePing(playerObj, args)
         end
         return
     end

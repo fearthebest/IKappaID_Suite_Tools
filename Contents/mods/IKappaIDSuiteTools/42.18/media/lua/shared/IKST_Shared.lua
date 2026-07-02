@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.2.7.0"
+IKST.VERSION = "0.3.0.0"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 IKST.RESTORE_MAX_PERK_LEVEL = 10
@@ -28,6 +28,8 @@ IKST.CMD = {
     vehicleRepair = "vehicleRepair",
     vehicleKey = "vehicleKey",
     vehicleList = "vehicleList",
+    vehicleRelocateBackupList = "vehicleRelocateBackupList",
+    vehicleRelocateRestore = "vehicleRelocateRestore",
     threatCull = "threatCull",
     threatPopulation = "threatPopulation",
     quickSave = "quickSave",
@@ -91,6 +93,7 @@ IKST.CMD = {
     listWaypoints = "listWaypoints",
     lootRepopulateContainer = "lootRepopulateContainer",
     lootRepopulateZone = "lootRepopulateZone",
+    lootContainerRefresh = "lootContainerRefresh",
     autoGardener = "autoGardener",
     autoLumberjack = "autoLumberjack",
     autoGravel = "autoGravel",
@@ -139,6 +142,10 @@ IKST.CMD = {
     vehicleClaimList = "vehicleClaimList",
     vehicleClaimListResult = "vehicleClaimListResult",
     vehicleClaimMirror = "vehicleClaimMirror",
+    vehicleClaimBootstrap = "vehicleClaimBootstrap",
+    vehicleClaimPatch = "vehicleClaimPatch",
+    vehicleClaimPing = "vehicleClaimPing",
+    vehicleClaimPingResult = "vehicleClaimPingResult",
     vehicleClaimResult = "vehicleClaimResult",
     vehicleClaimNearby = "vehicleClaimNearby",
     safehouseAddMember = "safehouseAddMember",
@@ -164,6 +171,7 @@ IKST.CMD = {
     result = "result",
     batchProgress = "batchProgress",
     vehicleListResult = "vehicleListResult",
+    vehicleRelocateBackupListResult = "vehicleRelocateBackupListResult",
     inspectResult = "inspectResult",
     threatResult = "threatResult",
     staffListResult = "staffListResult",
@@ -952,3 +960,4 @@ function IKST.notify(player, message, ok)
         HaloTextHelper.addText(player, text, "", 255, 0, 0)
     end
 end
+

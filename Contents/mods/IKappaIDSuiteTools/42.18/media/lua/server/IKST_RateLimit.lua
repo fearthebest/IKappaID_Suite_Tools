@@ -133,6 +133,7 @@ function IKST_RateLimit.groupForCommand(command)
         return "lock_auth"
     end
     if command == IKST.CMD.safehouseList or command == IKST.CMD.vehicleClaimList
+        or command == IKST.CMD.vehicleClaimPing
         or command == IKST.CMD.vehicleClaimNearby
         or command == IKST.CMD.staffListPlayers or command == IKST.CMD.listWaypoints
         or command == IKST.CMD.dumpPlayers or command == IKST.CMD.threatPopulation

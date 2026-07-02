@@ -7,6 +7,7 @@ require "IKST_Shared"
 require "IKST_Debug"
 require "IKST_Plugins"
 require "IKST_ModDataSync"
+require "IKST_VehicleClaimMirror"
 require "IKST_Threat"
 require "IKST_Utility"
 require "IKST_Access"
@@ -60,9 +61,31 @@ local function onServerCommand(module, command, args)
         return
     end
     if IKST_Debug and IKST_Debug.logNet then
-        local player = getPlayer()
-        IKST_Debug.logNet("client<-server", command, player, args, "")
+        local dbgPlayer = getPlayer()
+        IKST_Debug.logNet("client<-server", command, dbgPlayer, args, "")
     end
+
+    if command == IKST.CMD.vehicleClaimBootstrap then
+        if IKST_VehicleClaimMirror and IKST_VehicleClaimMirror.applyBootstrap then
+            IKST_VehicleClaimMirror.applyBootstrap(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimPatch then
+        if IKST_VehicleClaimMirror and IKST_VehicleClaimMirror.applyPatch then
+            IKST_VehicleClaimMirror.applyPatch(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimPingResult then
+        if IKST_VehicleClaimMirror and IKST_VehicleClaimMirror.onPingResult then
+            IKST_VehicleClaimMirror.onPingResult(args)
+        end
+        return
+    end
+
     local player = getPlayer()
     if not player then
         return
@@ -86,6 +109,11 @@ local function onServerCommand(module, command, args)
         end
         if IKST_JobsPanel.instance then
             IKST_JobsPanel.instance:onServerResult(args or {})
+        elseif args and IKST_JobLoot and IKST_JobLoot.onServerResult then
+            local mode = args.mode
+            if mode == IKST.CMD.lootRepopulateZone or mode == IKST.CMD.lootRepopulateContainer then
+                IKST_JobLoot.onServerResult({ player = player }, args or {})
+            end
         end
         return
     end

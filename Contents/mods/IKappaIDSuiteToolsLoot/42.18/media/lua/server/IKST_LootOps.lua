@@ -14,6 +14,10 @@ if not ItemPicker and ItemPickerJava then
     ItemPicker = ItemPickerJava
 end
 
+if IKST.runsOnServerJvm and IKST.runsOnServerJvm() and IKST_LootOps.ensureLootPickerReady then
+    IKST_LootOps.ensureLootPickerReady()
+end
+
 local function readCoord(args, key)
     if not args then
         return nil
@@ -25,66 +29,33 @@ local function readCoord(args, key)
     return math.floor(value)
 end
 
-local function containerByIndexOnObject(obj, containerIndex)
-    if not obj or not obj.getContainerByIndex then
-        return nil
-    end
-    containerIndex = math.floor(tonumber(containerIndex) or -1)
-    if containerIndex < 0 then
-        return nil
-    end
-    if obj.getContainerCount then
-        local count = obj:getContainerCount()
-        if containerIndex >= count then
-            return nil
-        end
-    end
-    return obj:getContainerByIndex(containerIndex)
+function IKST_LootOps.containerAt(x, y, z, objectIndex, containerIndex)
+    local _, container = IKST_LootOps.resolveLootTarget(x, y, z, objectIndex, containerIndex)
+    return container
 end
 
-function IKST_LootOps.containerAt(x, y, z, objectIndex, containerIndex)
-    local square = IKST_Grid.getSquare(x, y, z)
-    if not square then
-        return nil
+function IKST_LootOps.shouldPushClientRefresh()
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        return false
     end
-    local objects = square.getObjects and square:getObjects()
-    if not objects then
-        return nil
+    if not IKST.deliverClientCommand then
+        return false
     end
-    if objectIndex ~= nil then
-        objectIndex = math.floor(tonumber(objectIndex) or -1)
-        if objectIndex >= 0 and objectIndex < objects:size() then
-            local obj = objects:get(objectIndex)
-            if obj then
-                if containerIndex ~= nil then
-                    local container = containerByIndexOnObject(obj, containerIndex)
-                    if container then
-                        return container
-                    end
-                end
-                if obj.getContainer then
-                    return obj:getContainer()
-                end
-            end
-        end
+    return true
+end
+
+function IKST_LootOps.pushContainerRefresh(player, payloads)
+    if not IKST_LootOps.shouldPushClientRefresh() or not player then
+        return
     end
-    if containerIndex ~= nil then
-        containerIndex = math.floor(tonumber(containerIndex) or -1)
-        if containerIndex >= 0 then
-            for i = 0, objects:size() - 1 do
-                local obj = objects:get(i)
-                if obj then
-                    local container = containerByIndexOnObject(obj, containerIndex)
-                    if IKST_LootOps.isWorldLootContainer(container) then
-                        return container
-                    end
-                end
-            end
-        end
+    if type(payloads) ~= "table" or #payloads < 1 then
+        return
     end
-    local list = {}
-    IKST_LootOps.collectContainersOnSquare(square, list, {})
-    return list[1]
+    if #payloads == 1 then
+        IKST.deliverClientCommand(player, IKST.CMD.lootContainerRefresh, payloads[1])
+        return
+    end
+    IKST.deliverClientCommand(player, IKST.CMD.lootContainerRefresh, { entries = payloads })
 end
 
 function IKST_LootOps.trimDuplicateContainers(parent, beforeCount)
@@ -126,26 +97,44 @@ function IKST_LootOps.containerReady(container)
     return true
 end
 
--- ItemPickerJava on dedicated server: use nil (admin player object can NPE inside fillContainer).
+-- rollItem on dedicated uses the admin player; never fillContainer on MP (duplicate crates).
 function IKST_LootOps.fillCharacter(player)
-    if IKST.runsOnServerJvm and IKST.runsOnServerJvm() then
-        return nil
-    end
     return player
+end
+
+function IKST_LootOps.syncContainerItemsToClients(container)
+    if not container then
+        return
+    end
+    if container.getItems then
+        local items = container:getItems()
+        if items then
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and item.syncItemFields and type(item.syncItemFields) == "function" then
+                    item:syncItemFields()
+                end
+            end
+        end
+    end
+    if container.sendContentsToRemoteContainer and type(container.sendContentsToRemoteContainer) == "function" then
+        container:sendContentsToRemoteContainer()
+        return
+    end
+    if container.sendContentsToClients and type(container.sendContentsToClients) == "function" then
+        container:sendContentsToClients()
+    end
 end
 
 function IKST_LootOps.syncContainerAfterFill(container, parent)
     if container and container.setDrawDirty then
         container:setDrawDirty(true)
     end
+    if parent and parent.setDrawDirty then
+        parent:setDrawDirty(true)
+    end
     if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
-        -- MP: server owns loot; push contents only (no transmitAddObjectToSquare — avoids double crate on relog).
-        if container and container.sendContentsToClients then
-            container:sendContentsToClients()
-        end
-        if parent and parent.transmitCompleteItemToClients then
-            parent:transmitCompleteItemToClients()
-        end
+        IKST_LootOps.syncContainerItemsToClients(container)
         return
     end
     if parent and ItemPicker and ItemPicker.updateOverlaySprite then
@@ -183,18 +172,18 @@ function IKST_LootOps.containerSquareBlocked(container)
     return IKST_LootOps.squareLootBlocked(square:getX(), square:getY(), square:getZ())
 end
 
-function IKST_LootOps.repopulateContainer(container, player, squareKeep)
+function IKST_LootOps.repopulateContainer(container, player, squareKeep, refreshList)
     if not IKST_LootOps.mayMutateWorldLoot() then
-        return false
+        return false, "server only"
     end
     if not IKST_LootOps.containerReady(container) then
-        return false
+        return false, "not ready"
     end
     if IKST_LootOps.containerSquareBlocked(container) then
-        return false
+        return false, "blocked"
     end
     if not ItemPicker then
-        return false
+        return false, "no picker"
     end
 
     if IKST_LootOps.clearBeforeFill() then
@@ -205,9 +194,7 @@ function IKST_LootOps.repopulateContainer(container, player, squareKeep)
             container:clear()
         end
     end
-    if container.setExplored then
-        container:setExplored(true)
-    end
+    IKST_LootOps.prepareContainerForLootFill(container)
 
     local parent = container.getParent and container:getParent()
     local square = container.getSourceGrid and container:getSourceGrid()
@@ -231,11 +218,16 @@ function IKST_LootOps.repopulateContainer(container, player, squareKeep)
         end
     end
 
-    if not IKST_LootOps.rollItemsIntoExistingContainer(container, IKST_LootOps.fillCharacter(player)) then
+    local rollOk, hadDist = IKST_LootOps.rollItemsIntoExistingContainer(container, IKST_LootOps.fillCharacter(player))
+    if not rollOk then
         if IKST_Debug and IKST_Debug.log then
-            IKST_Debug.log("loot", "rollItemsIntoExistingContainer failed type=" .. tostring(container.getType and container:getType()))
+            IKST_Debug.log("loot", "rollItemsIntoExistingContainer failed type=" .. tostring(container.getType and container:getType())
+                .. " hadDist=" .. tostring(hadDist == true))
         end
-        return false
+        if hadDist ~= true then
+            return false, "no distribution"
+        end
+        return false, "repopulate failed"
     end
 
     if parent then
@@ -247,9 +239,18 @@ function IKST_LootOps.repopulateContainer(container, player, squareKeep)
             maxKeep = 1
         end
         IKST_LootOps.trimExcessLootObjectsOnSquare(square, parent, maxKeep)
+        if IKST_LootOps.countLootObjectsOnSquare(square) > maxKeep then
+            IKST_LootOps.trimExcessLootObjectsOnSquare(square, parent, maxKeep)
+        end
     end
 
     IKST_LootOps.syncContainerAfterFill(container, parent)
+    if refreshList and IKST_LootOps.buildRefreshPayload then
+        local payload = IKST_LootOps.buildRefreshPayload(container)
+        if payload then
+            refreshList[#refreshList + 1] = payload
+        end
+    end
     return true
 end
 
@@ -263,24 +264,42 @@ function IKST_LootOps.repopulateZone(player, x, y, z, scope, args)
         return false, "no containers"
     end
     local squareKeep = {}
+    local refreshList = {}
     local count = 0
     local skipped = 0
+    local lastFailReason = "repopulate failed"
+    local noDistCount = 0
     for i = 1, #containers do
         local container = containers[i]
         if IKST_LootOps.containerSquareBlocked(container) then
             skipped = skipped + 1
-        elseif IKST_LootOps.repopulateContainer(container, player, squareKeep) then
-            count = count + 1
-        else
-            skipped = skipped + 1
+            lastFailReason = "blocked"
             if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
-                IKST_Debug.log("loot", "skip container index " .. tostring(i) .. " not ready for fill")
+                IKST_Debug.log("loot", "skip container index " .. tostring(i) .. " reason=blocked")
+            end
+        else
+            local ok, reason = IKST_LootOps.repopulateContainer(container, player, squareKeep, refreshList)
+            if ok then
+                count = count + 1
+            else
+                skipped = skipped + 1
+                lastFailReason = reason or "repopulate failed"
+                if lastFailReason == "no distribution" then
+                    noDistCount = noDistCount + 1
+                end
+                if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
+                    IKST_Debug.log("loot", "skip container index " .. tostring(i) .. " reason=" .. tostring(lastFailReason))
+                end
             end
         end
     end
     if count == 0 then
-        return false, "repopulate failed"
+        if noDistCount == #containers then
+            return false, "no distribution"
+        end
+        return false, lastFailReason
     end
+    IKST_LootOps.pushContainerRefresh(player, refreshList)
     local suffix = ""
     if skipped > 0 then
         suffix = suffix .. " (" .. skipped .. " skipped)"
@@ -311,9 +330,12 @@ function IKST_LootOps.handle(command, player, args)
         if not container then
             return false, "no container"
         end
-        if not IKST_LootOps.repopulateContainer(container, player, nil) then
-            return false, "repopulate failed"
+        local refreshList = {}
+        local ok, reason = IKST_LootOps.repopulateContainer(container, player, nil, refreshList)
+        if not ok then
+            return false, reason or "repopulate failed"
         end
+        IKST_LootOps.pushContainerRefresh(player, refreshList)
         return true, IKST_LootOps.containerLabel(container) .. " repopulated"
     end
 

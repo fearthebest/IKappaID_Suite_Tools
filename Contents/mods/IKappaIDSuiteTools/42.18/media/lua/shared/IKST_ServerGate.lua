@@ -61,6 +61,9 @@ function IKST_ServerGate.commandExists(command)
     if command == IKST.CMD.briefingFetch then
         return true
     end
+    if command == IKST.CMD.vehicleClaimPing then
+        return true
+    end
     if BASE_STAFF_MISC[command] then
         return true
     end
@@ -344,6 +347,13 @@ function IKST_ServerGate.authorize(player, command, args)
     if command == IKST.CMD.briefingFetch then
         if not IKST_Briefing or not IKST_Briefing.enabled() then
             return false, "briefing_disabled", {}
+        end
+        return IKST_ServerGate.checkRateAndArgs(player, command, args, { group = "list_query" })
+    end
+
+    if command == IKST.CMD.vehicleClaimPing then
+        if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+            return false, "unavailable", {}
         end
         return IKST_ServerGate.checkRateAndArgs(player, command, args, { group = "list_query" })
     end

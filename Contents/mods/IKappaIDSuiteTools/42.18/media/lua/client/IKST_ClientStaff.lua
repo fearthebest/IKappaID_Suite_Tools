@@ -151,3 +151,11 @@ function IKST_ClientStaff.applyTeleportLocal(player, x, y, z)
         end
     end
 end
+
+if Events and Events.OnEnterVehicle and Events.OnEnterVehicle.Add then
+    Events.OnEnterVehicle.Add(function(character)
+        if IKST_VehicleMirror and IKST_VehicleMirror.onEnterVehicle then
+            IKST_VehicleMirror.onEnterVehicle(character)
+        end
+    end)
+end

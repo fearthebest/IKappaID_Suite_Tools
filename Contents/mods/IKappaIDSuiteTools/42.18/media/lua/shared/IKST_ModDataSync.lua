@@ -49,6 +49,9 @@ function IKST_ModDataSync.installClient()
         return
     end
     Events.OnReceiveGlobalModData.Add(function(key, data)
+        if key == IKST.ModDataKeys.VehicleClaim and IKST.isRemoteClient and IKST.isRemoteClient() then
+            return
+        end
         if IKST_ModDataSync.isSyncedKey(key) then
             IKST_ModDataSync.apply(key, data)
             if key == IKST.ModDataKeys.VehicleClaim then

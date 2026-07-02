@@ -296,7 +296,9 @@ function VS.apply(vehicle, snap)
                 if rec.content ~= nil and part.setContainerContentAmount then
                     part:setContainerContentAmount(rec.content)
                     local wheelIndex = part.getWheelIndex and part:getWheelIndex() or -1
-                    if wheelIndex ~= -1 and vehicle.setTireInflation
+                    local headlessServer = type(isServer) == "function" and isServer()
+                        and type(isClient) == "function" and not isClient()
+                    if not headlessServer and wheelIndex ~= -1 and vehicle.setTireInflation
                         and part.getContainerCapacity and part.getContainerContentAmount
                         and part:getContainerCapacity() > 0 then
                         vehicle:setTireInflation(wheelIndex, part:getContainerContentAmount() / part:getContainerCapacity())

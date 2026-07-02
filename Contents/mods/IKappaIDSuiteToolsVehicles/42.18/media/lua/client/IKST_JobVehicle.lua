@@ -14,7 +14,32 @@ require "IKST_JobLayout"
 
 IKST_JobVehicle = IKST_JobVehicle or {}
 IKST_JobVehicle.listCache = {}
+IKST_JobVehicle.backupCache = {}
 IKST_JobVehicle.scriptList = nil
+
+function IKST_JobVehicle.requestBackupList(player)
+    IKST.dispatchCommand(player, IKST.CMD.vehicleRelocateBackupList, {})
+end
+
+function IKST_JobVehicle.onBackupListResult(backups)
+    IKST_JobVehicle.backupCache = backups or {}
+end
+
+function IKST_JobVehicle.dispatchRestore(panel, backupId, mode)
+    if not panel or not panel.player or backupId == nil then
+        return
+    end
+    local payload = {
+        backupId = backupId,
+        restoreMode = mode or "origin",
+    }
+    if mode == "here" then
+        payload.x = math.floor(panel.player:getX())
+        payload.y = math.floor(panel.player:getY())
+        payload.z = panel.player:getZ()
+    end
+    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleRelocateRestore, payload)
+end
 
 function IKST_JobVehicle.dispatchDelete(panel, vehicleId)
     if not vehicleId then
@@ -256,6 +281,13 @@ function IKST_JobVehicle.onServerResult(panel, args)
     if not panel or not args or args.success ~= true then
         return
     end
+    if args.mode == IKST.CMD.vehicleRelocateRestore then
+        if panel.player then
+            IKST_JobVehicle.requestList(panel.player)
+            IKST_JobVehicle.requestBackupList(panel.player)
+        end
+        return
+    end
     if args.mode ~= IKST.CMD.vehicleMove then
         return
     end
@@ -333,6 +365,37 @@ function IKST_JobVehicle.build(panel)
             x = x + 76
         end
         y = y + 36
+    end
+
+    local backups = IKST_JobVehicle.backupCache or {}
+    if #backups > 0 and vehiclesWorkspace and navTool == "spawn" then
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleStoredBackups", "Stored vehicles (relocate backup)"), UIFont.Small)
+        y = y + 18
+        for i, row in ipairs(backups) do
+            if i > 2 then
+                break
+            end
+            local label = tostring(row.scriptName or "?") .. " #" .. tostring(row.backupId)
+            if row.origin and row.origin.x then
+                label = label .. " @ " .. tostring(row.origin.x) .. "," .. tostring(row.origin.y)
+            end
+            panel:makeJobLabel(12, y, label, UIFont.Small)
+            y = y + 16
+            panel:makeJobButton(12, y, 84, 22, IKST.text("IGUI_IKST_RestoreOrigin", "At origin"), function()
+                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "origin")
+            end, false)
+            panel:makeJobButton(100, y, 84, 22, IKST.text("IGUI_IKST_RestoreTarget", "At target"), function()
+                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "target")
+            end, false)
+            panel:makeJobButton(188, y, 84, 22, IKST.text("IGUI_IKST_RestoreHere", "Here"), function()
+                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "here")
+            end, true)
+            y = y + 26
+        end
+        panel:makeJobButton(12, y, 120, 22, IKST.text("IGUI_IKST_RefreshBackups", "Refresh backups"), function()
+            IKST_JobVehicle.requestBackupList(panel.player)
+        end, false)
+        y = y + 28
     end
 
     if state.vehicleMode == "spawn" then

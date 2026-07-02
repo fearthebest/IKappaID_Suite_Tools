@@ -17,6 +17,8 @@ local ADMIN_COMMANDS = {
     vehicleSkinPrev = true,
     vehicleUnlockTrunk = true,
     vehicleUnlockDoors = true,
+    vehicleRelocateBackupList = true,
+    vehicleRelocateRestore = true,
 }
 
 local PLAYER_COMMANDS = {
@@ -102,6 +104,9 @@ IKST.Plugins.register("vehicles", {
     onNavEntered = function(panel, modeId, toolId)
         if modeId == IKST.VIEW.vehicles and panel and panel.player and IKST_JobVehicle then
             IKST_JobVehicle.requestList(panel.player)
+            if IKST_JobVehicle.requestBackupList then
+                IKST_JobVehicle.requestBackupList(panel.player)
+            end
         end
     end,
     onServerCommand = function(command, args, player)
@@ -111,6 +116,15 @@ IKST.Plugins.register("vehicles", {
             end
             if IKST_JobVehicle and IKST_JobVehicle.onListResult then
                 IKST_JobVehicle.onListResult(args and args.vehicles)
+            end
+            return true
+        end
+        if command == IKST.CMD.vehicleRelocateBackupListResult then
+            if IKST_JobVehicle and IKST_JobVehicle.onBackupListResult then
+                IKST_JobVehicle.onBackupListResult(args and args.backups)
+            end
+            if IKST_JobsPanel and IKST_JobsPanel.instance then
+                IKST_JobsPanel.instance:refreshJobUI()
             end
             return true
         end

@@ -1,5 +1,31 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.0.0 — BETA (2026-07-01)
+
+Official **BETA** release for Build 42 multiplayer playtesting.
+
+### Loot (addon)
+- **Dedicated MP:** Repopulate works on outdoor and no-room containers (neighbor room + distribution fallbacks; server `fillContainer` last resort with trim).
+- **MP sync:** Server pushes container contents via `sendContentsToRemoteContainer`; client pulls with `requestServerItemsForContainer` (loot visible without relog).
+- **Ghost crate fix:** No duplicate clipped crates after repop; contents-only sync (no `transmitCompleteItemToClients` on MP).
+- **UX:** Clear failure reasons in server log; halo feedback when Jobs panel is closed.
+
+### Core / claims
+- **Vehicle claim sync:** Server-authoritative claim rows + client mirror (fixes false “claimed by another player” after relog).
+- **MP authority:** Server-only world mutations on tile protect, waypoints, safehouse/claim UIs.
+
+### Vehicles (addon)
+- Relocate snapshot path, backup/restore, claim id remap (from 0.2.7.x line).
+
+## 0.2.7.1 (2026-07-02)
+
+### Loot (addon)
+- **Dedicated MP:** Loot repop no longer indexes `ItemPickerJava` THashMaps from Lua (`rooms` / `containers` / `pairs`); use `ItemPicker.getItemContainer()` + `rollItem` only (fixes server crash on container/zone repop).
+
+### Vehicles (addon)
+- **Headless server:** Skip `setTireInflation` in vehicle snapshot (avoids `UnsatisfiedLinkError` on relocate).
+- **Relocate:** Footprint validation, spawn-order hardening, relocate backup list/restore UI (origin / target / here), pose pin on enter to reduce flip snap.
+
 ## 0.2.7.0 (2026-07-01)
 
 ### Loot (addon)

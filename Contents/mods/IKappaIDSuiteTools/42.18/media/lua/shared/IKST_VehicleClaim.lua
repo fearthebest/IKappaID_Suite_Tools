@@ -6,6 +6,7 @@ require "IKST_ClaimPolicy"
 require "IKST_ClaimSocial"
 require "IKST_VehiclePermissions"
 require "IKST_ModDataSync"
+require "IKST_VehicleClaimMirror"
 require "IKST_Access"
 
 IKST_VehicleClaim = IKST_VehicleClaim or {}
@@ -20,6 +21,9 @@ end
 function IKST_VehicleClaim.get(vehicleId)
     if vehicleId == nil then
         return nil
+    end
+    if IKST_VehicleClaimMirror and IKST_VehicleClaimMirror.usesMirror and IKST_VehicleClaimMirror.usesMirror() then
+        return IKST_VehicleClaimMirror.get(vehicleId)
     end
     return IKST_VehicleClaim.store().byId[tostring(vehicleId)]
 end
@@ -90,7 +94,21 @@ function IKST_VehicleClaim.addToOwnerList(username, vehicleKey)
     list[#list + 1] = vehicleKey
 end
 
-function IKST_VehicleClaim.transmit()
+function IKST_VehicleClaim.transmit(op, vehicleId, entry)
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+        and IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if not IKST_VehicleClaimSync then
+            require "IKST_VehicleClaimSync"
+        end
+        if IKST_VehicleClaimSync and IKST_VehicleClaimSync.afterMutate then
+            if op then
+                IKST_VehicleClaimSync.afterMutate(op, vehicleId, entry)
+            else
+                IKST_VehicleClaimSync.afterMutate("bootstrap")
+            end
+        end
+        return
+    end
     if IKST.transmitModData and IKST.ModDataKeys then
         IKST.transmitModData(IKST.ModDataKeys.VehicleClaim)
     end
@@ -119,7 +137,7 @@ function IKST_VehicleClaim.purgeExpired()
         end
     end
     if #removed > 0 then
-        IKST_VehicleClaim.transmit()
+        IKST_VehicleClaim.transmit("purge")
     end
     return #removed
 end
@@ -187,7 +205,7 @@ function IKST_VehicleClaim.claim(vehicleId, ownerKey, meta)
     local data = IKST_VehicleClaim.store()
     data.byId[k] = entry
     IKST_VehicleClaim.addToOwnerList(ownerKey, k)
-    IKST_VehicleClaim.transmit()
+    IKST_VehicleClaim.transmit("set", k, entry)
     return true, "claimed"
 end
 
@@ -203,7 +221,7 @@ function IKST_VehicleClaim.release(vehicleId)
     local data = IKST_VehicleClaim.store()
     data.byId[k] = nil
     IKST_VehicleClaim.removeFromOwnerList(entry.owner, k)
-    IKST_VehicleClaim.transmit()
+    IKST_VehicleClaim.transmit("clear", k)
     return true, "released"
 end
 
@@ -235,7 +253,7 @@ function IKST_VehicleClaim.remapVehicleId(oldId, newId, coords)
     data.byId[newKey] = entry
     IKST_VehicleClaim.removeFromOwnerList(entry.owner, oldKey)
     IKST_VehicleClaim.addToOwnerList(entry.owner, newKey)
-    IKST_VehicleClaim.transmit()
+    IKST_VehicleClaim.transmit("set", newKey, entry)
     return true
 end
 
@@ -265,7 +283,7 @@ function IKST_VehicleClaim.transfer(vehicleId, newOwner)
     entry.owner = newOwner
     IKST_VehicleClaim.removeFromOwnerList(oldOwner, k)
     IKST_VehicleClaim.addToOwnerList(entry.owner, k)
-    IKST_VehicleClaim.transmit()
+    IKST_VehicleClaim.transmit("set", k, entry)
     return true, "transferred"
 end
 
@@ -278,7 +296,7 @@ function IKST_VehicleClaim.setLabel(vehicleId, label)
         return false, "not claimed"
     end
     entry.label = label or ""
-    IKST_VehicleClaim.transmit()
+    IKST_VehicleClaim.transmit("set", vehicleId, entry)
     return true, "label set"
 end
 
@@ -300,7 +318,7 @@ function IKST_VehicleClaim.setPermissions(vehicleId, scope, username, perms)
         or scope == IKST_VehiclePermissions.GROUP_SAFEHOUSE
         or scope == IKST_VehiclePermissions.GROUP_FACTION then
         entry.groups[scope] = IKST_VehiclePermissions.mergePerms(entry.groups[scope], perms)
-        IKST_VehicleClaim.transmit()
+        IKST_VehicleClaim.transmit("set", vehicleId, entry)
         return true, "group permissions saved"
     end
     if scope == "user" then
@@ -314,14 +332,14 @@ function IKST_VehicleClaim.setPermissions(vehicleId, scope, username, perms)
         end
         entry.users[whitelistKey] = IKST_VehiclePermissions.sanitizeUserPerms(
             IKST_VehiclePermissions.mergePerms(entry.users[whitelistKey], perms))
-        IKST_VehicleClaim.transmit()
+        IKST_VehicleClaim.transmit("set", vehicleId, entry)
         return true, "user permissions saved"
     end
     if scope == "remove_user" then
         username = IKST_ClaimPolicy.trimUsername(username)
         local key = IKST_ClaimPolicy.findUserKey(entry.users, username) or username
         entry.users[key] = nil
-        IKST_VehicleClaim.transmit()
+        IKST_VehicleClaim.transmit("set", vehicleId, entry)
         return true, "user removed"
     end
     return false, "invalid permission scope"
@@ -398,6 +416,10 @@ function IKST_VehicleClaim.canUseVehicle(player, vehicle, action)
     if not player or not vehicle or not action then
         return true
     end
+    if IKST_VehicleClaimMirror and IKST_VehicleClaimMirror.usesMirror and IKST_VehicleClaimMirror.usesMirror()
+        and not IKST_VehicleClaimMirror.isReady() then
+        return true
+    end
     local vid = vehicle.getId and vehicle:getId() or nil
     if vid == nil then
         return true
@@ -406,7 +428,7 @@ function IKST_VehicleClaim.canUseVehicle(player, vehicle, action)
     if not entry or IKST_VehicleClaim.isEntryExpired(entry) then
         if IKST_Authority and IKST_Authority.mpClientEnforcementActive and IKST_Authority.mpClientEnforcementActive() then
             if IKST_VehicleClaimClient and not IKST_VehicleClaimClient.listBootstrapped then
-                return false
+                return true
             end
             if IKST_VehicleClaimClient and IKST_VehicleClaimClient.rowForVehicle then
                 local row = IKST_VehicleClaimClient.rowForVehicle(vid)

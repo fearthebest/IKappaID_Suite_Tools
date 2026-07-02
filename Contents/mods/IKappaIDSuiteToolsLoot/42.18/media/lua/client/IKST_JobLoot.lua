@@ -123,6 +123,7 @@ function IKST_JobLoot.tryDispatchZone(player, x, y, z, scope, radius)
         IKST_JobLoot.notifyPreview(player, preview, false)
         return false
     end
+    IKST_JobLoot.notifyPreview(player, preview, true)
     IKST.dispatchCommand(player, IKST.CMD.lootRepopulateZone, {
         x = x,
         y = y,

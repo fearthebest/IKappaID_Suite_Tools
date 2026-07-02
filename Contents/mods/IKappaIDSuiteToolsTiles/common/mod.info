@@ -9,7 +9,7 @@ author=IKappaID
 poster=poster.png
 icon=icon.png
 
-modversion=0.2.7.0
+modversion=0.3.0.0
 
 versionMin=42.18
 
@@ -20,3 +20,4 @@ category=Admin
 tags=Build 42;Admin;Tiles;World Edit;Multiplayer
 pack=ikst_suite
 tiledef=ikst_suite_tiles 4218
+
