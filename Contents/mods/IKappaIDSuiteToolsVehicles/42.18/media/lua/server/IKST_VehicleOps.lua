@@ -1180,7 +1180,7 @@ function IKST_VehicleOps.handle(command, player, args)
         if not mayMutateVehicle() then
             return false, "server only"
         end
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far from vehicle"
         end
         local ok, msg = IKST_VehicleOps.delete(args.vehicleId)
@@ -1197,7 +1197,7 @@ function IKST_VehicleOps.handle(command, player, args)
         if not mayMutateVehicle() then
             return false, "server only"
         end
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far from vehicle"
         end
         local ok, msg = IKST_VehicleOps.flip(args.vehicleId)
@@ -1207,13 +1207,13 @@ function IKST_VehicleOps.handle(command, player, args)
         return ok, msg
     end
     if command == IKST.CMD.vehicleRepair then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far from vehicle"
         end
         return IKST_VehicleOps.repair(args.vehicleId)
     end
     if command == IKST.CMD.vehicleKey then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far from vehicle"
         end
         return IKST_VehicleOps.addKey(args.vehicleId, player)
@@ -1232,25 +1232,25 @@ function IKST_VehicleOps.handle(command, player, args)
         return IKST_VehicleOps.keyNearest(player)
     end
     if command == IKST.CMD.vehicleSkinNext then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far"
         end
         return IKST_VehicleOps.skinStep(player, args.vehicleId, 1)
     end
     if command == IKST.CMD.vehicleSkinPrev then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far"
         end
         return IKST_VehicleOps.skinStep(player, args.vehicleId, -1)
     end
     if command == IKST.CMD.vehicleUnlockTrunk then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far"
         end
         return IKST_VehicleOps.unlockTrunk(player, args.vehicleId)
     end
     if command == IKST.CMD.vehicleUnlockDoors then
-        if not adminVehicleNearOk(player, args.vehicleId) then
+        if not adminVehicleNearOk(player, args.vehicleId, { listRadius = true }) then
             return false, "too far"
         end
         return IKST_VehicleOps.unlockDoors(player, args.vehicleId)

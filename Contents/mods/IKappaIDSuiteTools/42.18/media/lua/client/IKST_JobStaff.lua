@@ -10,6 +10,7 @@ require "IKST_Catalog"
 require "IKST_JobCatalog"
 require "IKST_JobLayout"
 require "IKST_ClientStaff"
+require "IKST_StaffCheats"
 
 IKST_JobStaff = IKST_JobStaff or {}
 IKST_JobStaff.onlinePlayers = {}
@@ -28,7 +29,53 @@ function IKST_JobStaff.readEntry(entry)
 end
 
 function IKST_JobStaff.readNumber(entry, fallback)
-    return IKST.parseNumber(IKST_JobStaff.readEntry(entry), fallback)
+    local n = tonumber(IKST_JobStaff.readEntry(entry))
+    if n == nil then
+        return fallback
+    end
+    return n
+end
+
+function IKST_JobStaff.addSelfCheatRow(panel, y, cheatIds, player)
+    local x = 12
+    for _, cheatId in ipairs(cheatIds) do
+        local row = IKST_StaffCheats and IKST_StaffCheats.CHEATS and IKST_StaffCheats.CHEATS[cheatId]
+        if row then
+            panel:makeJobButton(x, y, 88, 22, IKST.text(row.labelKey, row.fallback), function()
+                IKST.dispatchCommand(player, IKST.CMD.toggleSelfCheat, { cheat = cheatId })
+            end, false)
+            x = x + 92
+            if x > IKST_JobLayout.contentRight(panel) - 92 then
+                x = 12
+                y = y + 26
+            end
+        end
+    end
+    return y + 28
+end
+
+function IKST_JobStaff.containerSquareAtPlayer(player)
+    if not player or not player.getSquare then
+        return nil
+    end
+    local sq = player:getSquare()
+    if not sq then
+        return nil
+    end
+    local objects = sq:getObjects()
+    if not objects then
+        return nil
+    end
+    for i = 0, objects:size() - 1 do
+        local obj = objects:get(i)
+        if obj and obj.getContainer and obj:getContainer() then
+            local csq = obj.getSquare and obj:getSquare()
+            if csq then
+                return csq:getX(), csq:getY(), csq:getZ()
+            end
+        end
+    end
+    return nil
 end
 
 function IKST_JobStaff.loadItemCatalog()
@@ -181,6 +228,56 @@ function IKST_JobStaff.build(panel)
                 y = IKST_JobStaff.readNumber(panel.staffTpY),
                 z = IKST_JobStaff.readNumber(panel.staffTpZ, 0),
             })
+        end, true)
+        y = y + 34
+
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Self_Cheats", "Vanilla cheats (toggle)"), UIFont.Small)
+        y = y + 18
+        if IKST_StaffCheats and IKST_StaffCheats.SELF_UI then
+            y = IKST_JobStaff.addSelfCheatRow(panel, y, {
+                "build", "mechanics", "health", "fastMove",
+            }, p)
+            y = IKST_JobStaff.addSelfCheatRow(panel, y, {
+                "unlimitedCarry", "unlimitedEndurance", "unlimitedAmmo", "instantActions",
+            }, p)
+            y = IKST_JobStaff.addSelfCheatRow(panel, y, {
+                "movables", "farming",
+            }, p)
+        end
+
+        panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_RepairGear", "Repair gear"), function()
+            IKST.dispatchCommand(p, IKST.CMD.repairSelfGear, {})
+        end, false)
+        panel:makeJobButton(140, y, 120, 24, IKST.text("IGUI_IKST_ResetMood", "Reset mood"), function()
+            IKST.dispatchCommand(p, IKST.CMD.resetSelfMood, {})
+        end, false)
+        panel:makeJobButton(268, y, 120, 24, IKST.text("IGUI_IKST_ClearZombiesNear", "Clear nearby"), function()
+            IKST.dispatchCommand(p, IKST.CMD.clearZombiesSelf, { radius = 20 })
+        end, true)
+        y = y + 32
+
+        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Clearance_Header", "Clearance tags"), UIFont.Small)
+        y = y + 16
+        panel.staffClearanceZone = ISTextEntryBox:new("armory", 12, y, 140, 22)
+        panel.staffClearanceZone:initialise()
+        panel.staffClearanceZone:instantiate()
+        panel:addJobWidget(panel.staffClearanceZone)
+        panel:makeJobButton(160, y, 100, 22, IKST.text("IGUI_IKST_Clearance_Issue", "Issue tag"), function()
+            local zoneId = IKST_JobStaff.readEntry(panel.staffClearanceZone)
+            IKST.dispatchCommand(p, IKST.CMD.clearanceIssueSelf, { zoneId = zoneId })
+        end, false)
+        panel:makeJobButton(268, y, 100, 22, IKST.text("IGUI_IKST_Clearance_Revoke", "Revoke"), function()
+            IKST.dispatchCommand(p, IKST.CMD.clearanceRevokeSelf, {})
+        end, false)
+        y = y + 28
+        panel:makeJobButton(12, y, 200, 22, IKST.text("IGUI_IKST_Clearance_SetLock", "Set clearance lock here"), function()
+            local zoneId = IKST_JobStaff.readEntry(panel.staffClearanceZone)
+            local cx, cy, cz = IKST_JobStaff.containerSquareAtPlayer(p)
+            if not cx then
+                IKST.notify(p, IKST.text("IGUI_IKST_Keypad_NoContainer", "Stand next to a container."), false)
+                return
+            end
+            IKST.dispatchCommand(p, IKST.CMD.clearanceSetLock, { x = cx, y = cy, z = cz, zoneId = zoneId })
         end, true)
         y = y + 34
 
@@ -347,6 +444,25 @@ function IKST_JobStaff.build(panel)
             end, false)
             panel:makeJobButton(168, y, 72, 24, IKST.text("IGUI_IKST_God", "God"), function()
                 IKST.dispatchCommand(p, IKST.CMD.godTarget, { target = target.id })
+            end, false)
+            y = y + 28
+            if not panel.staffTargetClearanceZone then
+                panel.staffTargetClearanceZone = ISTextEntryBox:new("armory", 12, y, 120, 22)
+                panel.staffTargetClearanceZone:initialise()
+                panel.staffTargetClearanceZone:instantiate()
+                panel:addJobWidget(panel.staffTargetClearanceZone)
+            else
+                panel.staffTargetClearanceZone:setY(y)
+                panel.staffTargetClearanceZone:setVisible(true)
+            end
+            panel:makeJobButton(140, y, 100, 22, IKST.text("IGUI_IKST_Clearance_Issue", "Issue tag"), function()
+                IKST.dispatchCommand(p, IKST.CMD.clearanceIssueTarget, {
+                    target = target.id,
+                    zoneId = IKST_JobStaff.readEntry(panel.staffTargetClearanceZone),
+                })
+            end, false)
+            panel:makeJobButton(248, y, 90, 22, IKST.text("IGUI_IKST_Clearance_Revoke", "Revoke"), function()
+                IKST.dispatchCommand(p, IKST.CMD.clearanceRevokeTarget, { target = target.id })
             end, false)
             y = y + 30
         end

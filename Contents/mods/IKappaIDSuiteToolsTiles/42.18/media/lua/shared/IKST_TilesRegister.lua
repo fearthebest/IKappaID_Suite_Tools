@@ -41,10 +41,12 @@ local ADMIN_COMMANDS = {
     restoreSnapshot = true,
     lockSetPassword = true,
     lockClear = true,
+    clearanceSetLock = true,
 }
 
 local PLAYER_COMMANDS = {
     lockTryUnlock = true,
+    lockTryClearance = true,
     lockInstallKeypad = true,
 }
 

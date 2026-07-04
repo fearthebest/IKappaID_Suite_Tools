@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.3.0.0"
+IKST.VERSION = "0.3.0.1"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 IKST.RESTORE_MAX_PERK_LEVEL = 10
@@ -166,6 +166,16 @@ IKST.CMD = {
     restoreSnapshot = "restoreSnapshot",
     lockSetPassword = "lockSetPassword",
     lockClear = "lockClear",
+    lockTryClearance = "lockTryClearance",
+    clearanceIssueSelf = "clearanceIssueSelf",
+    clearanceRevokeSelf = "clearanceRevokeSelf",
+    clearanceIssueTarget = "clearanceIssueTarget",
+    clearanceRevokeTarget = "clearanceRevokeTarget",
+    clearanceSetLock = "clearanceSetLock",
+    toggleSelfCheat = "toggleSelfCheat",
+    repairSelfGear = "repairSelfGear",
+    resetSelfMood = "resetSelfMood",
+    clearZombiesSelf = "clearZombiesSelf",
     safehouseBordersSync = "safehouseBordersSync",
     catchSync = "catchSync",
     result = "result",
@@ -263,6 +273,8 @@ IKST.PLAYER_CLAIM_COMMANDS = {
     lockInstallKeypad = true,
 }
 
+IKST.CLEARANCE_CARD_TYPE = "IKST.ClearanceTag"
+
 IKST.JOURNAL_TYPE = "IKST.RecoveryJournal"
 IKST.KEYPAD_KIT_TYPE = "IKST.KeypadKit"
 
@@ -274,6 +286,14 @@ IKST.STAFF_COMMANDS = {
     invisSelf = true,
     ghostSelf = true,
     tpCoords = true,
+    toggleSelfCheat = true,
+    repairSelfGear = true,
+    resetSelfMood = true,
+    clearZombiesSelf = true,
+    clearanceIssueSelf = true,
+    clearanceRevokeSelf = true,
+    clearanceIssueTarget = true,
+    clearanceRevokeTarget = true,
     giveItem = true,
     giveKit = true,
     setTime = true,
@@ -818,10 +838,7 @@ end
 
 function IKST.deliverClientCommand(player, command, args)
     args = args or {}
-    if not IKST_Debug then
-        require "IKST_Debug"
-    end
-    if IKST_Debug and IKST_Debug.logNet then
+    if type(IKST_Debug) == "table" and IKST_Debug.logNet then
         IKST_Debug.logNet("server->client", command, player, args, "")
     end
     local useDirect = not IKST.isRemoteClient() and #IKST._clientCommandHandlers > 0
@@ -892,10 +909,7 @@ function IKST.dispatchCommand(player, command, args)
         return
     end
     args = args or {}
-    if not IKST_Debug then
-        require "IKST_Debug"
-    end
-    if IKST_Debug and IKST_Debug.logNet then
+    if type(IKST_Debug) == "table" and IKST_Debug.logNet then
         IKST_Debug.logNet("client->dispatch", command, player, args, "")
     end
     -- MP listen host: route through authoritative server JVM (must run before co-op shortcut).

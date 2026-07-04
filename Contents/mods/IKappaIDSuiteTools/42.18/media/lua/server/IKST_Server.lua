@@ -118,6 +118,16 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
             local y = readCoord(args, "y") or (playerObj and math.floor(playerObj:getY()))
             local z = tonumber(args and args.z) or (playerObj and playerObj:getZ()) or 0
             IKST_RateLimit.clearLockFails(playerObj, x, y, z)
+        elseif command == IKST.CMD.lockTryClearance and not ok and IKST_RateLimit then
+            local x = readCoord(args, "x") or (playerObj and math.floor(playerObj:getX()))
+            local y = readCoord(args, "y") or (playerObj and math.floor(playerObj:getY()))
+            local z = tonumber(args and args.z) or (playerObj and playerObj:getZ()) or 0
+            IKST_RateLimit.recordLockFail(playerObj, x, y, z)
+        elseif command == IKST.CMD.lockTryClearance and ok and IKST_RateLimit then
+            local x = readCoord(args, "x") or (playerObj and math.floor(playerObj:getX()))
+            local y = readCoord(args, "y") or (playerObj and math.floor(playerObj:getY()))
+            local z = tonumber(args and args.z) or (playerObj and playerObj:getZ()) or 0
+            IKST_RateLimit.clearLockFails(playerObj, x, y, z)
         end
         if not pluginSpec or not pluginSpec.afterServer then
             IKST_WorldOps.sendResult(playerObj, ok, msg, args.x, args.y, args.z, command, meta)

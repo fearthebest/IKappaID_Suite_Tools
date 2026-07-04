@@ -4,6 +4,8 @@ if type(isClient) == "function" and isClient()
 end
 require "IKST_Shared"
 require "IKST_Identity"
+require "IKST_StaffCheats"
+require "IKST_Clearance"
 require "IKST_Waypoints"
 require "IKST_WorldOps"
 require "IKST_Args"
@@ -604,6 +606,63 @@ function IKST_StaffOps.reissueBankId(player)
     return ok, msg or (ok and "ID reissued" or "reissue failed")
 end
 
+function IKST_StaffOps.repairGear(player)
+    if not player or not player.getInventory then
+        return false, "no player"
+    end
+    local inv = player:getInventory()
+    if not inv or not inv.getItems then
+        return false, "no inventory"
+    end
+    local items = inv:getItems()
+    if not items or not items.size or not items.get then
+        return false, "no items"
+    end
+    local count = 0
+    for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        if item and type(item.getConditionMax) == "function" and type(item.setCondition) == "function" then
+            local max = item:getConditionMax()
+            if max and max > 0 then
+                item:setCondition(max)
+                count = count + 1
+            end
+        end
+    end
+    return true, "Repaired " .. tostring(count) .. " items"
+end
+
+function IKST_StaffOps.resetMood(player)
+    if not player or not player.getStats then
+        return false, "no player"
+    end
+    local stats = player:getStats()
+    if not stats or not CharacterStat or not stats.set then
+        return false, "stats unavailable"
+    end
+    IKST_StaffOps.setStatMinimum(stats, CharacterStat.PANIC)
+    IKST_StaffOps.setStatMinimum(stats, CharacterStat.STRESS)
+    return true, "Mood reset"
+end
+
+function IKST_StaffOps.issueClearance(player, zoneId)
+    if not IKST_Clearance or not IKST_Clearance.issueCard then
+        return false, "clearance unavailable"
+    end
+    zoneId = IKST_Args and IKST_Args.readZoneId({ zoneId = zoneId }, "zoneId")
+    if not zoneId then
+        return false, "invalid zone id"
+    end
+    return IKST_Clearance.issueCard(player, zoneId)
+end
+
+function IKST_StaffOps.revokeClearance(player)
+    if not IKST_Clearance or not IKST_Clearance.revokeCards then
+        return false, "clearance unavailable"
+    end
+    return IKST_Clearance.revokeCards(player)
+end
+
 function IKST_StaffOps.handle(command, player, args)
     args = args or {}
 
@@ -632,6 +691,62 @@ function IKST_StaffOps.handle(command, player, args)
         end
         IKST_StaffOps.teleportPlayer(player, x, y, z)
         return true, string.format("TP %d,%d,%d", math.floor(x), math.floor(y), math.floor(z))
+    end
+    if command == IKST.CMD.toggleSelfCheat then
+        if not IKST_StaffCheats or not IKST_StaffCheats.toggle then
+            return false, "cheats unavailable"
+        end
+        local cheatId = IKST_Args.readCheatId(args)
+        if not cheatId or not IKST_StaffCheats.isValidId(cheatId) then
+            return false, "invalid cheat"
+        end
+        return IKST_StaffCheats.toggle(player, cheatId)
+    end
+    if command == IKST.CMD.repairSelfGear then
+        return IKST_StaffOps.repairGear(player)
+    end
+    if command == IKST.CMD.resetSelfMood then
+        return IKST_StaffOps.resetMood(player)
+    end
+    if command == IKST.CMD.clearZombiesSelf then
+        local radius = IKST_Args.readRadius(args, "radius", 20)
+        return IKST_StaffOps.clearZombies(player, radius)
+    end
+    if command == IKST.CMD.clearanceIssueSelf then
+        local zoneId = IKST_Args.readZoneId(args, "zoneId")
+        if not zoneId then
+            return false, "invalid zone id"
+        end
+        return IKST_StaffOps.issueClearance(player, zoneId)
+    end
+    if command == IKST.CMD.clearanceRevokeSelf then
+        return IKST_StaffOps.revokeClearance(player)
+    end
+    if command == IKST.CMD.clearanceIssueTarget then
+        local target = IKST_StaffOps.findPlayerByOnlineID(args.target)
+        if not target then
+            return false, "target offline"
+        end
+        local zoneId = IKST_Args.readZoneId(args, "zoneId")
+        if not zoneId then
+            return false, "invalid zone id"
+        end
+        local ok, msg = IKST_StaffOps.issueClearance(target, zoneId)
+        if ok then
+            return true, (msg or "issued") .. " -> " .. IKST_StaffOps.playerLabel(target)
+        end
+        return false, (msg or "issue failed") .. " (" .. IKST_StaffOps.playerLabel(target) .. ")"
+    end
+    if command == IKST.CMD.clearanceRevokeTarget then
+        local target = IKST_StaffOps.findPlayerByOnlineID(args.target)
+        if not target then
+            return false, "target offline"
+        end
+        local ok, msg = IKST_StaffOps.revokeClearance(target)
+        if ok then
+            return true, (msg or "revoked") .. " -> " .. IKST_StaffOps.playerLabel(target)
+        end
+        return false, (msg or "revoke failed") .. " (" .. IKST_StaffOps.playerLabel(target) .. ")"
     end
     if command == IKST.CMD.giveItem then
         return IKST_StaffOps.giveItem(player, args.type, args.count)

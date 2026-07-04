@@ -101,6 +101,26 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
         end
     end
 
+    if command == IKST.CMD.toggleSelfCheat then
+        local cheatId = IKST_Args.readCheatId(args)
+        if not cheatId then
+            return false, "bad_cheat", meta
+        end
+        if not IKST_StaffCheats then
+            require "IKST_StaffCheats"
+        end
+        if not IKST_StaffCheats or not IKST_StaffCheats.isValidId(cheatId) then
+            return false, "bad_cheat", meta
+        end
+    end
+
+    if command == IKST.CMD.clearanceIssueSelf or command == IKST.CMD.clearanceIssueTarget
+        or command == IKST.CMD.clearanceSetLock then
+        if not IKST_Args.readZoneId(args, "zoneId") then
+            return false, "bad_zone", meta
+        end
+    end
+
     if command == IKST.CMD.protectRadius or command == IKST.CMD.unprotectRadius then
         if IKST.runsOnServerJvm and IKST.runsOnServerJvm() and not IKST_Access.staffRemoteAdmin() then
             local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
@@ -114,7 +134,9 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
     end
 
     if command == IKST.CMD.lockInstallKeypad or command == IKST.CMD.lockTryUnlock
-        or command == IKST.CMD.lockSetPassword or command == IKST.CMD.lockClear then
+        or command == IKST.CMD.lockTryClearance
+        or command == IKST.CMD.lockSetPassword or command == IKST.CMD.lockClear
+        or command == IKST.CMD.clearanceSetLock then
         local dist = IKST_Access.sandboxInt("LockInstallDistance", 3, 1, 15)
         local x = IKST_Args.readCoord(args, "x") or (player and math.floor(player:getX()))
         local y = IKST_Args.readCoord(args, "y") or (player and math.floor(player:getY()))
@@ -272,10 +294,7 @@ function IKST_ServerGate.authorize(player, command, args)
         end
         if IKST_Identity and type(IKST_Identity.steamId) == "function"
             and not IKST_Identity.steamId(player) then
-            if not IKST_Debug then
-                require "IKST_Debug"
-            end
-            if IKST_Debug and IKST_Debug.logVerbose then
+            if type(IKST_Debug) == "table" and IKST_Debug.logVerbose then
                 IKST_Debug.logVerbose("identity", "MP player without SteamID: " .. IKST_Debug.playerBrief(player))
             end
         end
@@ -428,10 +447,7 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
     if IKST_AuditLog and IKST_AuditLog.record then
         IKST_AuditLog.record(player, command, args, false, msg)
     end
-    if not IKST_Debug then
-        require "IKST_Debug"
-    end
-    if IKST_Debug and IKST_Debug.logDeny then
+    if type(IKST_Debug) == "table" and IKST_Debug.logDeny then
         IKST_Debug.logDeny(command, player, msg, args)
     end
     return msg

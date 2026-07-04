@@ -120,6 +120,41 @@ function IKST_Args.readPassword(args, key)
     return p
 end
 
+function IKST_Args.readZoneId(args, key)
+    if not args then
+        return nil
+    end
+    local z = args[key or "zoneId"]
+    if z == nil then
+        z = args.zone
+    end
+    if z == nil then
+        return nil
+    end
+    z = tostring(z)
+    if z == "" or #z > 32 then
+        return nil
+    end
+    if not string.match(z, "^[%w_-]+$") then
+        return nil
+    end
+    return z
+end
+
+function IKST_Args.readCheatId(args)
+    if not args or type(args.cheat) ~= "string" then
+        return nil
+    end
+    local cheat = args.cheat
+    if cheat == "" or #cheat > 24 then
+        return nil
+    end
+    if not string.match(cheat, "^[%w_]+$") then
+        return nil
+    end
+    return cheat
+end
+
 function IKST_Args.staffZSpan(player)
     if player and IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(player) then
         return 4

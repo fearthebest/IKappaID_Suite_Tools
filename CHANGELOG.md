@@ -4,6 +4,9 @@
 
 Official **BETA** release for Build 42 multiplayer playtesting.
 
+- Steam paste: `STEAM-CHANGELOG-0.3.0.0.txt`
+- Steam description: `STEAM-DESCRIPTION-0.3.0.0.txt`
+
 ### Loot (addon)
 - **Dedicated MP:** Repopulate works on outdoor and no-room containers (neighbor room + distribution fallbacks; server `fillContainer` last resort with trim).
 - **MP sync:** Server pushes container contents via `sendContentsToRemoteContainer`; client pulls with `requestServerItemsForContainer` (loot visible without relog).

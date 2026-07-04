@@ -239,11 +239,32 @@ function IKST_TilesGuardOps.restoreSnapshot(player)
 end
 
 function IKST_TilesGuardOps.setLockPassword(x, y, z, password)
-    IKST_Locks.setPassword(x, y, z, password)
     if password and password ~= "" then
+        IKST_Locks.setPassword(x, y, z, password)
+        if IKST_Locks.setClearanceZone then
+            IKST_Locks.setClearanceZone(x, y, z, nil)
+        end
         return true, "lock set"
     end
+    IKST_Locks.setPassword(x, y, z, nil)
+    if IKST_Locks.setClearanceZone then
+        IKST_Locks.setClearanceZone(x, y, z, nil)
+    end
     return true, "lock cleared"
+end
+
+function IKST_TilesGuardOps.setClearanceLock(x, y, z, zoneId, player)
+    if not IKST_Locks or not IKST_Locks.setClearanceZone then
+        return false, "locks unavailable"
+    end
+    if not IKST_Locks.setClearanceZone(x, y, z, zoneId) then
+        return false, "failed"
+    end
+    if player then
+        IKST_Locks.markUnlocked(player, x, y, z)
+        IKST_TilesGuardOps.syncLockUnlock(player, x, y, z)
+    end
+    return true, "clearance lock set"
 end
 
 function IKST_TilesGuardOps.findItemById(player, itemId)
@@ -293,6 +314,14 @@ end
 
 function IKST_TilesGuardOps.tryUnlock(player, x, y, z, password)
     local ok, msg = IKST_Locks.tryUnlock(player, x, y, z, password)
+    if ok then
+        IKST_TilesGuardOps.syncLockUnlock(player, x, y, z)
+    end
+    return ok, msg
+end
+
+function IKST_TilesGuardOps.tryClearance(player, x, y, z)
+    local ok, msg = IKST_Locks.tryClearanceUnlock(player, x, y, z)
     if ok then
         IKST_TilesGuardOps.syncLockUnlock(player, x, y, z)
     end
@@ -358,6 +387,18 @@ function IKST_TilesGuardOps.handle(command, admin, args)
 
     if command == IKST.CMD.lockTryUnlock then
         return IKST_TilesGuardOps.tryUnlock(admin, ax, ay, az, args.password)
+    end
+
+    if command == IKST.CMD.lockTryClearance then
+        return IKST_TilesGuardOps.tryClearance(admin, ax, ay, az)
+    end
+
+    if command == IKST.CMD.clearanceSetLock then
+        local zoneId = IKST_Args and IKST_Args.readZoneId(args, "zoneId")
+        if not zoneId then
+            return false, "invalid zone id"
+        end
+        return IKST_TilesGuardOps.setClearanceLock(ax, ay, az, zoneId, admin)
     end
 
     if command == IKST.CMD.lockInstallKeypad then

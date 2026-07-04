@@ -1,7 +1,6 @@
 -- IKST development debug: tagged console lines on client and server JVMs.
 -- Enable via sandbox IKappaIDSuiteTools.DebugLogEnabled (off by default).
-
-require "IKST_Shared"
+-- IKST_Shared must load before this file (IKST_Server / client bootstrap require order).
 
 IKST_Debug = IKST_Debug or {}
 

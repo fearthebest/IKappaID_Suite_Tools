@@ -117,6 +117,10 @@ function IKST_RateLimit.groupForCommand(command)
     end
     if command == IKST.CMD.healSelf or command == IKST.CMD.feedSelf or command == IKST.CMD.cureSelf
         or command == IKST.CMD.godSelf or command == IKST.CMD.invisSelf or command == IKST.CMD.ghostSelf
+        or command == IKST.CMD.toggleSelfCheat or command == IKST.CMD.repairSelfGear
+        or command == IKST.CMD.resetSelfMood or command == IKST.CMD.clearZombiesSelf
+        or command == IKST.CMD.clearanceIssueSelf or command == IKST.CMD.clearanceRevokeSelf
+        or command == IKST.CMD.clearanceIssueTarget or command == IKST.CMD.clearanceRevokeTarget
         or command == IKST.CMD.clearZombies or command == IKST.CMD.healTarget or command == IKST.CMD.feedTarget
         or command == IKST.CMD.cureTarget or command == IKST.CMD.godTarget or command == IKST.CMD.healAll
         or command == IKST.CMD.feedAll or command == IKST.CMD.cureAll
@@ -129,7 +133,8 @@ function IKST_RateLimit.groupForCommand(command)
         or command == IKST.CMD.setWeather or command == IKST.CMD.clearWeather or command == IKST.CMD.setTime then
         return "staff_world"
     end
-    if command == IKST.CMD.lockTryUnlock or command == IKST.CMD.lockInstallKeypad then
+    if command == IKST.CMD.lockTryUnlock or command == IKST.CMD.lockTryClearance
+        or command == IKST.CMD.lockInstallKeypad then
         return "lock_auth"
     end
     if command == IKST.CMD.safehouseList or command == IKST.CMD.vehicleClaimList

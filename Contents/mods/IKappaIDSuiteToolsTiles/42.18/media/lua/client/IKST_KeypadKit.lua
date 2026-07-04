@@ -9,8 +9,22 @@ require "IKST_Access"
 require "IKST_Chrome"
 require "IKST_Locks"
 require "IKST_Grid"
+require "IKST_Clearance"
 
 IKST_KeypadKit = IKST_KeypadKit or {}
+
+function IKST_KeypadKit.playerHasClearanceTag(player)
+    if not player or not IKST_Clearance or not IKST_Clearance.eachInventoryItem then
+        return false
+    end
+    local found = false
+    IKST_Clearance.eachInventoryItem(player, function(item)
+        if not found and IKST_Clearance.isClearanceItem(item) then
+            found = true
+        end
+    end)
+    return found
+end
 
 function IKST_KeypadKit.resolveItem(items)
     if ISInventoryPane and ISInventoryPane.getActualItems then
@@ -139,6 +153,11 @@ function IKST_KeypadKit.onWorldMenu(playerNum, context, worldobjects, test)
                 IKST.dispatchCommand(player, IKST.CMD.lockTryUnlock, { x = x, y = y, z = z, password = pw })
             end)
         end)
+        if IKST_KeypadKit.playerHasClearanceTag(player) then
+            context:addOption(IKST.text("IGUI_IKST_Clearance_UseTag", "Use clearance tag"), player, function()
+                IKST.dispatchCommand(player, IKST.CMD.lockTryClearance, { x = x, y = y, z = z })
+            end)
+        end
     end
 end
 

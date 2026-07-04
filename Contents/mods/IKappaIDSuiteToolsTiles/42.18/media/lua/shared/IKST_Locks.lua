@@ -50,6 +50,12 @@ function IKST_Locks.rebuildPublic()
             pub.locked[k] = true
         end
     end
+    sec.clearance = sec.clearance or {}
+    for k, zoneId in pairs(sec.clearance) do
+        if zoneId and zoneId ~= "" then
+            pub.locked[k] = true
+        end
+    end
 end
 
 function IKST_Locks.transmitPublic()
@@ -82,6 +88,39 @@ function IKST_Locks.setPassword(x, y, z, password)
     IKST_Locks.rebuildPublic()
     IKST_Locks.transmitPublic()
     return true
+end
+
+function IKST_Locks.getClearanceZone(x, y, z)
+    if not IKST_Locks.runsOnServer() then
+        return nil
+    end
+    local data = IKST_Locks.secretsStore()
+    data.clearance = data.clearance or {}
+    return data.clearance[IKST_Locks.key(x, y, z)]
+end
+
+function IKST_Locks.setClearanceZone(x, y, z, zoneId)
+    if not IKST_Locks.requireServerMutate() then
+        return false
+    end
+    local data = IKST_Locks.secretsStore()
+    data.clearance = data.clearance or {}
+    data.locks = data.locks or {}
+    local k = IKST_Locks.key(x, y, z)
+    if zoneId and zoneId ~= "" then
+        data.clearance[k] = zoneId
+        data.locks[k] = nil
+    else
+        data.clearance[k] = nil
+    end
+    IKST_Locks.rebuildPublic()
+    IKST_Locks.transmitPublic()
+    return true
+end
+
+function IKST_Locks.isClearanceLock(x, y, z)
+    local zoneId = IKST_Locks.getClearanceZone(x, y, z)
+    return zoneId ~= nil and zoneId ~= ""
 end
 
 function IKST_Locks.playerUnlocked(player, x, y, z)
@@ -126,12 +165,40 @@ function IKST_Locks.tryUnlock(player, x, y, z, password)
     if not IKST_Locks.isLocked(x, y, z) then
         return true, "not locked"
     end
+    if IKST_Locks.isClearanceLock(x, y, z) then
+        return false, "clearance required"
+    end
     local expected = IKST_Locks.getPassword(x, y, z)
     if expected and password and password == expected then
         IKST_Locks.markUnlocked(player, x, y, z)
         return true, "unlocked"
     end
     return false, "wrong password"
+end
+
+function IKST_Locks.tryClearanceUnlock(player, x, y, z)
+    if not IKST_Locks.requireServerMutate() then
+        return false, "server only"
+    end
+    if not IKST_Locks.isLocked(x, y, z) then
+        return true, "not locked"
+    end
+    local zoneId = IKST_Locks.getClearanceZone(x, y, z)
+    if not zoneId or zoneId == "" then
+        return false, "not clearance lock"
+    end
+    if not IKST_Clearance then
+        require "IKST_Clearance"
+    end
+    if not IKST_Clearance or not IKST_Clearance.findValidCardForZone then
+        return false, "clearance unavailable"
+    end
+    local card = IKST_Clearance.findValidCardForZone(player, zoneId)
+    if not card then
+        return false, "no valid clearance tag"
+    end
+    IKST_Locks.markUnlocked(player, x, y, z)
+    return true, "unlocked"
 end
 
 if IKST_Locks.runsOnServer() then
