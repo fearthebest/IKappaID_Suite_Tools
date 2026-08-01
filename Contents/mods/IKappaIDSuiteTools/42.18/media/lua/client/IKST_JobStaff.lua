@@ -29,7 +29,19 @@ function IKST_JobStaff.readEntry(entry)
 end
 
 function IKST_JobStaff.readNumber(entry, fallback)
-    local n = tonumber(IKST_JobStaff.readEntry(entry))
+    if IKST and type(IKST.parseNumber) == "function" then
+        return IKST.parseNumber(IKST_JobStaff.readEntry(entry), fallback)
+    end
+    fallback = fallback or 0
+    local text = IKST_JobStaff.readEntry(entry)
+    if text == nil or text == "" then
+        return fallback
+    end
+    local matched = string.match(tostring(text), "^%s*([%-%+]?%d+%.?%d*)")
+    if not matched then
+        return fallback
+    end
+    local n = tonumber(matched)
     if n == nil then
         return fallback
     end
@@ -42,6 +54,17 @@ function IKST_JobStaff.addSelfCheatRow(panel, y, cheatIds, player)
         local row = IKST_StaffCheats and IKST_StaffCheats.CHEATS and IKST_StaffCheats.CHEATS[cheatId]
         if row then
             panel:makeJobButton(x, y, 88, 22, IKST.text(row.labelKey, row.fallback), function()
+                local p = IKST_ClientStaff.resolveLocalPlayer and IKST_ClientStaff.resolveLocalPlayer(player)
+                    or IKST.resolvePlayer(player)
+                if p and IKST_StaffCheats and IKST_StaffCheats.isActive and IKST_StaffCheats.apply then
+                    local on = not IKST_StaffCheats.isActive(p, cheatId)
+                    if IKST.isRemoteClient and IKST.isRemoteClient() then
+                        if IKST_StaffCheats.setStored then
+                            IKST_StaffCheats.setStored(p, cheatId, on)
+                        end
+                        IKST_StaffCheats.apply(p, cheatId, on)
+                    end
+                end
                 IKST.dispatchCommand(player, IKST.CMD.toggleSelfCheat, { cheat = cheatId })
             end, false)
             x = x + 92
@@ -207,6 +230,10 @@ function IKST_JobStaff.build(panel)
         panel:makeJobButton(204, y, 90, 24, IKST.text("IGUI_IKST_Ghost", "Ghost"), function()
             IKST.dispatchCommand(p, IKST.CMD.ghostSelf, {})
         end, false)
+        y = y + 28
+        panel:makeJobButton(12, y, 90, 24, IKST.text("IGUI_IKST_NoClip", "NoClip"), function()
+            IKST.dispatchCommand(p, IKST.CMD.noclipSelf, {})
+        end, true)
         y = y + 32
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_TpCoords", "Teleport X,Y,Z"), UIFont.Small)
         y = y + 16

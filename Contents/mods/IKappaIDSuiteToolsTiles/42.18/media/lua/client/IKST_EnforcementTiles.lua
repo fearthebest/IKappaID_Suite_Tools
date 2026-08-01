@@ -1,5 +1,8 @@
 -- Client enforcement for tile protection (vanilla destroy / move / pickup paths).
 -- Server sets protect/readonly rules; clients block vanilla UI actions only.
+--
+-- B42.20: ISDestroyCursor / ISMoveableCursor live under media/lua/server/BuildingObjects.
+-- Client require of those paths can throw — never require them. Wrap only if globals exist.
 
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
@@ -10,6 +13,9 @@ require "IKST_Access"
 require "IKST_TileCheck"
 
 IKST_EnforcementTiles = IKST_EnforcementTiles or {}
+
+local RETRY_MAX = 40
+local RETRY_INTERVAL_MS = 500
 
 function IKST_EnforcementTiles.alreadyWrapped(table, key)
     if not table then
@@ -69,9 +75,10 @@ end
 
 function IKST_EnforcementTiles.wrapDestroyCursor()
     if not ISDestroyCursor then
-        return
+        return false
     end
-    if ISDestroyCursor.canDestroy and not IKST_EnforcementTiles.alreadyWrapped(ISDestroyCursor, "canDestroy") then
+    local wrapped = false
+    if type(ISDestroyCursor.canDestroy) == "function" and not IKST_EnforcementTiles.alreadyWrapped(ISDestroyCursor, "canDestroy") then
         local vanillaCanDestroy = ISDestroyCursor.canDestroy
         ISDestroyCursor.canDestroy = function(self, object)
             if IKST_EnforcementTiles.objectBlocked(self and self.character, object, "destroy") then
@@ -79,8 +86,9 @@ function IKST_EnforcementTiles.wrapDestroyCursor()
             end
             return vanillaCanDestroy(self, object)
         end
+        wrapped = true
     end
-    if ISDestroyCursor.isValid and not IKST_EnforcementTiles.alreadyWrapped(ISDestroyCursor, "isValid") then
+    if type(ISDestroyCursor.isValid) == "function" and not IKST_EnforcementTiles.alreadyWrapped(ISDestroyCursor, "isValid") then
         local vanillaIsValid = ISDestroyCursor.isValid
         ISDestroyCursor.isValid = function(self, square)
             local object = self and self.currentObject or nil
@@ -89,15 +97,17 @@ function IKST_EnforcementTiles.wrapDestroyCursor()
             end
             return vanillaIsValid(self, square)
         end
+        wrapped = true
     end
+    return wrapped or (ISDestroyCursor.IKST_enforcement_tiles_canDestroy == true)
 end
 
 function IKST_EnforcementTiles.wrapMoveableCursor()
-    if not ISMoveableCursor or not ISMoveableCursor.isValid then
-        return
+    if not ISMoveableCursor or type(ISMoveableCursor.isValid) ~= "function" then
+        return false
     end
     if IKST_EnforcementTiles.alreadyWrapped(ISMoveableCursor, "isValid") then
-        return
+        return true
     end
     local vanillaIsValid = ISMoveableCursor.isValid
     ISMoveableCursor.isValid = function(self, square)
@@ -110,14 +120,15 @@ function IKST_EnforcementTiles.wrapMoveableCursor()
         end
         return vanillaIsValid(self, square)
     end
+    return true
 end
 
 function IKST_EnforcementTiles.wrapMoveablesAction()
-    if not ISMoveablesAction or not ISMoveablesAction.isValid then
-        return
+    if not ISMoveablesAction or type(ISMoveablesAction.isValid) ~= "function" then
+        return false
     end
     if IKST_EnforcementTiles.alreadyWrapped(ISMoveablesAction, "isValid") then
-        return
+        return true
     end
     local vanillaIsValid = ISMoveablesAction.isValid
     ISMoveablesAction.isValid = function(self)
@@ -127,14 +138,15 @@ function IKST_EnforcementTiles.wrapMoveablesAction()
         end
         return vanillaIsValid(self)
     end
+    return true
 end
 
 function IKST_EnforcementTiles.wrapMovablePickup()
-    if not ISMoveableSpriteTool or not ISMoveableSpriteTool.walkTo then
-        return
+    if not ISMoveableSpriteTool or type(ISMoveableSpriteTool.walkTo) ~= "function" then
+        return false
     end
     if IKST_EnforcementTiles.alreadyWrapped(ISMoveableSpriteTool, "walkTo") then
-        return
+        return true
     end
     local vanillaWalkTo = ISMoveableSpriteTool.walkTo
     ISMoveableSpriteTool.walkTo = function(self, obj, ...)
@@ -143,10 +155,12 @@ function IKST_EnforcementTiles.wrapMovablePickup()
         end
         return vanillaWalkTo(self, obj, ...)
     end
+    return true
 end
 
 function IKST_EnforcementTiles.wrapDestroyTimedActions()
-    if ISDestroyStuffAction and ISDestroyStuffAction.isValid then
+    local wrapped = false
+    if ISDestroyStuffAction and type(ISDestroyStuffAction.isValid) == "function" then
         if not IKST_EnforcementTiles.alreadyWrapped(ISDestroyStuffAction, "isValid") then
             local vanillaDestroyValid = ISDestroyStuffAction.isValid
             ISDestroyStuffAction.isValid = function(self)
@@ -155,9 +169,12 @@ function IKST_EnforcementTiles.wrapDestroyTimedActions()
                 end
                 return vanillaDestroyValid(self)
             end
+            wrapped = true
+        else
+            wrapped = true
         end
     end
-    if ISDismantleAction and ISDismantleAction.isValid then
+    if ISDismantleAction and type(ISDismantleAction.isValid) == "function" then
         if not IKST_EnforcementTiles.alreadyWrapped(ISDismantleAction, "isValid") then
             local vanillaDismantleValid = ISDismantleAction.isValid
             ISDismantleAction.isValid = function(self)
@@ -166,20 +183,29 @@ function IKST_EnforcementTiles.wrapDestroyTimedActions()
                 end
                 return vanillaDismantleValid(self)
             end
+            wrapped = true
+        else
+            wrapped = true
         end
     end
+    return wrapped
 end
 
-function IKST_EnforcementTiles.loadVanillaClasses()
-    if not ISDestroyCursor then
-        require "BuildingObjects/ISDestroyCursor"
-    end
-    if not ISMoveableCursor then
-        require "BuildingObjects/ISMoveableCursor"
-    end
+-- Prefer shared Moveables path only (safe on client). Never require server BuildingObjects.
+function IKST_EnforcementTiles.loadSafeSharedClasses()
     if not ISMoveablesAction then
         require "Moveables/ISMoveablesAction"
     end
+end
+
+function IKST_EnforcementTiles.applyWraps()
+    IKST_EnforcementTiles.loadSafeSharedClasses()
+    local destroyOk = IKST_EnforcementTiles.wrapDestroyCursor()
+    local moveOk = IKST_EnforcementTiles.wrapMoveableCursor()
+    IKST_EnforcementTiles.wrapMoveablesAction()
+    IKST_EnforcementTiles.wrapDestroyTimedActions()
+    IKST_EnforcementTiles.wrapMovablePickup()
+    return destroyOk, moveOk
 end
 
 function IKST_EnforcementTiles.init()
@@ -189,14 +215,63 @@ function IKST_EnforcementTiles.init()
     if not IKST_SafehouseClaim then
         require "IKST_SafehouseClaim"
     end
-    IKST_EnforcementTiles.loadVanillaClasses()
-    IKST_EnforcementTiles.wrapDestroyCursor()
-    IKST_EnforcementTiles.wrapMoveableCursor()
-    IKST_EnforcementTiles.wrapMoveablesAction()
-    IKST_EnforcementTiles.wrapDestroyTimedActions()
-    IKST_EnforcementTiles.wrapMovablePickup()
+    local destroyOk, moveOk = IKST_EnforcementTiles.applyWraps()
+    if destroyOk and moveOk then
+        IKST_EnforcementTiles._wrapsReady = true
+        return
+    end
+    -- Cursor globals may load later on B42.20 — retry briefly without hard-requiring server Lua.
+    if IKST_EnforcementTiles._retryStarted then
+        return
+    end
+    IKST_EnforcementTiles._retryStarted = true
+    IKST_EnforcementTiles._retryCount = 0
+    IKST_EnforcementTiles._retryNextMs = 0
+    if Events and Events.OnTick then
+        Events.OnTick.Add(IKST_EnforcementTiles.onRetryTick)
+    end
+end
+
+function IKST_EnforcementTiles.onRetryTick()
+    if IKST_EnforcementTiles._wrapsReady then
+        if Events and Events.OnTick then
+            Events.OnTick.Remove(IKST_EnforcementTiles.onRetryTick)
+        end
+        return
+    end
+    local now = getTimestampMs and getTimestampMs() or 0
+    if now < (IKST_EnforcementTiles._retryNextMs or 0) then
+        return
+    end
+    IKST_EnforcementTiles._retryNextMs = now + RETRY_INTERVAL_MS
+    IKST_EnforcementTiles._retryCount = (IKST_EnforcementTiles._retryCount or 0) + 1
+
+    local destroyOk, moveOk = IKST_EnforcementTiles.applyWraps()
+    if destroyOk and moveOk then
+        IKST_EnforcementTiles._wrapsReady = true
+        if Events and Events.OnTick then
+            Events.OnTick.Remove(IKST_EnforcementTiles.onRetryTick)
+        end
+        return
+    end
+
+    if (IKST_EnforcementTiles._retryCount or 0) >= RETRY_MAX then
+        if Events and Events.OnTick then
+            Events.OnTick.Remove(IKST_EnforcementTiles.onRetryTick)
+        end
+        print("[IKST] EnforcementTiles: cursor wraps incomplete after retries (destroy="
+            .. tostring(ISDestroyCursor ~= nil) .. " moveable=" .. tostring(ISMoveableCursor ~= nil)
+            .. "). Tile protect still uses server authority; client UI block may be partial.")
+    end
 end
 
 if Events and Events.OnGameStart then
     Events.OnGameStart.Add(IKST_EnforcementTiles.init)
+end
+if Events and Events.OnCreatePlayer then
+    Events.OnCreatePlayer.Add(function()
+        if not IKST_EnforcementTiles._wrapsReady then
+            IKST_EnforcementTiles.init()
+        end
+    end)
 end

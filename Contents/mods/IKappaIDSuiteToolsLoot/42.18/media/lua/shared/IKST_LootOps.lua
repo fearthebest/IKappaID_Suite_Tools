@@ -614,6 +614,9 @@ function IKST_LootOps.resolveContainerDistribution(container, roomName, junk)
         return nil
     end
     local function try(room, procedural)
+        if not room or room == "" or procedural == nil then
+            return nil
+        end
         return ItemPicker.getItemContainer(room, containerType, procedural, junk == true)
     end
     local roomNames = {}
@@ -642,10 +645,6 @@ function IKST_LootOps.resolveContainerDistribution(container, roomName, junk)
             return dist
         end
         dist = try(candidate, "")
-        if dist then
-            return dist
-        end
-        dist = try(candidate, nil)
         if dist then
             return dist
         end

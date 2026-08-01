@@ -5,6 +5,7 @@ end
 require "IKST_Shared"
 require "IKST_ClimatePresets"
 require "IKST_VehicleMirror"
+require "IKST_StaffCheats"
 
 IKST_ClientStaff = IKST_ClientStaff or {}
 
@@ -79,45 +80,79 @@ function IKST_ClientStaff.applyPlayerModes(player, args)
     if not player or not args then
         return
     end
-    local forced = IKST.isMultiplayerSession and IKST.isMultiplayerSession()
-    if args.god ~= nil and player.setGodMod then
-        local on = args.god == true
-        if forced then
-            player:setGodMod(on, true)
-        else
-            player:setGodMod(on)
+    local function setFlag(setFnName, on)
+        if type(player[setFnName]) ~= "function" then
+            return
         end
-        if player.setInvincible then
-            player:setInvincible(on)
+        -- Always force: capability-gated 1-arg setters clear without Toggle*Himself.
+        player[setFnName](player, on == true, true)
+    end
+    if args.god ~= nil then
+        setFlag("setGodMod", args.god)
+        if type(player.setInvincible) == "function" then
+            player:setInvincible(args.god == true)
         end
     end
-    if args.ghost ~= nil and player.setGhostMode then
-        local on = args.ghost == true
-        if forced then
-            player:setGhostMode(on, true)
+    if args.ghost ~= nil then
+        setFlag("setGhostMode", args.ghost)
+    end
+    local noclipOn = nil
+    if args.noclip ~= nil then
+        noclipOn = args.noclip == true
+        setFlag("setNoClip", noclipOn)
+    elseif args.ghost ~= nil then
+        noclipOn = args.ghost == true
+        setFlag("setNoClip", noclipOn)
+    end
+    -- Pure SP without -debug: PlayerCheats ignores setNoClip; skip wall collide via setCollidable.
+    if noclipOn ~= nil and type(player.setCollidable) == "function" then
+        local engineOn = type(player.isNoClip) == "function" and player:isNoClip()
+        if noclipOn and not engineOn then
+            player:setCollidable(false)
         else
-            player:setGhostMode(on)
-        end
-        if player.setNoClip then
-            if forced then
-                player:setNoClip(on, true)
-            else
-                player:setNoClip(on)
-            end
+            player:setCollidable(true)
         end
     end
-    if args.invisible ~= nil and player.setInvisible then
-        if forced then
-            player:setInvisible(args.invisible == true, true)
-        else
-            player:setInvisible(args.invisible == true)
-        end
+    if args.invisible ~= nil then
+        setFlag("setInvisible", args.invisible)
     end
 end
 
 function IKST_ClientStaff.applyVehicleSync(args)
     if IKST_VehicleMirror and IKST_VehicleMirror.applyServerState then
         IKST_VehicleMirror.applyServerState(args)
+    end
+end
+
+function IKST_ClientStaff.resolveLocalPlayer(player)
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
+        if getSpecificPlayer then
+            local localPlayer = getSpecificPlayer(0)
+            if localPlayer then
+                return localPlayer
+            end
+        end
+    end
+    player = IKST.resolvePlayer(player)
+    if not player then
+        return nil
+    end
+    if player.isLocalPlayer and not player:isLocalPlayer() then
+        return nil
+    end
+    return player
+end
+
+function IKST_ClientStaff.applySelfCheatLocal(player, cheatId, on)
+    player = IKST_ClientStaff.resolveLocalPlayer(player)
+    if not player then
+        return
+    end
+    if IKST_StaffCheats and IKST_StaffCheats.setStored then
+        IKST_StaffCheats.setStored(player, cheatId, on)
+    end
+    if IKST_StaffCheats and IKST_StaffCheats.apply then
+        IKST_StaffCheats.apply(player, cheatId, on)
     end
 end
 

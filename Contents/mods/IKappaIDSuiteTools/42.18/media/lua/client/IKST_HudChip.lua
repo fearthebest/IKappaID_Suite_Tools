@@ -51,17 +51,17 @@ function IKST_HudChip:getStatusText()
         elseif state.painterMode == IKST.PAINTER_MODES.replace then
             modeLabel = IKST.text("IGUI_IKST_Replace", "Replace")
         end
-        return IKST.text("IGUI_IKST_Job_Painter", "World Painter") .. " · " .. modeLabel
+        return IKST.text("IGUI_IKST_Job_Painter", "World Painter") .. " - " .. modeLabel
     end
     if state.armedJob == IKST.VIEW.inspector then
-        return IKST.text("IGUI_IKST_Job_Inspector", "Square Inspector") .. " · " .. IKST.text("IGUI_IKST_Armed", "ARMED")
+        return IKST.text("IGUI_IKST_Job_Inspector", "Square Inspector") .. " - " .. IKST.text("IGUI_IKST_Armed", "ARMED")
     end
     if state.armedJob == IKST.VIEW.loot and IKST.getLootScope and IKST.lootScopeLabel then
-        return IKST.text("IGUI_IKST_Job_Loot", "Loot repopulate") .. " · " .. IKST.lootScopeLabel(IKST.getLootScope(state), state)
+        return IKST.text("IGUI_IKST_Job_Loot", "Loot repopulate") .. " - " .. IKST.lootScopeLabel(IKST.getLootScope(state), state)
     end
     local action = IKST.cleanupActionLabel(IKST.getCleanupAction(state))
     local scope = IKST.cleanupScopeLabel(IKST.getCleanupScope(state), state)
-    return IKST.text("IGUI_IKST_Job_Cleanup", "Cleanup Crew") .. " · " .. action .. " · " .. scope
+    return IKST.text("IGUI_IKST_Job_Cleanup", "Cleanup Crew") .. " - " .. action .. " - " .. scope
 end
 
 function IKST_HudChip:prerender()
@@ -77,7 +77,7 @@ function IKST_HudChip:render()
     end
     local c = IKST_Chrome.colors
     self:drawRect(10, 6, 6, 6, 1, c.accent.r, c.accent.g, c.accent.b)
-    self:drawText("IKST · " .. text, 22, 10, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)
+    self:drawText("IKST - " .. text, 22, 10, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)
 end
 
 function IKST_HudChip.shouldShow(player)

@@ -1,7 +1,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.3.0.1"
+IKST.VERSION = "0.3.0.2"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 IKST.RESTORE_MAX_PERK_LEVEL = 10
@@ -42,6 +42,7 @@ IKST.CMD = {
     godSelf = "godSelf",
     invisSelf = "invisSelf",
     ghostSelf = "ghostSelf",
+    noclipSelf = "noclipSelf",
     tpCoords = "tpCoords",
     giveItem = "giveItem",
     giveKit = "giveKit",
@@ -188,6 +189,7 @@ IKST.CMD = {
     waypointListResult = "waypointListResult",
     applyTeleport = "applyTeleport",
     applyStaffModes = "applyStaffModes",
+    applySelfCheat = "applySelfCheat",
     applyVehicleSync = "applyVehicleSync",
     protectListResult = "protectListResult",
     auditTail = "auditTail",
@@ -285,6 +287,7 @@ IKST.STAFF_COMMANDS = {
     godSelf = true,
     invisSelf = true,
     ghostSelf = true,
+    noclipSelf = true,
     tpCoords = true,
     toggleSelfCheat = true,
     repairSelfGear = true,
@@ -699,14 +702,19 @@ function IKST.parseNumber(text, fallback)
     if text == "" then
         return fallback
     end
-    local n = tonumber(text)
-    if not n then
+    -- Digits only — never pass free-form UI text to tonumber (Kahlua can throw).
+    local matched = string.match(text, "^([%-%+]?%d+%.?%d*)")
+    if not matched then
+        return fallback
+    end
+    local n = tonumber(matched)
+    if n == nil then
         return fallback
     end
     return n
 end
 
--- Safe parse for UI text fields (Kahlua tonumber can throw on empty/invalid input).
+-- Parse money/qty UI text (strip $/, keep leading number only).
 function IKST.parseAmount(text)
     if text == nil then
         return 0
@@ -719,8 +727,12 @@ function IKST.parseAmount(text)
         return 0
     end
     text = string.gsub(text, "[$,]", "")
-    local n = tonumber(text)
-    if not n then
+    local matched = string.match(text, "^([%-%+]?%d+%.?%d*)")
+    if not matched then
+        return 0
+    end
+    local n = tonumber(matched)
+    if n == nil then
         return 0
     end
     return math.floor(n)

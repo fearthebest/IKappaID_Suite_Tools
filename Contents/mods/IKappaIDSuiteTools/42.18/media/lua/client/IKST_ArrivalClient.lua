@@ -28,7 +28,7 @@ function IKST_ArrivalClient:render()
         return
     end
     local remaining = math.ceil(self.remainingMs / 1000)
-    local label = IKST.text("IGUI_IKST_Arrival_HUD", "Arrival stabilization") .. " · " .. remaining .. "s"
+    local label = IKST.text("IGUI_IKST_Arrival_HUD", "Arrival stabilization") .. " - " .. remaining .. "s"
     local c = IKST_Chrome.colors
     self:drawRect(0, 0, self.width, self.height, 0.85, c.bgApp.r, c.bgApp.g, c.bgApp.b)
     self:drawRect(0, 0, 3, self.height, 1, c.accent.r, c.accent.g, c.accent.b)
@@ -77,7 +77,7 @@ function IKST_ArrivalClient.onSync(args)
         local remaining = math.ceil((tonumber(args.remainingMs) or 0) / 1000)
         local label = IKST.text("IGUI_IKST_Arrival_HUD", "Arrival stabilization")
         if remaining > 0 then
-            label = label .. " · " .. remaining .. "s"
+            label = label .. " - " .. remaining .. "s"
         end
         if IKST.notify then
             IKST.notify(player, label, true)

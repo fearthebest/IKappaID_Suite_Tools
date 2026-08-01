@@ -829,20 +829,37 @@ function IKST_VehicleOps.giveVehicleKey(v, player)
     end
     if key and player and player.getInventory then
         local inv = player:getInventory()
-        if inv and inv.AddItem then
-            inv:AddItem(key)
+        if inv and inv.AddItem and inv:AddItem(key) then
             if key.syncKeyId and v.getKeyId then
                 key:syncKeyId(v:getKeyId())
+            end
+            if sendAddItemToContainer then
+                sendAddItemToContainer(inv, key)
+            end
+            if inv.setDrawDirty then
+                inv:setDrawDirty(true)
             end
             return true
         end
     end
     if v.addKeyToGloveBox then
         v:addKeyToGloveBox()
+        if v.getPartById and v.transmitPartItem then
+            local part = v:getPartById("GloveBox")
+            if part then
+                v:transmitPartItem(part)
+            end
+        end
         return true
     end
     if v.createKeyInGloveBox then
         v:createKeyInGloveBox()
+        if v.getPartById and v.transmitPartItem then
+            local part = v:getPartById("GloveBox")
+            if part then
+                v:transmitPartItem(part)
+            end
+        end
         return true
     end
     if key and v.putKeyInIgnition then

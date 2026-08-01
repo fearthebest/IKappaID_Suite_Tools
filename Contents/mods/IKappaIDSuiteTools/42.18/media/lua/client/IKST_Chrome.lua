@@ -85,7 +85,7 @@ function IKST_Chrome.drawStatusStrip(panel, player, y)
     local z = player and player:getZ() or 0
     local cellX = math.floor(x / 300)
     local cellY = math.floor(py / 300)
-    local line = string.format("%d, %d, %d  ·  Cell %d,%d", math.floor(x), math.floor(py), z, cellX, cellY)
+    local line = string.format("%d, %d, %d  -  Cell %d,%d", math.floor(x), math.floor(py), z, cellX, cellY)
     panel:drawText(line, textX, y + 5, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, c.textPrimary.a, UIFont.Small)
     local roleKey = "IGUI_IKST_Player"
     local roleFallback = "Player"

@@ -141,6 +141,17 @@ function IKST_Args.readZoneId(args, key)
     return z
 end
 
+-- MP command payloads may arrive as boolean, 0/1, or "true"/"false" strings.
+function IKST_Args.readBool(val)
+    if val == true or val == 1 or val == "1" or val == "true" then
+        return true
+    end
+    if val == false or val == 0 or val == "0" or val == "false" then
+        return false
+    end
+    return nil
+end
+
 function IKST_Args.readCheatId(args)
     if not args or type(args.cheat) ~= "string" then
         return nil

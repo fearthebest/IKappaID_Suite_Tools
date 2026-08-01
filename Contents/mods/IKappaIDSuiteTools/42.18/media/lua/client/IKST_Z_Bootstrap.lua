@@ -86,6 +86,13 @@ local function onServerCommand(module, command, args)
         return
     end
 
+    if command == IKST.CMD.applySelfCheat then
+        if IKST_ClientStaff and IKST_ClientStaff.applySelfCheatLocal then
+            IKST_ClientStaff.applySelfCheatLocal(nil, args and args.cheat, args and args.on)
+        end
+        return
+    end
+
     local player = getPlayer()
     if not player then
         return

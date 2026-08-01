@@ -2,7 +2,6 @@
 -- Bootstrap/rev for enforcement; applyMirror for incremental ModData + UI rows.
 
 require "IKST_Shared"
-require "IKST_VehicleClaim"
 
 IKST_VehicleClaimMirror = IKST_VehicleClaimMirror or {}
 IKST_VehicleClaimMirror.byId = IKST_VehicleClaimMirror.byId or {}

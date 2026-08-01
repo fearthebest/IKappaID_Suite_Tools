@@ -233,16 +233,64 @@ function IKST_StaffOps.cure(player)
     return true, "Cured"
 end
 
+-- Always force staff mode flags. Without isForced, B42 capability checks clear them.
 function IKST_StaffOps.useForcedSync()
-    return IKST.isMultiplayerSession and IKST.isMultiplayerSession()
-        and IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+    return true
+end
+
+-- Mirrors PlayerCheats.isCheatAllowed(): Core.debug OR GameClient OR GameServer.
+-- Pure SP without -debug returns false — setNoClip/setGodMod/setInvisible are no-ops there.
+function IKST_StaffOps.engineCheatsAllowed()
+    if type(getDebug) == "function" and getDebug() then
+        return true
+    end
+    if type(isDebugEnabled) == "function" and isDebugEnabled() then
+        return true
+    end
+    if type(isClient) == "function" and isClient() then
+        return true
+    end
+    if type(isServer) == "function" and isServer() then
+        return true
+    end
+    return false
+end
+
+function IKST_StaffOps.setPlayerFlag(player, setFnName, on)
+    if not player or type(player[setFnName]) ~= "function" then
+        return false
+    end
+    on = on == true
+    if IKST_StaffOps.useForcedSync() then
+        player[setFnName](player, on, true)
+    else
+        player[setFnName](player, on)
+    end
+    return true
+end
+
+-- SP without -debug: PlayerCheats refuses NO_CLIP. IsoMovingObject skips wall
+-- collision when isCollidable() is false (same path as isNoClip in movement).
+function IKST_StaffOps.applyNoClipCollisionFallback(player, on)
+    if not player or type(player.setCollidable) ~= "function" then
+        return false
+    end
+    on = on == true
+    if on then
+        local engineOn = type(player.isNoClip) == "function" and player:isNoClip()
+        if engineOn then
+            player:setCollidable(true)
+            return false
+        end
+        player:setCollidable(false)
+        return true
+    end
+    player:setCollidable(true)
+    return false
 end
 
 function IKST_StaffOps.syncStaffModesToClient(player)
     if not player or not IKST.deliverClientCommand then
-        return
-    end
-    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return
     end
     local md = IKST_StaffOps.staffModData(player)
@@ -253,6 +301,12 @@ function IKST_StaffOps.syncStaffModesToClient(player)
     if md and md.ghost ~= nil then
         args.ghost = md.ghost == true
     end
+    if md and md.noclip ~= nil then
+        args.noclip = md.noclip == true
+    elseif md and md.ghost ~= nil then
+        -- Legacy: Ghost used to drive noclip too.
+        args.noclip = md.ghost == true
+    end
     if md and md.invisible ~= nil then
         args.invisible = md.invisible == true
     end
@@ -260,16 +314,12 @@ function IKST_StaffOps.syncStaffModesToClient(player)
 end
 
 function IKST_StaffOps.toggleGod(player)
-    if not player or not player.isGodMod or not player.setGodMod then
+    if not player or type(player.isGodMod) ~= "function" or type(player.setGodMod) ~= "function" then
         return false, "unavailable"
     end
     local on = not player:isGodMod()
-    if IKST_StaffOps.useForcedSync() then
-        player:setGodMod(on, true)
-    else
-        player:setGodMod(on)
-    end
-    if player.setInvincible then
+    IKST_StaffOps.setPlayerFlag(player, "setGodMod", on)
+    if type(player.setInvincible) == "function" then
         player:setInvincible(on)
     end
     IKST_StaffOps.syncStaffModesToClient(player)
@@ -295,32 +345,27 @@ function IKST_StaffOps.applyStaffModes(player)
     if not md then
         return
     end
-    local forced = IKST_StaffOps.useForcedSync()
-    if player.setGhostMode and md.ghost ~= nil then
-        if forced then
-            player:setGhostMode(md.ghost == true, true)
-        else
-            player:setGhostMode(md.ghost == true)
-        end
+    if md.ghost ~= nil then
+        IKST_StaffOps.setPlayerFlag(player, "setGhostMode", md.ghost == true)
     end
-    if player.setNoClip and md.ghost ~= nil then
-        if forced then
-            player:setNoClip(md.ghost == true, true)
-        else
-            player:setNoClip(md.ghost == true)
-        end
+    local noclipOn = nil
+    if md.noclip ~= nil then
+        noclipOn = md.noclip == true
+    elseif md.ghost ~= nil then
+        -- Keep prior Ghost button behavior: ghost also drives noclip unless noclip was set alone.
+        noclipOn = md.ghost == true
     end
-    if player.setInvisible and md.invisible ~= nil then
-        if forced then
-            player:setInvisible(md.invisible == true, true)
-        else
-            player:setInvisible(md.invisible == true)
-        end
+    if noclipOn ~= nil then
+        IKST_StaffOps.setPlayerFlag(player, "setNoClip", noclipOn)
+        IKST_StaffOps.applyNoClipCollisionFallback(player, noclipOn)
+    end
+    if md.invisible ~= nil then
+        IKST_StaffOps.setPlayerFlag(player, "setInvisible", md.invisible == true)
     end
 end
 
 function IKST_StaffOps.toggleInvisible(player)
-    if not player or not player.setInvisible then
+    if not player or type(player.setInvisible) ~= "function" then
         return false, "unavailable"
     end
     local md = IKST_StaffOps.staffModData(player)
@@ -334,7 +379,7 @@ function IKST_StaffOps.toggleInvisible(player)
 end
 
 function IKST_StaffOps.toggleGhost(player)
-    if not player or not player.setGhostMode then
+    if not player or type(player.setGhostMode) ~= "function" then
         return false, "unavailable"
     end
     local md = IKST_StaffOps.staffModData(player)
@@ -342,9 +387,50 @@ function IKST_StaffOps.toggleGhost(player)
         return false, "unavailable"
     end
     md.ghost = not (md.ghost == true)
+    -- Ghost also toggles noclip (walk through walls) unless user set noclip separately later.
+    md.noclip = md.ghost
     IKST_StaffOps.applyStaffModes(player)
     IKST_StaffOps.syncStaffModesToClient(player)
-    return true, md.ghost and "Ghost ON" or "Ghost OFF"
+    if not md.ghost then
+        return true, "Ghost OFF"
+    end
+    local engineInvis = type(player.isInvisible) == "function" and player:isInvisible()
+    local engineNoclip = type(player.isNoClip) == "function" and player:isNoClip()
+    if engineInvis and engineNoclip then
+        return true, "Ghost ON"
+    end
+    if type(player.isCollidable) == "function" and not player:isCollidable() then
+        return true, "Ghost ON (SP walls; invis needs -debug/MP)"
+    end
+    if not engineInvis then
+        return false, "Ghost blocked (use -debug in SP, or host/MP admin)"
+    end
+    return true, "Ghost ON"
+end
+
+function IKST_StaffOps.toggleNoClip(player)
+    if not player or type(player.setNoClip) ~= "function" then
+        return false, "unavailable"
+    end
+    local md = IKST_StaffOps.staffModData(player)
+    if not md then
+        return false, "unavailable"
+    end
+    md.noclip = not (md.noclip == true)
+    IKST_StaffOps.applyStaffModes(player)
+    IKST_StaffOps.syncStaffModesToClient(player)
+    if not md.noclip then
+        return true, "NoClip OFF"
+    end
+    local engineOn = type(player.isNoClip) == "function" and player:isNoClip()
+    if engineOn then
+        return true, "NoClip ON"
+    end
+    -- Pure SP without -debug cannot set PlayerCheats; collidable fallback must stick.
+    if type(player.isCollidable) == "function" and not player:isCollidable() then
+        return true, "NoClip ON (SP walls)"
+    end
+    return false, "NoClip blocked (use -debug in SP, or host/MP admin)"
 end
 
 function IKST_StaffOps.giveItem(player, itemType, count)
@@ -684,6 +770,9 @@ function IKST_StaffOps.handle(command, player, args)
     if command == IKST.CMD.ghostSelf then
         return IKST_StaffOps.toggleGhost(player)
     end
+    if command == IKST.CMD.noclipSelf then
+        return IKST_StaffOps.toggleNoClip(player)
+    end
     if command == IKST.CMD.tpCoords then
         local x, y, z = tonumber(args.x), tonumber(args.y), tonumber(args.z) or 0
         if not x or not y then
@@ -921,7 +1010,8 @@ function IKST_StaffOps.handle(command, player, args)
 end
 
 local function onStaffPlayerReady(player)
-    if not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+    -- Dedicated/listen server JVM, or integrated SP (not a remote MP client).
+    if IKST.isRemoteClient and IKST.isRemoteClient() then
         return
     end
     if not player then
@@ -929,6 +1019,15 @@ local function onStaffPlayerReady(player)
     end
     IKST_StaffOps.applyStaffModes(player)
     IKST_StaffOps.syncStaffModesToClient(player)
+    if not IKST_StaffCheats then
+        require "IKST_StaffCheats"
+    end
+    if IKST_StaffCheats and IKST_StaffCheats.reapplyStored then
+        IKST_StaffCheats.reapplyStored(player)
+    end
+    if IKST_StaffCheats and IKST_StaffCheats.syncAllToClient then
+        IKST_StaffCheats.syncAllToClient(player)
+    end
     if not IKST_Rewind then
         require "IKST_Rewind"
     end

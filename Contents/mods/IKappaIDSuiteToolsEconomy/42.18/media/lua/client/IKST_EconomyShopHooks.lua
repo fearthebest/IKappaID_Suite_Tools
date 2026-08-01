@@ -11,10 +11,13 @@ require "TimedActions/ISGrabItemAction"
 IKST_EconomyShopHooks = IKST_EconomyShopHooks or {}
 
 function IKST_EconomyShopHooks.wrapTransfer()
-    if IKST_EconomyShopHooks.transferWrapped or not ISInventoryTransferAction then
+    if IKST_EconomyShopHooks.transferWrapped then
+        return true
+    end
+    if not ISInventoryTransferAction then
         return false
     end
-    if not ISInventoryTransferAction.isValid then
+    if type(ISInventoryTransferAction.isValid) ~= "function" then
         return false
     end
     IKST_EconomyShopHooks.transferWrapped = true
@@ -33,7 +36,7 @@ function IKST_EconomyShopHooks.wrapTransfer()
         return vanillaTransfer(self)
     end
 
-    if ISGrabItemAction and ISGrabItemAction.isValid then
+    if ISGrabItemAction and type(ISGrabItemAction.isValid) == "function" then
         local vanillaGrab = ISGrabItemAction.isValid
         ISGrabItemAction.isValid = function(self)
             if self and self.item and self.character then
@@ -57,14 +60,17 @@ function IKST_EconomyShopHooks.wrapTransfer()
 end
 
 function IKST_EconomyShopHooks.wrapDestroy()
-    if IKST_EconomyShopHooks.destroyWrapped or not ISDestroyCursor then
+    if IKST_EconomyShopHooks.destroyWrapped then
+        return true
+    end
+    if not ISDestroyCursor then
+        return false
+    end
+    local vanillaCanDestroy = ISDestroyCursor.canDestroy
+    if type(vanillaCanDestroy) ~= "function" then
         return false
     end
     IKST_EconomyShopHooks.destroyWrapped = true
-    local vanillaCanDestroy = ISDestroyCursor.canDestroy
-    if not vanillaCanDestroy then
-        return false
-    end
     ISDestroyCursor.canDestroy = function(self, object)
         if object and IKST_Economy and IKST_Economy.shopObjectProtected(object, self and self.character) then
             if IKST.notify then
@@ -78,11 +84,14 @@ function IKST_EconomyShopHooks.wrapDestroy()
 end
 
 function IKST_EconomyShopHooks.wrapPickup()
-    if IKST_EconomyShopHooks.pickupWrapped or not ISMoveableSpriteTool then
+    if IKST_EconomyShopHooks.pickupWrapped then
+        return true
+    end
+    if not ISMoveableSpriteTool then
         return false
     end
     local vanillaPickup = ISMoveableSpriteTool.walkTo
-    if not vanillaPickup then
+    if type(vanillaPickup) ~= "function" then
         return false
     end
     IKST_EconomyShopHooks.pickupWrapped = true
@@ -104,9 +113,35 @@ function IKST_EconomyShopHooks.init()
     IKST_EconomyShopHooks.wrapPickup()
 end
 
+-- B42.20: ISDestroyCursor may not exist at boot on clients. Retry wrap without requiring server paths.
+local shopHookRetries = 0
+local function retryShopHooks()
+    if IKST_EconomyShopHooks.destroyWrapped and IKST_EconomyShopHooks.pickupWrapped and IKST_EconomyShopHooks.transferWrapped then
+        if Events and Events.OnTick then
+            Events.OnTick.Remove(retryShopHooks)
+        end
+        return
+    end
+    shopHookRetries = shopHookRetries + 1
+    if shopHookRetries % 30 ~= 0 then
+        return
+    end
+    IKST_EconomyShopHooks.init()
+    if shopHookRetries > 1200 then
+        if Events and Events.OnTick then
+            Events.OnTick.Remove(retryShopHooks)
+        end
+    end
+end
+
 if Events and Events.OnGameBoot then
     Events.OnGameBoot.Add(IKST_EconomyShopHooks.init)
 end
 if Events and Events.OnGameStart then
     Events.OnGameStart.Add(IKST_EconomyShopHooks.init)
+    Events.OnGameStart.Add(function()
+        if Events and Events.OnTick and not IKST_EconomyShopHooks.destroyWrapped then
+            Events.OnTick.Add(retryShopHooks)
+        end
+    end)
 end
