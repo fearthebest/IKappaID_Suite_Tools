@@ -258,8 +258,11 @@ function IKST_ServerGate.checkRateAndArgs(player, command, args, meta)
             if command == IKST.CMD.lootRepopulateZone then
                 if args.scope == IKST.CLEANUP_SCOPES.radius then
                     maxDist = IKST.clampRadius(args.radius) + 2
+                elseif args.scope == IKST.CLEANUP_SCOPES.building or args.scope == IKST.CLEANUP_SCOPES.room then
+                    local maxR = type(IKST.getMaxCleanupRadius) == "function" and IKST.getMaxCleanupRadius() or 50
+                    maxDist = maxR + 2
                 else
-                    maxDist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+                    maxDist = 12
                 end
             end
             if x == nil or y == nil or not IKST_Args.actorNearCoord(player, x, y, z, maxDist) then

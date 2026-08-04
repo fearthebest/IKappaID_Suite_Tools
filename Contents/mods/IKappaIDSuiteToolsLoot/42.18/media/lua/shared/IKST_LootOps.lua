@@ -96,7 +96,21 @@ function IKST_LootOps.resolveObjectIndex(square, obj)
     return nil
 end
 
-function IKST_LootOps.collectContainersOnSquare(square, out, seen)
+function IKST_LootOps.containerHasLootDistribution(container)
+    if not IKST_LootOps.isWorldLootContainer(container) then
+        return false
+    end
+    local roomName = IKST_LootOps.roomNameFromContainer(container)
+    if IKST_LootOps.resolveContainerDistribution(container, roomName, false) then
+        return true
+    end
+    if IKST_LootOps.resolveContainerDistribution(container, roomName, true) then
+        return true
+    end
+    return false
+end
+
+function IKST_LootOps.collectContainersOnSquare(square, out, seen, refillableOnly)
     out = out or {}
     seen = seen or {}
     if not square then
@@ -117,9 +131,13 @@ function IKST_LootOps.collectContainersOnSquare(square, out, seen)
                 local container = entries[j].container
                 if container and not seen[container] then
                     seen[container] = true
-                    out[#out + 1] = container
-                    if #out >= IKST_LootOps.maxContainers() then
-                        return out
+                    if refillableOnly == true and not IKST_LootOps.containerHasLootDistribution(container) then
+                        -- Skip player crates / non-loot furniture so they do not consume the zone cap.
+                    else
+                        out[#out + 1] = container
+                        if #out >= IKST_LootOps.maxContainers() then
+                            return out
+                        end
                     end
                 end
             end
@@ -128,11 +146,11 @@ function IKST_LootOps.collectContainersOnSquare(square, out, seen)
     return out
 end
 
-function IKST_LootOps.collectContainersFromSquares(squares, out, seen)
+function IKST_LootOps.collectContainersFromSquares(squares, out, seen, refillableOnly)
     out = out or {}
     seen = seen or {}
     for i = 1, #squares do
-        IKST_LootOps.collectContainersOnSquare(squares[i], out, seen)
+        IKST_LootOps.collectContainersOnSquare(squares[i], out, seen, refillableOnly)
         if #out >= IKST_LootOps.maxContainers() then
             break
         end
@@ -178,7 +196,7 @@ end
 function IKST_LootOps.previewZone(x, y, z, scope, args)
     args = args or {}
     local squares = IKST_LootOps.squaresForScope(x, y, z, scope, args)
-    local containers = IKST_LootOps.collectContainersFromSquares(squares, {}, {})
+    local containers = IKST_LootOps.collectContainersFromSquares(squares, {}, {}, true)
     local labels = {}
     local squareSet = {}
     local maxLabels = 6
@@ -223,6 +241,9 @@ function IKST_LootOps.formatResultMessage(msg)
     end
     if code == "no distribution" then
         return IKST.text("IGUI_IKST_Loot_NoDistribution", "No loot distribution for that container")
+    end
+    if code == "blocked" or code == "square protected" then
+        return IKST.text("IGUI_IKST_Loot_Blocked", "Container square is protected or readonly")
     end
     if code == "too_far" then
         return IKST.text("IGUI_IKST_Loot_TooFar", "Too far from that location")

@@ -1,5 +1,22 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.1.0 — August 2026
+
+### Loot (addon)
+
+- **Clear before refill works properly** — old items are removed before new loot is rolled, including on multiplayer servers.
+- **Claimed houses and bases** — radius and whole-building refill work much more reliably in player safehouses (vanilla furniture with real loot tables).
+- **Your storage stays safe** — player crates and boxes with no loot table are skipped, so staff refill will not empty someone’s personal boxes by mistake.
+- Clearer on-screen messages when an area has nothing that can be refilled.
+
+### How to update
+
+1. Update the Workshop item on the server and clients
+2. Restart the server (and the game)
+3. Staff: try Loot → radius or building inside a claimed house with Clear Before Refill enabled in sandbox
+
+---
+
 ## 0.3.0.0 — BETA (2026-07-01)
 
 Official **BETA** release for Build 42 multiplayer playtesting.
