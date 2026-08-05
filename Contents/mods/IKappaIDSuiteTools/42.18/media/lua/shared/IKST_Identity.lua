@@ -826,6 +826,26 @@ function IKST_Identity.migratePlayerOnConnect(player)
         end
     end
 
+    if IKST_SafehouseClaim and IKST_SafehouseClaim.store then
+        local shData = IKST_SafehouseClaim.store()
+        if shData and shData.byKey then
+            for _, entry in pairs(shData.byKey) do
+                if entry and entry.owner then
+                    local owns = IKST_Identity.playerOwnsKey(player, entry.owner)
+                    if not owns and uname and not IKST_Identity.isAccountKey(entry.owner) then
+                        owns = string.lower(tostring(entry.owner)) == string.lower(uname)
+                    end
+                    if owns and key and key ~= "" and not IKST_Identity.keysEqual(entry.owner, key) then
+                        entry.owner = key
+                    end
+                end
+            end
+            if IKST_SafehouseClaim.transmit then
+                IKST_SafehouseClaim.transmit()
+            end
+        end
+    end
+
     if IKST_ClaimPolicy and IKST_ClaimPolicy.safehouseMetaStore then
         local meta = IKST_ClaimPolicy.safehouseMetaStore()
         for _, row in pairs(meta) do

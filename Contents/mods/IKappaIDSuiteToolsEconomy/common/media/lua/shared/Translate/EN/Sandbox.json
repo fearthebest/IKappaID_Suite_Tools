@@ -33,7 +33,7 @@
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyMinWireAmount": "Min Wire Amount",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyMinWireAmount_tooltip": "The smallest amount of money that can be sent in a single wire transfer.",
 
-    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyWireFeePercent": "Wire Transfer Fee (%)",
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyWireFeePercent": "Wire Transfer Fee (%%)",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyWireFeePercent_tooltip": "A percentage fee taken from every wire transfer.",
 
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyAtmRequired": "ATM Required for Banking",
@@ -57,7 +57,7 @@
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyMaxVendPrice": "Max Item Price",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyMaxVendPrice_tooltip": "The highest price a player can set for a single item in their shop.",
 
-    "Sandbox_IKappaIDSuiteToolsEconomy_EconomySalesTax": "Sales Tax (%)",
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomySalesTax": "Sales Tax (%%)",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomySalesTax_tooltip": "A percentage tax taken from every shop sale.",
 
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyTaxReceiver": "Tax Receiver (Username)",
@@ -66,7 +66,7 @@
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBounty": "Enable Zombie Rewards",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBounty_tooltip": "Give players money automatically for every zombie they kill.",
 
-    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBountyChance": "Reward Chance (%)",
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBountyChance": "Reward Chance (%%)",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBountyChance_tooltip": "The percentage chance that a zombie kill will result in a money reward.",
 
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyZombieBountyMin": "Min Reward Amount",

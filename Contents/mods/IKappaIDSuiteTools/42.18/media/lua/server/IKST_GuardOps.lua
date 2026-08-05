@@ -350,10 +350,24 @@ function IKST_GuardOps.purgeExpiredSafehouses()
     return removed
 end
 
-function IKST_GuardOps.filterSafehousesForPlayer(list, username)
+function IKST_GuardOps.filterSafehousesForPlayer(list, playerOrName)
+    local username = nil
+    local ownerKey = nil
+    if playerOrName and type(playerOrName) == "table" and playerOrName.getUsername then
+        username = IKST_GuardOps.username(playerOrName)
+        if IKST_Identity and IKST_Identity.accountKey then
+            ownerKey = IKST_Identity.accountKey(playerOrName)
+        end
+    else
+        username = tostring(playerOrName or "")
+    end
     local out = {}
     for _, row in ipairs(list or {}) do
-        if IKST_ClaimPolicy.usernamesEqual(row.owner, username) then
+        local match = IKST_ClaimPolicy.usernamesEqual(row.owner, username)
+        if not match and ownerKey then
+            match = IKST_ClaimPolicy.usernamesEqual(row.owner, ownerKey)
+        end
+        if match then
             out[#out + 1] = row
         end
     end
@@ -740,23 +754,38 @@ function IKST_GuardOps.tpToSafehouse(admin, x, y, w, h, z)
 end
 
 function IKST_GuardOps.resolveClaimUser(admin, ownerName)
-    local user = ownerName
-    if not user or user == "" then
-        user = IKST_GuardOps.username(admin)
-    end
-    if not user or user == "" then
-        return nil, nil
-    end
     local claimPlayer = admin
-    if ownerName and ownerName ~= "" and getPlayerFromUsername then
-        local found = getPlayerFromUsername(ownerName)
+    if ownerName and ownerName ~= "" then
+        local found = IKST_Identity.findPlayerByUsername(ownerName)
+        if not found and IKST_Identity.isAccountKey(ownerName) then
+            found = IKST_Identity.findPlayerByAccountKey(ownerName)
+        end
         if found then
             claimPlayer = found
         elseif ownerName ~= IKST_GuardOps.username(admin) then
             claimPlayer = nil
         end
     end
-    return user, claimPlayer
+    local vanillaUser = nil
+    local ownerKey = nil
+    if claimPlayer then
+        ownerKey = IKST_Identity.accountKey(claimPlayer)
+        vanillaUser = IKST_Identity.username(claimPlayer)
+    elseif ownerName and ownerName ~= "" then
+        ownerKey = IKST_Identity.migrateOwnerField(ownerName)
+        if IKST_Identity.isAccountKey(ownerName) then
+            vanillaUser = IKST_Identity.labelForKey(ownerName)
+        else
+            vanillaUser = ownerName
+        end
+    else
+        ownerKey = IKST_Identity.accountKey(admin)
+        vanillaUser = IKST_GuardOps.username(admin)
+    end
+    if not vanillaUser or vanillaUser == "" then
+        vanillaUser = ownerName or IKST_GuardOps.username(admin)
+    end
+    return vanillaUser, claimPlayer, ownerKey
 end
 
 function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMode, w, h)
@@ -787,8 +816,8 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
             return false, "safehouse already here"
         end
     end
-    local user, claimPlayer = IKST_GuardOps.resolveClaimUser(player, ownerName)
-    if not user then
+    local user, claimPlayer, ownerKey = IKST_GuardOps.resolveClaimUser(player, ownerName)
+    if not user or user == "" or not ownerKey or ownerKey == "" then
         return false, "no username"
     end
     if IKST_GuardOps.atMaxSafehouseClaims(claimPlayer or user) then
@@ -836,7 +865,6 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
     local sy = sh.getY and sh:getY() or y
     local sw = sh.getW and sh:getW() or 0
     local shh = sh.getH and sh:getH() or 0
-    local ownerKey = claimPlayer and IKST_Identity.accountKey(claimPlayer) or IKST_Identity.migrateOwnerField(user)
     IKST_ClaimPolicy.recordSafehouseClaim(ownerKey, sx, sy, sw, shh)
     IKST_SafehouseClaim.ensureOnClaim(ownerKey, sx, sy, sw, shh)
     local ownerNote = (ownerName and ownerName ~= "" and ownerName ~= IKST_GuardOps.username(player)) and (" for " .. user) or ""
@@ -963,7 +991,7 @@ function IKST_GuardOps.broadcastSafehouseChange(actor, syncInfo)
     IKST_StaffOps.forEachOnline(function(p)
         local filtered = list
         if not IKST_GuardOps.actorIsAdmin(p) then
-            filtered = IKST_GuardOps.filterSafehousesForPlayer(list, IKST_GuardOps.username(p))
+            filtered = IKST_GuardOps.filterSafehousesForPlayer(list, p)
         end
         IKST_GuardOps.sendSafehouseList(p, filtered)
         IKST.deliverClientCommand(p, IKST.CMD.safehouseClientRefresh, refreshArgs)
@@ -1107,7 +1135,7 @@ function IKST_GuardOps.handle(command, admin, args)
         IKST_GuardOps.purgeExpiredSafehouses()
         local list = IKST_GuardOps.listSafehouses()
         if not IKST_GuardOps.actorIsAdmin(admin) then
-            list = IKST_GuardOps.filterSafehousesForPlayer(list, IKST_GuardOps.username(admin))
+            list = IKST_GuardOps.filterSafehousesForPlayer(list, admin)
         end
         IKST_GuardOps.sendSafehouseList(admin, list)
         return true, #list .. " safehouse(s)"

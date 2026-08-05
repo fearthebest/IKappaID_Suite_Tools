@@ -8,6 +8,7 @@ require "IKST_SafehousePermissions"
 require "IKST_ModDataSync"
 require "IKST_Access"
 require "IKST_Grid"
+require "IKST_Identity"
 
 IKST_SafehouseClaim = IKST_SafehouseClaim or {}
 
@@ -204,14 +205,20 @@ function IKST_SafehouseClaim.syncFromVanilla(sh)
     if not x or not owner or owner == "" then
         return false
     end
-    if IKST_SafehouseClaim.get(x, y, w, h) then
-        return false
+    local ownerKey = IKST_Identity.migrateOwnerField(owner)
+    local entry = IKST_SafehouseClaim.get(x, y, w, h)
+    if entry then
+        if ownerKey and ownerKey ~= "" and not IKST_Identity.keysEqual(entry.owner, ownerKey) then
+            entry.owner = ownerKey
+            IKST_SafehouseClaim.transmit()
+        end
+        return true
     end
     local meta = IKST_ClaimPolicy.getSafehouseMeta(x, y, w, h)
     if not meta then
-        IKST_ClaimPolicy.recordSafehouseClaim(IKST_Identity.migrateOwnerField(owner), x, y, w, h)
+        IKST_ClaimPolicy.recordSafehouseClaim(ownerKey, x, y, w, h)
     end
-    return IKST_SafehouseClaim.ensureOnClaim(IKST_Identity.migrateOwnerField(owner), x, y, w, h)
+    return IKST_SafehouseClaim.ensureOnClaim(ownerKey, x, y, w, h)
 end
 
 function IKST_SafehouseClaim.setPermissions(x, y, w, h, scope, username, perms)
@@ -294,6 +301,41 @@ function IKST_SafehouseClaim.playerMayEdit(entry, player)
     return IKST_SafehouseClaim.isOwner(entry, player)
 end
 
+function IKST_SafehouseClaim.playerOwnsVanillaSafehouse(player, sh)
+    if not player or not sh then
+        return false
+    end
+    if not IKST_Identity then
+        require "IKST_Identity"
+    end
+    local shOwner = sh.getOwner and sh:getOwner()
+    if not shOwner or shOwner == "" then
+        return false
+    end
+    return IKST_Identity.playerOwnsKey(player, shOwner)
+end
+
+function IKST_SafehouseClaim.playerOwnsListRow(player, row)
+    if not player or not row then
+        return false
+    end
+    if row.isMine == true then
+        return true
+    end
+    if row.isMine == false then
+        return false
+    end
+    if row.owner then
+        if not IKST_Identity then
+            require "IKST_Identity"
+        end
+        if IKST_Identity.playerOwnsKey(player, row.owner) then
+            return true
+        end
+    end
+    return false
+end
+
 function IKST_SafehouseClaim.canAtCoords(player, x, y, z, action)
     if not player or not action then
         return nil
@@ -318,6 +360,9 @@ function IKST_SafehouseClaim.canAtSquare(player, square, action)
     if not entry then
         if IKST_Authority and IKST_Authority.mpClientEnforcementActive and IKST_Authority.mpClientEnforcementActive() then
             if sh then
+                if IKST_SafehouseClaim.playerOwnsVanillaSafehouse(player, sh) then
+                    return true
+                end
                 if IKST_SafehouseClaimClient and not IKST_SafehouseClaimClient.listBootstrapped then
                     return false
                 end
@@ -325,9 +370,13 @@ function IKST_SafehouseClaim.canAtSquare(player, square, action)
                 if x and IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.rowForBounds then
                     local row = IKST_SafehouseClaimClient.rowForBounds(x, y, w, h)
                     if row and row.claimed == true then
+                        if IKST_SafehouseClaim.playerOwnsListRow(player, row) then
+                            return true
+                        end
                         return false
                     end
                 end
+                return false
             end
         end
         return nil
