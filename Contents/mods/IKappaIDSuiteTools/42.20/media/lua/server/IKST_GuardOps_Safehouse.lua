@@ -812,10 +812,12 @@ function IKST_GuardOps.enforceVanillaClaimRules(player, square, claimPlayer)
     if not checkPlayer then
         return false, "player must be online to claim"
     end
-    if SafeHouse.allowSafeHouse and SafeHouse.allowSafeHouse(checkPlayer) == false then
-        return false, "not allowed to claim yet"
+    if type(SafeHouse) == "table" and type(SafeHouse.allowSafeHouse) == "function" then
+        if SafeHouse.allowSafeHouse(checkPlayer) == false then
+            return false, "not allowed to claim yet"
+        end
     end
-    if SafeHouse.canBeSafehouse and square then
+    if type(SafeHouse) == "table" and type(SafeHouse.canBeSafehouse) == "function" and square then
         local reason = SafeHouse.canBeSafehouse(square, checkPlayer)
         if reason and reason ~= "" then
             return false, reason

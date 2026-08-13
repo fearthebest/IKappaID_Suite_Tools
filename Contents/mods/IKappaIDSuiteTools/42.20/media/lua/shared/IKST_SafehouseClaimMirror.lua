@@ -2,9 +2,10 @@
 -- Bootstrap/rev for enforcement; applyMirror for incremental UI rows.
 
 require "IKST_Shared"
-require "IKST_SafehouseClaim"
 
 IKST_SafehouseClaimMirror = IKST_SafehouseClaimMirror or {}
+
+require "IKST_SafehouseClaim"
 IKST_SafehouseClaimMirror.byKey = IKST_SafehouseClaimMirror.byKey or {}
 IKST_SafehouseClaimMirror.rev = 0
 IKST_SafehouseClaimMirror.count = 0

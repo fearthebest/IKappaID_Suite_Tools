@@ -1,9 +1,10 @@
 -- Bank ID card serials, reissue, and economy account migration (Economy addon).
 require "IKST_Shared"
 require "IKST_Identity"
-require "IKST_Economy"
 
 IKST_EconomyIdentity = IKST_EconomyIdentity or {}
+
+require "IKST_Economy"
 
 IKST_EconomyIdentity.ID_CARD_TYPE = "Base.IDcard"
 

@@ -319,6 +319,10 @@ function IKST_TilesWorldOps.placeSprite(square, spriteName, player)
     if not square or not spriteName or spriteName == "" then
         return false
     end
+    if IKST_DestroyServer and type(IKST_DestroyServer.allowSquare) == "function"
+        and type(square.getX) == "function" then
+        IKST_DestroyServer.allowSquare(square:getX(), square:getY(), square:getZ() or 0)
+    end
     if player then
         local blocked = IKST_TilesWorldOps.locationMutationBlocked(player, square:getX(), square:getY(), square:getZ())
         if blocked then
@@ -450,6 +454,10 @@ end
 function IKST_TilesWorldOps.removeObjectFromSquare(square, obj, isTile)
     if not square or not obj then
         return false
+    end
+    if IKST_DestroyServer and type(IKST_DestroyServer.allowSquare) == "function"
+        and type(square.getX) == "function" then
+        IKST_DestroyServer.allowSquare(square:getX(), square:getY(), square:getZ() or 0)
     end
 
     if IKST_TilesWorldOps._batchRemoved[obj] then

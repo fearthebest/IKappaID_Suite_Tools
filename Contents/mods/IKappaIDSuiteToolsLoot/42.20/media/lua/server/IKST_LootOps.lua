@@ -61,12 +61,14 @@ function IKST_LootOps.trimDuplicateContainers(parent, beforeCount)
     local afterCount = parent:getContainerCount()
     while afterCount > beforeCount and afterCount > 1 do
         local extra = parent:getContainerByIndex(afterCount - 1)
-        if extra and extra.clear then
+        if extra and type(extra.clear) == "function" then
             extra:clear()
         end
-        if parent.RemoveContainer and extra then
+        -- No documented IsoObject.removeAllContainers. Clear extra contents,
+        -- then stop if the extra container object cannot be removed.
+        if extra and type(parent.RemoveContainer) == "function" then
             parent:RemoveContainer(extra)
-        elseif parent.removeContainerFromIndex then
+        elseif type(parent.removeContainerFromIndex) == "function" then
             parent:removeContainerFromIndex(afterCount - 1)
         else
             break

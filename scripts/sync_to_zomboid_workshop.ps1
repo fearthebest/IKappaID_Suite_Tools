@@ -40,6 +40,11 @@ Get-ChildItem (Join-Path $Dst "Contents\mods") -Directory | ForEach-Object {
         Write-Host "Remove dev artifact: $($_.Name)/SANDBOX_BUILD.txt"
         Remove-Item $buildTxt -Force
     }
+    $legacy = Join-Path $_.FullName "42.18"
+    if (Test-Path $legacy) {
+        Write-Host "Remove legacy 42.18: $($_.Name)"
+        Remove-Item $legacy -Recurse -Force
+    }
 }
 
 $enforceMd = Join-Path $Dst "ENFORCEMENT.md"

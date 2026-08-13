@@ -2,11 +2,11 @@ name=IKappaID Suite Tools — Vehicles
 
 id=IKappaIDSuiteToolsVehicles
 
-description=Vehicle list, repair, and cleanup tools for server hosts using IKappaID Suite Tools.
+description=Vehicle list, repair, and cleanup for IKappaID Suite Tools. Requires World Edit (IKappaIDSuiteToolsTiles).
 
 author=IKappaID
 
-modversion=0.3.1.1
+modversion=0.3.2.0
 
 versionMin=42.20
 

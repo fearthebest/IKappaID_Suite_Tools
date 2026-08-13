@@ -1,4 +1,4 @@
--- HyperOS layout helpers for IKST client UI (B42).
+-- IKappaID layout helpers for IKST client UI (B42).
 -- Measure-first layout; no hardcoded content positions outside callers.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return

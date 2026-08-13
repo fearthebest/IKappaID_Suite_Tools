@@ -1,12 +1,12 @@
--- HyperOS visual tokens for IKST client UI (B42).
--- Source: docs/IKST_HyperOS_UI_Handoff.txt — palette and spacing only; no gameplay.
+-- IKappaID visual tokens for IKST client UI (B42).
+-- Palette and spacing only; no gameplay.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
 
 IKST_UI_Theme = IKST_UI_Theme or {}
 
--- Exact HyperOS palette (0–1 RGBA). Glass surface uses ~85% opacity.
+-- Dark + orange palette (0–1 RGBA). Glass surface uses ~85% opacity.
 IKST_UI_Theme.colors = {
     bgApp = { r = 0.06, g = 0.06, b = 0.07, a = 0.98 },           -- #0F0F12
     bgSurface = { r = 0.10, g = 0.11, b = 0.12, a = 0.85 },        -- #1A1B1E glass

@@ -146,17 +146,17 @@ function IKST_GuardOps.enforceVehicleClaim(player)
         return
     end
     if not IKST_VehicleClaim.canUseVehicle(player, vehicle, "enter") then
-        if vehicle.shutOff then
+        if type(vehicle.shutOff) == "function" then
             vehicle:shutOff()
         end
-        if vehicle.exit then
+        if type(vehicle.exit) == "function" then
             vehicle:exit(player)
         end
         local seat = 0
-        if vehicle.getSeat then
+        if type(vehicle.getSeat) == "function" then
             seat = vehicle:getSeat(player) or 0
         end
-        if vehicle.setCharacterPosition then
+        if type(vehicle.setCharacterPosition) == "function" then
             vehicle:setCharacterPosition(player, seat, "outside")
         end
         if not IKST_Debug then
@@ -169,7 +169,7 @@ function IKST_GuardOps.enforceVehicleClaim(player)
     end
     if type(vehicle.isEngineRunning) == "function" and vehicle:isEngineRunning() then
         if not IKST_VehicleClaim.canUseVehicle(player, vehicle, "engine") then
-            if vehicle.shutOff then
+            if type(vehicle.shutOff) == "function" then
                 vehicle:shutOff()
             end
             if IKST_Debug and IKST_Debug.logVerbose then

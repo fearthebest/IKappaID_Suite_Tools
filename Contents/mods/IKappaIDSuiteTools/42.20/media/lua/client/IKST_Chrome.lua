@@ -1,4 +1,4 @@
--- IKST chrome / HyperOS draw + control styling (client UI only).
+-- IKST chrome / dark+orange draw + control styling (client UI only).
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
@@ -59,7 +59,7 @@ end
 
 -- Vanilla ISButton still paints its title (often near-black in B42) even after
 -- Lua sets textColor. Capture the label, hide the vanilla title, and draw it
--- ourselves so every tool button stays readable on dark HyperOS surfaces.
+-- ourselves so every tool button stays readable on dark IKappaID surfaces.
 function IKST_Chrome.buttonTitle(btn)
     if not btn then
         return ""
@@ -275,7 +275,7 @@ function IKST_Chrome.drawCard(panel, x, y, w, h, opts)
     end
 end
 
--- Rounded-rect corner art (plain white silhouette, tints to any HyperOS
+-- Rounded-rect corner art (plain white silhouette, tints to any IKappaID
 -- surface color via drawTextureScaled's r,g,b). Falls back to a square
 -- corner if the texture ever fails to load (vanilla fallback, no gimmick
 -- pcall needed).

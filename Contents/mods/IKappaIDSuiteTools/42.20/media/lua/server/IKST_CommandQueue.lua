@@ -7,12 +7,14 @@ if type(isClient) == "function" and isClient()
 end
 require "IKST_Shared"
 require "IKST_Lifecycle"
+require "IKST_ServerPlayers"
 
 IKST_CommandQueue = IKST_CommandQueue or {}
 IKST_CommandQueue.queues = IKST_CommandQueue.queues or {}
 IKST_CommandQueue.OPS_PER_TICK = 8
 IKST_CommandQueue.MAX_PENDING = 16
 IKST_CommandQueue._tickHooked = false
+IKST_CommandQueue._pruneHooked = false
 
 function IKST_CommandQueue.getKey(player)
     if not player or not player.getOnlineID then
@@ -22,12 +24,41 @@ function IKST_CommandQueue.getKey(player)
 end
 
 function IKST_CommandQueue.ensureTick()
-    if IKST_CommandQueue._tickHooked then
-        return
+    if not IKST_CommandQueue._tickHooked then
+        if Events and Events.OnTick and Events.OnTick.Add then
+            Events.OnTick.Add(IKST_CommandQueue.onTick)
+            IKST_CommandQueue._tickHooked = true
+        end
     end
-    if Events and Events.OnTick and Events.OnTick.Add then
-        Events.OnTick.Add(IKST_CommandQueue.onTick)
-        IKST_CommandQueue._tickHooked = true
+    if not IKST_CommandQueue._pruneHooked then
+        if Events and Events.EveryOneMinute and Events.EveryOneMinute.Add then
+            Events.EveryOneMinute.Add(IKST_CommandQueue.pruneDisconnected)
+            IKST_CommandQueue._pruneHooked = true
+        end
+    end
+end
+
+function IKST_CommandQueue.pruneDisconnected()
+    local live = { ["0"] = true }
+    if IKST_ServerPlayers and type(IKST_ServerPlayers.foreachOnlinePlayer) == "function" then
+        IKST_ServerPlayers.foreachOnlinePlayer(function(p)
+            if p and type(p.getOnlineID) == "function" then
+                live[tostring(p:getOnlineID())] = true
+            end
+        end)
+    end
+    for key, q in pairs(IKST_CommandQueue.queues) do
+        if not live[key] then
+            if q and q.pending then
+                local i = #q.pending
+                while i >= 1 do
+                    IKST_CommandQueue.dropJob(q.pending[i])
+                    table.remove(q.pending, i)
+                    i = i - 1
+                end
+            end
+            IKST_CommandQueue.queues[key] = nil
+        end
     end
 end
 

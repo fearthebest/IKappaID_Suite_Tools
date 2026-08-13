@@ -4,7 +4,15 @@
 **From:** laptop audit 2026-08-13 (game **42.20.2**)  
 **Do not bump** `modversion` unless asked.
 
-Icons / posters are **out of scope** here (you already know). Everything below is what still blocks or risks a **public Steam** upload.
+## 1.0 gate (2026-08-13)
+
+**Code and accepted limits are done.** The only remaining work for **1.0.0.0** is a green test pass on pack **0.3.2.0 BETA** (`42.20/`).
+
+If SP smoke + dedicated play + `docs/REDTEAM-TIER-C.md` are all green, call it 1.0.0.0. After that, a modified client keeping IKST-protected state is an IKST bug; admin sandbox mistakes, a hacked dedicated host, and vanilla movement/combat cheats are not (`docs/SECURITY.md` fault line).
+
+Icons / posters stay optional art. After IKappaID_UI is public: Steam **Required items** on Suite Tools (`3750835193`). After tests: git commit of this 42.20 pack (not restored `master`).
+
+Icons / posters are **out of scope** here (you already know). Everything below is historical ship context from the laptop audit.
 
 ---
 
@@ -31,6 +39,22 @@ Goal: make Suite Tools + IKappaID_UI public-ship ready except icons (skip poster
 Open **two** git roots if needed (multi-root is OK): `IKappaID_UI` then `IKappaID_Suite_Tools`. Steam packing is a **separate** chat from Lua edits.
 
 ---
+
+## Public Beta code base (`laptop-playtest-2026-08-13`)
+
+Done in git (do not bump version). Sync Workshop before playtest. Do not upload restored `master`.
+
+| Item | Status |
+|------|--------|
+| Recursive requires (claim + economy) | Table created **before** peer `require` |
+| Claim radial | Inside wrap always; outside wrap only if inside did not already add slices |
+| HyperOS in Suite Tools `42.20` Lua | Stripped |
+| CommandQueue disconnect prune | `EveryOneMinute` drop of offline player queues |
+| `SafeHouse.allowSafeHouse` | `type(...) == "function"`; skip if missing (not fail-closed) |
+| Loot extra-container trim | Clear contents; stop if no real remove API |
+| Tile destroy server cancel | Not added — documented in `docs/SECURITY.md` |
+
+Still **not** a full public Steam ship: IKappaID_UI is not a Workshop item; dedicated MP (`docs/REDTEAM-TIER-C.md`) is unchecked; SP + Faded MP still pending.
 
 ## Verdict
 
@@ -157,7 +181,7 @@ IKST_EconomyIdentity.lua → recursive require IKST_Economy.lua
 
 Cause: `require` of the other file **before** `IKST_* = IKST_* or {}`.
 
-Do: create the table first, then require; or drop one side of the cycle.
+**Done on this branch:** create the table first, then require.
 
 Files:
 
@@ -174,13 +198,13 @@ Files:
 - `ISVehicleMenu.showRadialMenuOutside`
 - `ISVehicleMenu.onKeyPressed`
 
-Wrapping **inside + outside** previously **doubled** Claim. Keep one wrap (inside) plus `addSliceOnce`, or equivalent. This is an accepted existing patch — do **not** add more vanilla wraps.
+Wrapping **inside + outside** previously **doubled** Claim. **Done on this branch:** inside wrap always; outside wrap skips if `_ikstSliceKeys` already set. Keep `addSliceOnce`. Do **not** add more vanilla wraps.
 
 ### 8. Strip “HyperOS” from shipped Lua
 
 Ship rule: no third-party OS/UI brand names in code or player-facing strings. Comments in Lua **are** uploaded.
 
-Grep `HyperOS` under Workshop `42.20` (Chrome, Theme, Layout, DashboardUI). Rename comments to IKappaID / dark+orange. No gameplay change.
+**Done on this branch** (Suite Tools `42.20` Lua). IKappaID_UI `workshop.txt` + `IKUI_Chrome.lua` comment also renamed. No gameplay change.
 
 ---
 

@@ -244,6 +244,10 @@ function IKST_EconomyOps.trySpawnAtmSprite(square, spriteName)
     if not square or not spriteName or spriteName == "" then
         return nil, "empty sprite"
     end
+    if IKST_DestroyServer and type(IKST_DestroyServer.allowSquare) == "function"
+        and type(square.getX) == "function" then
+        IKST_DestroyServer.allowSquare(square:getX(), square:getY(), square:getZ() or 0)
+    end
     local tileSprite = getSprite and getSprite(spriteName) or nil
     if not tileSprite then
         return nil, "sprite not in tile defs: " .. spriteName
@@ -412,6 +416,10 @@ function IKST_EconomyOps.trySpawnTerminalSprite(square, spriteName)
     if not square or not spriteName or spriteName == "" then
         return nil, "empty sprite"
     end
+    if IKST_DestroyServer and type(IKST_DestroyServer.allowSquare) == "function"
+        and type(square.getX) == "function" then
+        IKST_DestroyServer.allowSquare(square:getX(), square:getY(), square:getZ() or 0)
+    end
     local tileSprite = getSprite and getSprite(spriteName) or nil
     if not tileSprite then
         return nil, "sprite not in tile defs: " .. spriteName
@@ -433,6 +441,10 @@ function IKST_EconomyOps.trySpawnTerminalSprite(square, spriteName)
         obj:createContainersFromSpriteProperties()
     end
     if not IKST_EconomyOps.objectHasShopContainer(obj) then
+        if IKST_DestroyServer and type(IKST_DestroyServer.allowSquare) == "function"
+            and type(square.getX) == "function" then
+            IKST_DestroyServer.allowSquare(square:getX(), square:getY(), square:getZ() or 0)
+        end
         if square.RemoveTileObject then
             square:RemoveTileObject(obj)
         elseif square.transmitRemoveItemFromSquare then

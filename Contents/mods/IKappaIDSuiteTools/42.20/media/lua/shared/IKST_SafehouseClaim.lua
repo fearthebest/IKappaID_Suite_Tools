@@ -9,9 +9,10 @@ require "IKST_ModDataSync"
 require "IKST_Access"
 require "IKST_Grid"
 require "IKST_Identity"
-require "IKST_SafehouseClaimMirror"
 
 IKST_SafehouseClaim = IKST_SafehouseClaim or {}
+
+require "IKST_SafehouseClaimMirror"
 
 function IKST_SafehouseClaim.store()
     local data = ModData.getOrCreate("IKST_SafehouseClaim")

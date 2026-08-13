@@ -3,12 +3,13 @@
 require "IKST_Shared"
 require "IKST_Authority"
 require "IKST_Identity"
-require "IKST_EconomyIdentity"
 require "IKST_EconomyBridge"
 require "IKST_Grid"
 require "IKST_Access"
 
 IKST_Economy = IKST_Economy or {}
+
+require "IKST_EconomyIdentity"
 IKST_Economy.STORE_KEY = "IKST_Economy"
 IKST_Economy.VEND_TAG = "IKST_vend"
 IKST_Economy.VEND_OWNER = "IKST_vendOwner"

@@ -27,6 +27,16 @@
 3. Roll back ModData backups if safehouse/economy corruption suspected.
 4. Disable `EnableUtilitiesToggle` if water/power grief occurred.
 
+## If something “breaks”
+
+Classify before treating it as an IKST defect:
+
+1. **IKST bug** — a non-staff player **kept** money, a claim, guarded loot, a sledged/picked-up claim tile, or a staff command after ~1s on a dedicated host you control.
+2. **Operator** — sandbox too open, `StaffToolsEnabled` left on, wrong addons, forgot IKappaID_UI.
+3. **Out of scope** — hacked dedicated box, listen-host cheating, vanilla speed/wall hacks.
+
+See `docs/SECURITY.md` fault line.
+
 ## Testing checklist
 
 See `docs/REDTEAM-TIER-C.md` — run on dedicated server with player + admin clients before go-live.

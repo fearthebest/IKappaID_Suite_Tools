@@ -1,4 +1,4 @@
--- IKST dashboard home — upper half server info, lower half 4×3 function grid (HyperOS / IKUI).
+-- IKST dashboard home — upper half server info, lower half 4×3 function grid (IKappaID UI).
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end

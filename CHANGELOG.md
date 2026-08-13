@@ -1,5 +1,17 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.0 — BETA (2026-08-13)
+
+Build **42.20** public Beta pack.
+
+- Boot: break recursive `require` between claim/economy peer modules (table first, then require).
+- Vehicles: forward-declare snapshot `captureItem` so **Move here** with glovebox/trunk loot does not nil.
+- Claim radial: inside wrap always; outside wrap only if slices were not already added (no double Claim).
+- Server: prune disconnected players from `IKST_CommandQueue`.
+- Safehouse: `allowSafeHouse` uses `type(...) == "function"`; skip if missing (not fail-closed).
+- Loot: extra-container trim clears contents and stops if the engine has no remove API.
+- Comments: strip third-party UI brand names from shipped Lua.
+
 ## 0.3.0.0 — BETA (2026-07-01)
 
 Official **BETA** release for Build 42 multiplayer playtesting.

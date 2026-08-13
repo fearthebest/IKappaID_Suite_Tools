@@ -336,8 +336,12 @@ function IKST_ClaimRadial.hookVehicleMenu()
     if ISVehicleMenu.showRadialMenuOutside then
         IKST_ClaimRadial._vanillaOutside = ISVehicleMenu.showRadialMenuOutside
         function ISVehicleMenu.showRadialMenuOutside(playerObj)
-            IKST_ClaimRadial.prepareMenu(playerObj)
             IKST_ClaimRadial._vanillaOutside(playerObj)
+            local menu = IKST_ClaimRadial.playerMenu(playerObj)
+            if menu and menu._ikstSliceKeys then
+                return
+            end
+            IKST_ClaimRadial.prepareMenu(playerObj)
             IKST_ClaimRadial.afterVehicleRadial(playerObj)
         end
     end
