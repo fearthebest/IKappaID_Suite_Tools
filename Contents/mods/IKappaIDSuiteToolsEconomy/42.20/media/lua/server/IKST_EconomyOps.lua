@@ -959,6 +959,7 @@ function IKST_EconomyOps.applyTypePrice(shopMd, container, itemType, price)
     else
         catalog[itemType] = price
     end
+    IKST_Economy.persistShopPriceTable(shopMd, catalog)
     if container and container.getItems then
         local items = container:getItems()
         for i = 0, items:size() - 1 do

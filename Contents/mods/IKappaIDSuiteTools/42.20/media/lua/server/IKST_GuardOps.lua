@@ -14,6 +14,7 @@ require "IKST_ClaimSocial"
 require "IKST_Identity"
 require "IKST_WorldOps"
 require "IKST_StaffOps"
+require "IKST_VehicleIdentity"
 require "IKST_VehicleClaim"
 require "IKST_VehicleUtil"
 require "IKST_SafehouseClaim"
@@ -157,24 +158,48 @@ function IKST_GuardOps.dumpPlayers(admin)
     return out
 end
 
-function IKST_GuardOps.sendClaimList(player, list)
-    local max = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
-    if #list > max then
-        local trimmed = {}
-        for i = 1, max do
-            trimmed[i] = list[i]
+function IKST_GuardOps.pageSlice(list, offset, limit)
+    local maxCap = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
+    offset = math.max(0, math.floor(tonumber(offset) or 0))
+    if limit == nil then
+        limit = maxCap
+    else
+        limit = math.floor(tonumber(limit) or 50)
+        if limit < 1 then
+            limit = 50
         end
-        list = trimmed
+        if limit > maxCap then
+            limit = maxCap
+        end
     end
+    list = list or {}
+    local total = #list
+    local sliced = {}
+    local last = math.min(total, offset + limit)
+    for i = offset + 1, last do
+        sliced[#sliced + 1] = list[i]
+    end
+    local hasMore = (offset + #sliced) < total
+    return sliced, total, hasMore, offset, limit
+end
+
+function IKST_GuardOps.sendClaimList(player, list, offset, limit)
+    local sliced, total, hasMore, off, lim = IKST_GuardOps.pageSlice(list, offset, limit)
     local rows = {}
-    for _, item in ipairs(list) do
+    for _, item in ipairs(sliced) do
         if item and item.canRelease ~= nil then
             rows[#rows + 1] = item
         elseif item then
             rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(item, player)
         end
     end
-    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = rows })
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, {
+        claims = rows,
+        total = total,
+        offset = off,
+        limit = lim,
+        hasMore = hasMore,
+    })
 end
 
 function IKST_GuardOps.sendNearbyVehicles(player, list)
@@ -258,7 +283,7 @@ function IKST_GuardOps.handle(command, admin, args)
         if not IKST_GuardOps.actorIsAdmin(admin) then
             list = IKST_GuardOps.filterSafehousesForPlayer(list, admin)
         end
-        IKST_GuardOps.sendSafehouseList(admin, list)
+        IKST_GuardOps.sendSafehouseList(admin, list, args.offset, args.limit)
         return true, #list .. " safehouse(s)"
     end
 
@@ -324,21 +349,15 @@ function IKST_GuardOps.handle(command, admin, args)
     end
 
     if command == IKST.CMD.vehicleClaim then
-        local vid = args.vehicleId
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
+        local claimVehicle = nil
+        if not IKST_GuardOps.actorIsAdmin(admin) and type(admin.getVehicle) == "function" then
+            claimVehicle = admin:getVehicle()
         end
-        if not vid then
-            return false, "no vehicle nearby — pick one in the list"
-        end
-        local vidNum = tonumber(vid)
-        if not vidNum then
-            return false, "invalid vehicle id"
-        end
-        vid = vidNum
-        local claimVehicle = IKST_VehicleUtil.getVehicle(vidNum)
         if not claimVehicle then
-            return false, "vehicle not found"
+            claimVehicle = IKST_GuardOps.resolveClaimVehicle(admin, args.vehicleId)
+        end
+        if not claimVehicle then
+            return false, "no vehicle nearby — pick one in the list"
         end
         if not IKST_GuardOps.actorIsAdmin(admin) then
             if not IKST_ClaimPolicy.playerClaimsEnabled() then
@@ -364,8 +383,7 @@ function IKST_GuardOps.handle(command, admin, args)
         if not IKST_GuardOps.actorIsAdmin(admin) then
             ownerKey = IKST_Identity.accountKey(admin)
             if IKST.vehicleClaimRequireKeys() then
-                local keyV = IKST_VehicleUtil.getVehicle(vid)
-                if keyV and not IKST_VehicleUtil.playerHasVehicleKey(admin, keyV) then
+                if not IKST_VehicleUtil.playerHasVehicleKey(admin, claimVehicle) then
                     return false, "need vehicle key to claim"
                 end
             end
@@ -373,48 +391,43 @@ function IKST_GuardOps.handle(command, admin, args)
         if not ownerKey or ownerKey == "" then
             return false, "no owner"
         end
-        local meta = { label = args.label or "" }
-        local v = claimVehicle
-        if v then
-            if v.getScriptName then
-                meta.script = v:getScriptName() or ""
-            end
-            meta.x = math.floor(v:getX())
-            meta.y = math.floor(v:getY())
-            meta.z = type(v.getZ) == "function" and v:getZ() or 0
+        local key = IKST_VehicleClaim.ensureKey(claimVehicle)
+        if not key then
+            return false, "vehicle identity missing"
         end
-        local ok, msg = IKST_VehicleClaim.claim(vid, ownerKey, meta)
-        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
+        local meta = { label = args.label or "" }
+        meta.script = IKST_VehicleIdentity.scriptName(claimVehicle)
+        local x, y, z = IKST_VehicleIdentity.coords(claimVehicle)
+        meta.x = x
+        meta.y = y
+        meta.z = z
+        meta.sqlId = IKST_VehicleIdentity.sqlId(claimVehicle)
+        local ok, msg = IKST_VehicleClaim.claim(key, ownerKey, meta)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleReleaseClaim then
-        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
-        end
-        if not vid then
+        local key = IKST_GuardOps.claimStoreKey(admin, args)
+        if not key then
             return false, "no vehicle selected"
         end
-        local entry = IKST_VehicleClaim.get(vid)
+        local entry = IKST_VehicleClaim.get(key)
         if not entry then
             return false, "not claimed"
         end
-        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, key) then
             return false, "not your claim"
         end
-        local ok, msg = IKST_VehicleClaim.release(vid)
-        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "remove" or nil)
+        local ok, msg = IKST_VehicleClaim.release(key)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "remove" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimTransfer then
         if not IKST_GuardOps.actorIsAdmin(admin) then
             return false, "admin only"
         end
-        local vid = args.vehicleId
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
-        end
-        if not vid then
+        local key = IKST_GuardOps.claimStoreKey(admin, args)
+        if not key then
             return false, "no vehicle selected"
         end
         local newOwner = args.owner
@@ -429,46 +442,40 @@ function IKST_GuardOps.handle(command, admin, args)
                 newOwner = IKST_Identity.resolveWhitelistKey(newOwner)
             end
         end
-        local ok, msg = IKST_VehicleClaim.transfer(vid, newOwner)
-        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, tonumber(vid), ok and "set" or nil)
+        local ok, msg = IKST_VehicleClaim.transfer(key, newOwner)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimSetLabel then
-        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
-        end
-        if not vid then
+        local key = IKST_GuardOps.claimStoreKey(admin, args)
+        if not key then
             return false, "no vehicle selected"
         end
-        local entry = IKST_VehicleClaim.get(vid)
+        local entry = IKST_VehicleClaim.get(key)
         if not entry then
             return false, "not claimed"
         end
-        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, key) then
             return false, "not your claim"
         end
-        local ok, msg = IKST_VehicleClaim.setLabel(vid, args.label)
-        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
+        local ok, msg = IKST_VehicleClaim.setLabel(key, args.label)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "set" or nil)
     end
 
     if command == IKST.CMD.vehicleClaimSetPerms then
-        local vid = IKST_GuardOps.normalizeVehicleId(args.vehicleId)
-        if not vid and admin then
-            vid = IKST_VehicleUtil.nearestId(admin:getX(), admin:getY(), admin:getZ(), IKST.getVehicleNearRadius())
-        end
-        if not vid then
+        local key = IKST_GuardOps.claimStoreKey(admin, args)
+        if not key then
             return false, "no vehicle selected"
         end
-        local entry = IKST_VehicleClaim.get(vid)
+        local entry = IKST_VehicleClaim.get(key)
         if not entry then
             return false, "not claimed"
         end
-        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, vid) then
+        if not IKST_GuardOps.canManageVehicleClaim(admin, entry, key) then
             return false, "not your claim"
         end
-        local ok, msg = IKST_VehicleClaim.setPermissions(vid, args.scope, args.username, args.perms)
-        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, vid, ok and "set" or nil)
+        local ok, msg = IKST_VehicleClaim.setPermissions(key, args.scope, args.username, args.perms)
+        return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "set" or nil)
     end
 
     if command == IKST.CMD.safehouseClaimSetPerms then
@@ -523,7 +530,7 @@ function IKST_GuardOps.handle(command, admin, args)
         for _, entry in ipairs(list) do
             rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(entry, admin)
         end
-        IKST_GuardOps.sendClaimList(admin, rows)
+        IKST_GuardOps.sendClaimList(admin, rows, args.offset, args.limit)
         return true, #rows .. " claim(s)"
     end
 
@@ -538,6 +545,13 @@ function IKST_GuardOps.handle(command, admin, args)
             az = admin:getZ() or 0
         end
         local list = IKST_VehicleUtil.listNearby(ax, ay, az, radius)
+        for _, row in ipairs(list) do
+            local v = row.id ~= nil and IKST_VehicleUtil.getVehicle(row.id) or nil
+            if v and IKST_VehicleClaim and type(IKST_VehicleClaim.bindLoadedVehicle) == "function" then
+                IKST_VehicleClaim.bindLoadedVehicle(v)
+                row.claimKey = IKST_VehicleIdentity.readKey(v) or row.claimKey
+            end
+        end
         IKST_GuardOps.sendNearbyVehicles(admin, list)
         return true, #list .. " vehicle(s)"
     end
@@ -555,5 +569,8 @@ if Events and Events.OnGameStart and Events.OnGameStart.Add then
                 IKST_SafehouseClaim.syncFromVanilla(sh)
             end
         end)
+        if IKST_GuardOps.bindLoadedVehicleClaims then
+            IKST_GuardOps.bindLoadedVehicleClaims()
+        end
     end)
 end

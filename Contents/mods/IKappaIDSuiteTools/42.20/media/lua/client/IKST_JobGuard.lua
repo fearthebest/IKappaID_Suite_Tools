@@ -25,17 +25,45 @@ require "IKST_Access"
 
 IKST_JobGuard = IKST_JobGuard or {}
 
+IKST_JobGuard.LIST_PAGE = 50
 IKST_JobGuard.safehouses = {}
 IKST_JobGuard.claims = {}
 IKST_JobGuard.players = {}
+IKST_JobGuard.safehousesPending = false
+IKST_JobGuard.safehousesBootstrapped = false
+IKST_JobGuard.safehouseOffset = 0
+IKST_JobGuard.safehouseHasMore = false
+IKST_JobGuard.claimsPending = false
+IKST_JobGuard.claimsBootstrapped = false
+IKST_JobGuard.claimOffset = 0
+IKST_JobGuard.claimHasMore = false
 
-function IKST_JobGuard.requestSafehouses(player)
-    IKST.dispatchCommand(player, IKST.CMD.safehouseList, {})
+function IKST_JobGuard.requestSafehouses(player, more)
+    if more ~= true then
+        IKST_JobGuard.safehouseOffset = 0
+        IKST_JobGuard.safehouses = {}
+        IKST_JobGuard.safehousesBootstrapped = false
+    end
+    IKST_JobGuard.safehousesPending = true
+    IKST.dispatchCommand(player, IKST.CMD.safehouseList, {
+        offset = IKST_JobGuard.safehouseOffset or 0,
+        limit = IKST_JobGuard.LIST_PAGE,
+    })
 end
 
-function IKST_JobGuard.requestClaims(player)
+function IKST_JobGuard.requestClaims(player, more)
     local showAll = IKST_Access and IKST_Access.canUseTools(player)
-    IKST.dispatchCommand(player, IKST.CMD.vehicleClaimList, { all = showAll == true })
+    if more ~= true then
+        IKST_JobGuard.claimOffset = 0
+        IKST_JobGuard.claims = {}
+        IKST_JobGuard.claimsBootstrapped = false
+    end
+    IKST_JobGuard.claimsPending = true
+    IKST.dispatchCommand(player, IKST.CMD.vehicleClaimList, {
+        all = showAll == true,
+        offset = IKST_JobGuard.claimOffset or 0,
+        limit = IKST_JobGuard.LIST_PAGE,
+    })
 end
 
 function IKST_JobGuard.requestNearbyVehicles(player)
@@ -620,7 +648,7 @@ function IKST_JobGuard.buildVehicles(panel, y)
         y = cly + 8
         local selectedClaim
         for _, claim in ipairs(claims) do
-            if claim.id == panel.guardSelectedClaimId then
+            if tostring(claim.id) == tostring(panel.guardSelectedClaimId) then
                 selectedClaim = claim
                 break
             end
@@ -632,7 +660,10 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     label = IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Unclaim"),
                     w = 80,
                     fn = function()
-                        IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, { vehicleId = selectedClaim.id })
+                        IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, {
+                            vehicleId = selectedClaim.id,
+                            claimKey = selectedClaim.claimKey or selectedClaim.id,
+                        })
                     end,
                 }
             end
@@ -738,7 +769,10 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     IKST.notify(p, IKST.text("IGUI_IKST_Guard_Vehicle_None", "No vehicle nearby."), false)
                     return
                 end
-                IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, { vehicleId = targetId })
+                IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, {
+                    vehicleId = targetId,
+                    claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
+                })
             end,
         }
     end
@@ -757,7 +791,11 @@ function IKST_JobGuard.buildVehicles(panel, y)
                     IKST.notify(p, IKST.text("IGUI_IKST_Guard_Vehicle_OwnerRequired", "Enter new owner username."), false)
                     return
                 end
-                IKST.dispatchCommand(p, IKST.CMD.vehicleClaimTransfer, { vehicleId = targetId, owner = newOwner })
+                IKST.dispatchCommand(p, IKST.CMD.vehicleClaimTransfer, {
+                    vehicleId = targetId,
+                    claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
+                    owner = newOwner,
+                })
                 IKST_JobGuard.requestClaims(p)
                 panel:refreshJobUI()
             end,
@@ -777,6 +815,7 @@ function IKST_JobGuard.buildVehicles(panel, y)
                 end
                 IKST.dispatchCommand(p, IKST.CMD.vehicleClaimSetLabel, {
                     vehicleId = targetId,
+                    claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
                     label = IKST_JobGuard.readEntry(panel.guardVehicleLabelEntry),
                 })
             end,
@@ -1057,6 +1096,9 @@ function IKST_JobGuard.buildClaimOverview(panel)
     local shContentH = 40
     if #shList > 0 then
         shContentH = 16 + 22 + 6 + listH + 8 + btnH
+        if IKST_JobGuard.safehouseHasMore then
+            shContentH = shContentH + btnH + 8
+        end
     end
     local shCardH = shHeaderH + shContentH + shBottom
     local shCard, shContentY = IKST_Chrome.newSectionCardPanel(x, y, w, shCardH,
@@ -1065,8 +1107,15 @@ function IKST_JobGuard.buildClaimOverview(panel)
     panel:addJobWidget(shCard)
 
     if #shList == 0 then
+        local shWaiting = IKST_JobGuard.safehousesPending
+            or (not IKST_JobGuard.safehousesBootstrapped
+                and IKST.isMultiplayerSession and IKST.isMultiplayerSession())
+        local emptyText = shWaiting
+            and IKST.text("IGUI_IKST_Guard_WaitingServer", "Waiting for server…")
+            or IKST.text("IGUI_IKST_Guard_SH_None", "No safehouses yet. Use Claim here or Refresh.")
         local empty = ISLabel:new(padX, shContentY + 8, 16,
-            IKST.text("IGUI_IKST_Guard_SH_None", "No safehouses yet. Use Claim here or Refresh."),
+            emptyText,
+            cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
             cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
         empty:initialise()
         shCard:addChild(empty)
@@ -1155,6 +1204,14 @@ function IKST_JobGuard.buildClaimOverview(panel)
                 end)
             end
         end
+        if IKST_JobGuard.safehouseHasMore then
+            local moreY = listBottom + 8 + btnH + 8
+            local moreLabel = IKST.text("IGUI_IKST_Guard_LoadMore", "Load more")
+            local moreW = IKST_UI_Layout.buttonWidth(moreLabel, UIFont.Small, 88)
+            claimOverviewBtn(shCard, panel, padX, moreY, moreW, btnH, moreLabel, "chip", function()
+                IKST_JobGuard.requestSafehouses(p, true)
+            end)
+        end
     end
     y = y + shCardH + gap
 
@@ -1166,6 +1223,9 @@ function IKST_JobGuard.buildClaimOverview(panel)
     local vContentH = 40
     if #vList > 0 then
         vContentH = 16 + 22 + 6 + listH + 8 + btnH
+        if IKST_JobGuard.claimHasMore then
+            vContentH = vContentH + btnH + 8
+        end
     end
     local vCardH = shHeaderH + vContentH + shBottom
     local vCard, vContentY = IKST_Chrome.newSectionCardPanel(x, y, w, vCardH,
@@ -1174,8 +1234,14 @@ function IKST_JobGuard.buildClaimOverview(panel)
     panel:addJobWidget(vCard)
 
     if #vList == 0 then
+        local vWaiting = IKST_JobGuard.claimsPending
+            or (not IKST_JobGuard.claimsBootstrapped
+                and IKST.isMultiplayerSession and IKST.isMultiplayerSession())
+        local emptyText = vWaiting
+            and IKST.text("IGUI_IKST_Guard_WaitingServer", "Waiting for server…")
+            or IKST.text("IGUI_IKST_ClaimTile_NoVehicles", "No vehicle claims yet.")
         local empty = ISLabel:new(padX, vContentY + 8, 16,
-            IKST.text("IGUI_IKST_ClaimTile_NoVehicles", "No vehicle claims yet."),
+            emptyText,
             cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
         empty:initialise()
         vCard:addChild(empty)
@@ -1210,7 +1276,7 @@ function IKST_JobGuard.buildClaimOverview(panel)
         panel.guardOverviewVList = vBox
         local selectedClaim
         for _, claim in ipairs(vList) do
-            if claim.id == panel.guardSelectedClaimId then
+            if tostring(claim.id) == tostring(panel.guardSelectedClaimId) then
                 selectedClaim = claim
                 break
             end
@@ -1245,12 +1311,23 @@ function IKST_JobGuard.buildClaimOverview(panel)
                     IKST_Confirm.showDestructive(
                         IKST.text("IGUI_IKST_ClaimTile_ConfirmAbandonVeh", "Abandon this vehicle claim?"),
                         function()
-                            IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, { vehicleId = claimId })
+                            IKST.dispatchCommand(p, IKST.CMD.vehicleReleaseClaim, {
+                                vehicleId = claimId,
+                                claimKey = selectedClaim.claimKey or claimId,
+                            })
                             IKST_JobGuard.requestClaims(p)
                         end
                     )
                 end)
             end
+        end
+        if IKST_JobGuard.claimHasMore then
+            local moreY = listBottom + 8 + btnH + 8
+            local moreLabel = IKST.text("IGUI_IKST_Guard_LoadMore", "Load more")
+            local moreW = IKST_UI_Layout.buttonWidth(moreLabel, UIFont.Small, 88)
+            claimOverviewBtn(vCard, panel, padX, moreY, moreW, btnH, moreLabel, "chip", function()
+                IKST_JobGuard.requestClaims(p, true)
+            end)
         end
     end
     y = y + vCardH + gap
@@ -1387,12 +1464,40 @@ function IKST_JobGuard.build(panel)
 end
 
 function IKST_JobGuard.onSafehouseListResult(args)
-    IKST_JobGuard.safehouses = (args and args.safehouses) or {}
+    local incoming = (args and args.safehouses) or {}
+    local offset = tonumber(args and args.offset) or 0
+    IKST_JobGuard.safehousesPending = false
+    IKST_JobGuard.safehousesBootstrapped = true
+    if offset <= 0 then
+        IKST_JobGuard.safehouses = incoming
+    else
+        local list = IKST_JobGuard.safehouses or {}
+        for i = 1, #incoming do
+            list[#list + 1] = incoming[i]
+        end
+        IKST_JobGuard.safehouses = list
+    end
+    IKST_JobGuard.safehouseHasMore = args and args.hasMore == true
+    IKST_JobGuard.safehouseOffset = offset + #incoming
     if IKST_JobsPanel and IKST_JobsPanel.instance then IKST_JobsPanel.instance:refreshJobUI() end
 end
 
 function IKST_JobGuard.onClaimListResult(args)
-    IKST_JobGuard.claims = (args and args.claims) or {}
+    local incoming = (args and args.claims) or {}
+    local offset = tonumber(args and args.offset) or 0
+    IKST_JobGuard.claimsPending = false
+    IKST_JobGuard.claimsBootstrapped = true
+    if offset <= 0 then
+        IKST_JobGuard.claims = incoming
+    else
+        local list = IKST_JobGuard.claims or {}
+        for i = 1, #incoming do
+            list[#list + 1] = incoming[i]
+        end
+        IKST_JobGuard.claims = list
+    end
+    IKST_JobGuard.claimHasMore = args and args.hasMore == true
+    IKST_JobGuard.claimOffset = offset + #incoming
     if IKST_JobsPanel and IKST_JobsPanel.instance then IKST_JobsPanel.instance:refreshJobUI() end
 end
 

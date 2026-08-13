@@ -68,7 +68,7 @@ Client blocks stop normal gameplay immediately. A modified client could still by
 ## Maintenance checklist (after a PZ build update)
 
 1. Start a debug game with IKST + Tiles; confirm `[IKST]` load lines in `console.txt`.
-2. Claim a vehicle as player A; as player B verify: cannot enter, cannot loot trunk, halo message shown.
+2. Claim a vehicle as player A; as player B verify: cannot enter, cannot loot trunk, halo message shown. Restart the server; the same car is still A's, not a random other vehicle.
 3. Protect a tile / safehouse area; verify sledge cursor refuses destroy.
 4. If a timed-action class was renamed in vanilla, update `IKST_VehiclePermissions.TIMED_ACTION` or the build-class lists in `IKST_Enforcement.lua`.
 5. If transfers fail silently, check whether vanilla renamed `ISInventoryTransferAction` paths under `media/lua/shared/TimedActions/`.

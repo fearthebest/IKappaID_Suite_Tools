@@ -6,6 +6,7 @@ require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_VehicleClaim"
 require "IKST_VehicleClaimMirror"
+require "IKST_VehicleIdentity"
 require "IKST_Identity"
 require "IKST_Access"
 
@@ -13,15 +14,28 @@ IKST_VehicleClaimClient = IKST_VehicleClaimClient or {}
 IKST_VehicleClaimClient.claims = IKST_VehicleClaimClient.claims or {}
 IKST_VehicleClaimClient.nearby = IKST_VehicleClaimClient.nearby or {}
 IKST_VehicleClaimClient.byId = IKST_VehicleClaimClient.byId or {}
+IKST_VehicleClaimClient.byKey = IKST_VehicleClaimClient.byKey or {}
 IKST_VehicleClaimClient.listBootstrapped = IKST_VehicleClaimClient.listBootstrapped or false
 
 local function indexRow(row)
     if not row then
         return
     end
-    local id = tonumber(row.id)
-    if id then
-        IKST_VehicleClaimClient.byId[id] = row
+    if row.claimKey and row.claimKey ~= "" then
+        IKST_VehicleClaimClient.byKey[tostring(row.claimKey)] = row
+    end
+    if row.id ~= nil then
+        IKST_VehicleClaimClient.byKey[tostring(row.id)] = row
+        local runtime = tonumber(row.id)
+        if runtime then
+            IKST_VehicleClaimClient.byId[runtime] = row
+        end
+    end
+    if row.runtimeId ~= nil then
+        local runtime = tonumber(row.runtimeId)
+        if runtime then
+            IKST_VehicleClaimClient.byId[runtime] = row
+        end
     end
 end
 
@@ -35,10 +49,11 @@ function IKST_VehicleClaimClient.syncFromMirroredStore()
         if entry and entry.id and not IKST_VehicleClaim.isEntryExpired(entry) then
             local displayLabel = entry.label
             if not displayLabel or displayLabel == "" then
-                displayLabel = entry.script or ("#" .. tostring(entry.id))
+                displayLabel = entry.script or tostring(entry.id)
             end
             rows[#rows + 1] = {
                 id = entry.id,
+                claimKey = tostring(entry.id),
                 owner = entry.owner,
                 ownerLabel = IKST_Identity.labelForKey(entry.owner),
                 displayLabel = displayLabel,
@@ -83,6 +98,7 @@ end
 
 function IKST_VehicleClaimClient.reindexClaims()
     IKST_VehicleClaimClient.byId = {}
+    IKST_VehicleClaimClient.byKey = {}
     for _, row in ipairs(IKST_VehicleClaimClient.nearby or {}) do
         indexRow(row)
     end
@@ -95,16 +111,13 @@ function IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
     if not entry or not entry.id then
         return nil
     end
-    local id = tonumber(entry.id)
-    if id == nil then
-        return nil
-    end
+    local id = entry.id
     if IKST_VehicleClaim.ensureEntryShape then
         IKST_VehicleClaim.ensureEntryShape(entry)
     end
     local displayLabel = entry.label
     if not displayLabel or displayLabel == "" then
-        displayLabel = entry.script or ("#" .. tostring(id))
+        displayLabel = entry.script or tostring(id)
     end
     local canRelease = false
     local canEdit = false
@@ -114,6 +127,7 @@ function IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
     end
     return {
         id = id,
+        claimKey = tostring(id),
         owner = entry.owner,
         ownerLabel = IKST_Identity.labelForKey(entry.owner),
         displayLabel = displayLabel,
@@ -134,10 +148,10 @@ function IKST_VehicleClaimClient.upsertClaimRow(entry, player)
     if not row then
         return
     end
-    local id = tonumber(row.id)
+    local id = row.id
     local replaced = false
     for i, r in ipairs(IKST_VehicleClaimClient.claims or {}) do
-        if tonumber(r.id) == id then
+        if tostring(r.id) == tostring(id) or (row.claimKey and tostring(r.claimKey) == tostring(row.claimKey)) then
             IKST_VehicleClaimClient.claims[i] = row
             replaced = true
             break
@@ -147,7 +161,9 @@ function IKST_VehicleClaimClient.upsertClaimRow(entry, player)
         IKST_VehicleClaimClient.claims[#IKST_VehicleClaimClient.claims + 1] = row
     end
     for i, r in ipairs(IKST_VehicleClaimClient.nearby or {}) do
-        if tonumber(r.id) == id then
+        local sameRuntime = tonumber(r.id) and tonumber(row.runtimeId) and tonumber(r.id) == tonumber(row.runtimeId)
+        local sameKey = row.claimKey and tostring(r.claimKey) == tostring(row.claimKey)
+        if sameRuntime or sameKey then
             IKST_VehicleClaimClient.nearby[i] = row
             break
         end
@@ -156,7 +172,17 @@ function IKST_VehicleClaimClient.upsertClaimRow(entry, player)
 end
 
 function IKST_VehicleClaimClient.onClaimListResult(args)
-    IKST_VehicleClaimClient.claims = (args and args.claims) or {}
+    local incoming = (args and args.claims) or {}
+    local offset = tonumber(args and args.offset) or 0
+    if offset <= 0 then
+        IKST_VehicleClaimClient.claims = incoming
+    else
+        local list = IKST_VehicleClaimClient.claims or {}
+        for i = 1, #incoming do
+            list[#list + 1] = incoming[i]
+        end
+        IKST_VehicleClaimClient.claims = list
+    end
     IKST_VehicleClaimClient.listBootstrapped = true
     IKST_VehicleClaimClient.reindexClaims()
     if IKST_JobsPanel and IKST_JobsPanel.instance then
@@ -173,7 +199,20 @@ function IKST_VehicleClaimClient.onNearbyResult(vehicles)
     end
 end
 
-function IKST_VehicleClaimClient.rowForVehicle(vehicleId)
+function IKST_VehicleClaimClient.rowForVehicle(vehicleId, vehicle)
+    if vehicle and IKST_VehicleIdentity then
+        local key = IKST_VehicleIdentity.readKey(vehicle)
+        if key and IKST_VehicleClaimClient.byKey[key] then
+            return IKST_VehicleClaimClient.byKey[key]
+        end
+        local entry = IKST_VehicleClaim.getForVehicle(vehicle)
+        if entry then
+            return IKST_VehicleClaimClient.buildRowFromEntry(entry, getPlayer and getPlayer() or nil)
+        end
+    end
+    if vehicleId ~= nil and IKST_VehicleClaimClient.byKey[tostring(vehicleId)] then
+        return IKST_VehicleClaimClient.byKey[tostring(vehicleId)]
+    end
     local id = tonumber(vehicleId)
     if id == nil then
         return nil
@@ -181,30 +220,23 @@ function IKST_VehicleClaimClient.rowForVehicle(vehicleId)
     return IKST_VehicleClaimClient.byId[id]
 end
 
-function IKST_VehicleClaimClient.spFallbackState(vehicleId, player)
-    local id = tonumber(vehicleId)
-    if id == nil then
-        return nil
+function IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
+    local entry = nil
+    if vehicle then
+        entry = IKST_VehicleClaim.getForVehicle(vehicle)
     end
-    local entry = IKST_VehicleClaim.get(id)
-    if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
-        local displayLabel = entry.label
-        if not displayLabel or displayLabel == "" then
-            displayLabel = entry.script or ("#" .. tostring(id))
+    if not entry then
+        local key = vehicleId
+        if vehicle and IKST_VehicleIdentity then
+            key = IKST_VehicleIdentity.readKey(vehicle) or vehicleId
         end
-        return {
-            id = id,
-            claimed = true,
-            ownerLabel = IKST_Identity.labelForKey(entry.owner),
-            displayLabel = displayLabel,
-            canRelease = IKST_VehicleClaim.playerMayRelease(entry, player, id),
-            canEdit = IKST_VehicleClaim.playerMayEdit(entry, player),
-            canClaim = false,
-            hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt),
-        }
+        entry = key and IKST_VehicleClaim.get(key) or nil
+    end
+    if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
+        return IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
     end
     return {
-        id = id,
+        id = vehicleId,
         claimed = false,
         canClaim = IKST_ClaimPolicy.mayCreateClaim(player),
         canRelease = false,
@@ -212,16 +244,22 @@ function IKST_VehicleClaimClient.spFallbackState(vehicleId, player)
     }
 end
 
-function IKST_VehicleClaimClient.uiState(vehicleId, player)
-    local row = IKST_VehicleClaimClient.rowForVehicle(vehicleId)
+function IKST_VehicleClaimClient.uiState(vehicleId, player, vehicle)
+    local row = IKST_VehicleClaimClient.rowForVehicle(vehicleId, vehicle)
     if row and row.claimed == true then
         return row
     end
-    local id = tonumber(vehicleId)
-    if id == nil then
-        return row
+    if vehicle then
+        local entry = IKST_VehicleClaim.getForVehicle(vehicle)
+        if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
+            return IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
+        end
     end
-    local entry = IKST_VehicleClaim.get(id)
+    local key = vehicleId
+    if vehicle and IKST_VehicleIdentity then
+        key = IKST_VehicleIdentity.readKey(vehicle) or vehicleId
+    end
+    local entry = key and IKST_VehicleClaim.get(key) or nil
     if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
         return IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
     end
@@ -229,19 +267,8 @@ function IKST_VehicleClaimClient.uiState(vehicleId, player)
         return row
     end
     if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
-        if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
-            return {
-                id = id,
-                claimed = true,
-                ownerLabel = IKST_Identity.labelForKey(entry.owner),
-                canRelease = false,
-                canEdit = false,
-                canClaim = false,
-                stale = true,
-            }
-        end
         return {
-            id = id,
+            id = vehicleId,
             claimed = false,
             canClaim = false,
             canRelease = false,
@@ -249,26 +276,31 @@ function IKST_VehicleClaimClient.uiState(vehicleId, player)
             stale = true,
         }
     end
-    return IKST_VehicleClaimClient.spFallbackState(id, player)
+    return IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
 end
 
 function IKST_VehicleClaimClient.applyMirror(args)
     if IKST_VehicleClaimMirror.applyMirror(args) then
-        local id = tonumber(args.vehicleId or (args.entry and args.entry.id))
+        local id = args.vehicleId or (args.entry and args.entry.id)
         local player = getPlayer and getPlayer() or nil
         if args.action == "remove" and id then
-            IKST_VehicleClaimClient.byId[id] = nil
+            local want = tostring(id)
+            IKST_VehicleClaimClient.byKey[want] = nil
+            local runtime = tonumber(id)
+            if runtime then
+                IKST_VehicleClaimClient.byId[runtime] = nil
+            end
             local kept = {}
             for _, row in ipairs(IKST_VehicleClaimClient.claims or {}) do
-                if tonumber(row.id) ~= id then
+                if tostring(row.id) ~= want and tostring(row.claimKey or "") ~= want then
                     kept[#kept + 1] = row
                 end
             end
             IKST_VehicleClaimClient.claims = kept
             for i, row in ipairs(IKST_VehicleClaimClient.nearby or {}) do
-                if tonumber(row.id) == id then
+                if tostring(row.claimKey or "") == want or tostring(row.id) == want then
                     IKST_VehicleClaimClient.nearby[i] = {
-                        id = id,
+                        id = row.id,
                         claimed = false,
                         canClaim = IKST_ClaimPolicy.mayCreateClaim(player),
                         canRelease = false,

@@ -121,14 +121,66 @@ function IKST_Economy.shopObjectProtected(obj, player)
     return IKST_Economy.isProtectedShopObject(obj)
 end
 
+function IKST_Economy.encodeShopPriceTable(catalog)
+    local parts = {}
+    if type(catalog) ~= "table" then
+        return ""
+    end
+    for itemType, price in pairs(catalog) do
+        if type(itemType) == "string" and itemType ~= ""
+            and not string.find(itemType, "[;=]") then
+            local n = math.floor(tonumber(price) or 0)
+            if n > 0 then
+                parts[#parts + 1] = itemType .. "=" .. tostring(n)
+            end
+        end
+    end
+    table.sort(parts)
+    return table.concat(parts, ";")
+end
+
+function IKST_Economy.parseShopPriceTable(raw)
+    local catalog = {}
+    if type(raw) == "table" then
+        for itemType, price in pairs(raw) do
+            if type(itemType) == "string" then
+                local n = math.floor(tonumber(price) or 0)
+                if n > 0 then
+                    catalog[itemType] = n
+                end
+            end
+        end
+        return catalog
+    end
+    if type(raw) ~= "string" or raw == "" then
+        return catalog
+    end
+    for chunk in string.gmatch(raw, "[^;]+") do
+        local itemType, price = string.match(chunk, "^([^=]+)=(%d+)$")
+        if itemType then
+            catalog[itemType] = tonumber(price) or 0
+        end
+    end
+    return catalog
+end
+
+function IKST_Economy.persistShopPriceTable(shopMd, catalog)
+    if not shopMd then
+        return
+    end
+    shopMd[IKST_Economy.VEND_PRICES] = IKST_Economy.encodeShopPriceTable(catalog)
+end
+
+-- Object getModData() can drop nested tables. Store Type=price; as one string.
+-- https://pzwiki.net/wiki/Mod_data
 function IKST_Economy.getShopPriceTable(shopMd)
     if not shopMd then
         return nil
     end
-    local catalog = shopMd[IKST_Economy.VEND_PRICES]
-    if type(catalog) ~= "table" then
-        catalog = {}
-        shopMd[IKST_Economy.VEND_PRICES] = catalog
+    local raw = shopMd[IKST_Economy.VEND_PRICES]
+    local catalog = IKST_Economy.parseShopPriceTable(raw)
+    if type(raw) == "table" then
+        IKST_Economy.persistShopPriceTable(shopMd, catalog)
     end
     return catalog
 end

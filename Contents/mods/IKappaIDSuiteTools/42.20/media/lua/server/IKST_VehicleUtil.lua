@@ -7,6 +7,7 @@ end
 require "IKST_Shared"
 require "IKST_Utility"
 require "IKST_VehicleKeys"
+require "IKST_VehicleIdentity"
 
 IKST_VehicleUtil = IKST_VehicleUtil or {}
 
@@ -96,8 +97,13 @@ function IKST_VehicleUtil.listNearby(x, y, z, radius)
             if v.getVehicleEngineQuality then
                 cond = v:getVehicleEngineQuality() or cond
             end
+            local runtimeId = nil
+            if type(v.getId) == "function" then
+                runtimeId = v:getId()
+            end
             out[#out + 1] = {
-                id = v:getId(),
+                id = runtimeId,
+                claimKey = IKST_VehicleIdentity.readKey(v),
                 script = scriptName,
                 distance = math.floor(dist),
                 condition = cond,

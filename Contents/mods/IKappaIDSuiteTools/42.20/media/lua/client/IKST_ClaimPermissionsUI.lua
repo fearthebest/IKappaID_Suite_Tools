@@ -352,6 +352,7 @@ function IKST_ClaimPermissionsUI.vehicleConfig(vehicleId)
         buildSavePayload = function(panel, scope, username, perms)
             return {
                 vehicleId = panel.vehicleId,
+                claimKey = panel.vehicleId,
                 scope = scope,
                 username = username,
                 perms = perms,
@@ -360,6 +361,7 @@ function IKST_ClaimPermissionsUI.vehicleConfig(vehicleId)
         buildRemovePayload = function(panel, username)
             return {
                 vehicleId = panel.vehicleId,
+                claimKey = panel.vehicleId,
                 scope = "remove_user",
                 username = username,
             }

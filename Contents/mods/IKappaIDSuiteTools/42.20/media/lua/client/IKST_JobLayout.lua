@@ -75,6 +75,12 @@ function IKST_JobLayout.restorePanelPosition(panel)
     local x, y
     if IKST_UIPrefs and type(IKST_UIPrefs.loadPanelGeometry) == "function" then
         local geo = IKST_UIPrefs.loadPanelGeometry()
+        if geo.w and geo.w > 80 and type(panel.setWidth) == "function" then
+            panel:setWidth(geo.w)
+        end
+        if geo.h and geo.h > 80 and type(panel.setHeight) == "function" then
+            panel:setHeight(geo.h)
+        end
         if geo.x then
             x = geo.x
         end

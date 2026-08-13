@@ -28,7 +28,8 @@ A modified client must not keep any IKST-protected change: claims, protect, shop
 | Claims | Server ownership + proximity |
 | Guarded loot | `IKST_TransferServer` reverse (~1s) |
 | Guarded tiles (sledge / pickup / grief build) | `IKST_DestroyServer` reverse (~1s); staff World Edit allowlists the square |
-| Claimed vehicles | Server `IKST_GuardOps.enforceVehicleClaim` |
+| Claimed vehicles | Server `IKST_GuardOps.enforceVehicleClaim` keyed by a durable stamp on the vehicle (`IKST_vkey`), not session `getId()` |
+| Safehouse mutate | Server finds the house by bounds, not recycled `getOnlineID()` |
 
 ## What is vanilla PZ (not IKST)
 

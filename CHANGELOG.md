@@ -6,6 +6,15 @@ Build **42.20** public Beta pack.
 
 - Boot: break recursive `require` between claim/economy peer modules (table first, then require).
 - Vehicles: forward-declare snapshot `captureItem` so **Move here** with glovebox/trunk loot does not nil.
+- **Requires IKappaID_UI** (Mod ID `IKappaID_UI`): `mod.info` `require=\IKappaID_UI`; hub/Jobs refuse to open if the UI framework is not loaded. Dedicated `Mods=` must include it.
+- **Vehicle claims:** stop using session `getId()` as the saved claim key (those ids recycle on restart). Stamp a durable key on the vehicle; bind on spawn / loaded cell. World Edit vehicle protect uses the same stamp.
+- **Safehouse commands:** resolve by rectangle (`x,y,w,h`), not session `getOnlineID()` / `getSafeHouse(int)` (those recycle after dedicated restart the same way vehicle ids do).
+- **Commands:** sanitize client payloads (depth 6, 200 keys, 4096 chars, finite numbers) before authorize; deny oversized tables with `[IKST-AUDIT]`.
+- **Join:** 15s hold on mutating command groups (`claim_write`, `economy_write`, `vehicle_mutate`, `staff_give`, `lock_auth`); deny with `retryAfterMs`. List/debug/briefing/identity stay allowed. Not the 30s arrival zombie window.
+- **Relocate:** backup stash keyed by durable `IKST_vkey`; session id is in-flight only. Origin restore matches stamp, then coords.
+- **Journal / shop:** flatten recovery snapshot and vend price catalog to primitive strings on item/object `modData` (nested tables can drop on save).
+- **sqlId bind:** if two claim rows share the same sqlId, skip bind (fail closed).
+- **Jobs UI:** scale mixes screen height with `UIFont.Small` metrics; Jobs x/y/w/h persist to a client file with a known-key whitelist (clamped to screen). Claim lists are paged (`offset`/`limit`); Guard tab shows “waiting for server” until the first page arrives.
 - Claim radial: inside wrap always; outside wrap only if slices were not already added (no double Claim).
 - Server: prune disconnected players from `IKST_CommandQueue`.
 - Safehouse: `allowSafeHouse` uses `type(...) == "function"`; skip if missing (not fail-closed).

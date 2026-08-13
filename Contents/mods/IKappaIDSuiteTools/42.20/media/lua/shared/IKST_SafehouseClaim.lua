@@ -265,7 +265,7 @@ function IKST_SafehouseClaim.syncFromVanilla(sh)
     if entry then
         if ownerKey and ownerKey ~= "" and not IKST_Identity.keysEqual(entry.owner, ownerKey) then
             entry.owner = ownerKey
-            IKST_SafehouseClaim.transmit("set", key, entry)
+            IKST_SafehouseClaim.transmit("set", IKST_SafehouseClaim.keyFor(x, y, w, h), entry)
         end
         return true
     end

@@ -303,12 +303,13 @@ function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
     if oldId == nil then
         return false, "select a vehicle", nil
     end
-    if IKST_TileProtect and IKST_TileProtect.isVehicleProtected(oldId) then
-        return false, "vehicle protected", nil
-    end
     local vehicle = IKST_VehicleOps.getVehicle(oldId)
     if not vehicle then
         return false, "vehicle not found", nil
+    end
+    if IKST_TileProtect and IKST_TileProtect.isLiveVehicleProtected
+        and IKST_TileProtect.isLiveVehicleProtected(vehicle) then
+        return false, "vehicle protected", nil
     end
     local blocked, reason = IKST_VehicleOps.vehiclePolicyBlockedForVehicle(playerObj, vehicle)
     if blocked then
@@ -335,14 +336,22 @@ function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
     if not IKST_VehicleOps.scriptExists(snap.scriptName) then
         return false, "invalid script", nil
     end
+    local stamp = nil
+    if IKST_VehicleClaim and type(IKST_VehicleClaim.ensureKey) == "function" then
+        stamp = IKST_VehicleClaim.ensureKey(vehicle)
+    elseif IKST_VehicleIdentity and type(IKST_VehicleIdentity.readKey) == "function" then
+        stamp = IKST_VehicleIdentity.readKey(vehicle)
+    end
+    local backupKey = stamp or tostring(oldId)
     snap.origin = {
         vehicleId = oldId,
+        claimKey = stamp,
         x = math.floor(vehicle:getX()),
         y = math.floor(vehicle:getY()),
         z = vehicle:getZ() or 0,
         angle = type(vehicle.getAngleY) == "function" and vehicle:getAngleY() or nil,
     }
-    IKST_VehicleRelocateBackup.stash(oldId, snap, { x = x, y = y, z = z })
+    IKST_VehicleRelocateBackup.stash(backupKey, snap, { x = x, y = y, z = z }, oldId)
     IKST_VehicleOps.ejectOccupants(vehicle)
     IKST_VehicleOps.detachTrailersForFlip(vehicle)
     -- Never keep old + new in world (dupe risk). Delete only after destination validated.
@@ -350,7 +359,7 @@ function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
     local newVehicle, spawnMsg = IKST_VehicleOps.spawnFromSnapshot(
         snap, x, y, z, angle, playerObj, nil)
     if not newVehicle then
-        local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(oldId, playerObj)
+        local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(backupKey, playerObj)
         if restored then
             return false, "respawn failed (restored at origin)", nil
         end
@@ -359,16 +368,16 @@ function IKST_VehicleOps.relocate(vehicleId, x, y, z, angle, playerObj)
     local newId = type(newVehicle.getId) == "function" and newVehicle:getId() or nil
     if newId == nil then
         IKST_VehicleOps.removeVehicleFromWorld(newVehicle)
-        local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(oldId, playerObj)
+        local restored = IKST_VehicleRelocateBackup.restoreAtOrigin(backupKey, playerObj)
         if restored then
             return false, "respawn missing id (restored at origin)", nil
         end
         return false, "respawn missing id — stored backup kept", nil
     end
     if IKST_VehicleClaim and IKST_VehicleClaim.remapVehicleId then
-        IKST_VehicleClaim.remapVehicleId(oldId, newId, { x = x, y = y, z = z })
+        IKST_VehicleClaim.remapVehicleId(stamp or oldId, newId, { x = x, y = y, z = z })
     end
-    IKST_VehicleRelocateBackup.clear(oldId)
+    IKST_VehicleRelocateBackup.clear(backupKey)
     local resultMsg = "relocated"
     if newVehicle and newVehicle.getModData then
         local md = newVehicle:getModData()
@@ -392,15 +401,19 @@ function IKST_VehicleOps.delete(vehicleId, player)
     if not IKST_VehicleOps.mayMutateVehicle() then
         return false, "server only"
     end
-    if IKST_TileProtect and IKST_TileProtect.isVehicleProtected(vehicleId) then
-        return false, "vehicle protected"
-    end
-    if IKST_VehicleClaim and IKST_VehicleClaim.get(vehicleId) then
-        return false, "vehicle claimed"
-    end
     local v = IKST_VehicleOps.getVehicle(vehicleId)
     if not v then
         return false, "vehicle not found"
+    end
+    if IKST_TileProtect and IKST_TileProtect.isLiveVehicleProtected
+        and IKST_TileProtect.isLiveVehicleProtected(v) then
+        return false, "vehicle protected"
+    end
+    if IKST_VehicleClaim and type(IKST_VehicleClaim.getForVehicle) == "function" then
+        local claimed = IKST_VehicleClaim.getForVehicle(v)
+        if claimed then
+            return false, "vehicle claimed"
+        end
     end
     local blocked, reason = IKST_VehicleOps.vehiclePolicyBlockedForVehicle(player, v)
     if blocked then

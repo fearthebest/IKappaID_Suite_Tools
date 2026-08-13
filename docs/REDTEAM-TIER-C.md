@@ -19,8 +19,12 @@
 | 10 | Rapid duplicate vendBuy packets | no dupe, throttle | ☐ |
 | 11 | Take from a claimed container you may not loot | item reversed (~1s) | ☐ |
 | 12 | Sledge / pickup on a claim you may not destroy (bypass UI if you can) | tile restored; pickup item gone | ☐ |
+| 13 | Oversized / nested `sendClientCommand` table (depth >6, >200 keys, huge string, NaN) | Denied + `[IKST-AUDIT]`; handler never runs | ☐ |
+| 14 | Mutate claim / economy / vehicle / give / lock in first 15s after connect | Denied `join_hold` + `retryAfterMs`; list queries still work | ☐ |
+| 15 | Crash or kill dedicated mid-relocate | After restart, restore/claim still the same stamp (not a recycled `getId()`) | ☐ |
+| 16 | Record journal + set shop catalog prices, save, restart | Snapshot and prices still present (flat item/object fields) | ☐ |
 
-**Also on dedicated (honest play, not attacks):** two clients, safehouse + vehicle claims and permissions, relog still shows the right owner, economy deposit/wire with Phone Shop loaded.
+**Also on dedicated (honest play, not attacks):** two clients, safehouse + vehicle claims and permissions, relog still shows the right owner, **full server restart still shows the same vehicle claimed (not a random other car)**, **release/invite still hits the same safehouse (not another house that reused `getOnlineID()`)**, economy deposit/wire with Phone Shop loaded.
 
 ## Notes
 

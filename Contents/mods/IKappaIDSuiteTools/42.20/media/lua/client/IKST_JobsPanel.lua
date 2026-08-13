@@ -977,6 +977,10 @@ function IKST_JobsPanel.open(player)
     if not player or not IKST_Access.canOpenPanel(player) then
         return
     end
+    if type(IKST.uiFrameworkLoaded) == "function" and not IKST.uiFrameworkLoaded() then
+        IKST.notify(player, IKST.text("IGUI_IKST_NeedUiFramework", "Requires IKappaID UI Framework (Mod ID: IKappaID_UI)."), false)
+        return
+    end
     IKST_JobsPanel.prepareOpen(player)
     local panel = IKST_JobsPanel.ensure()
     panel.player = player
@@ -1004,6 +1008,10 @@ end
 function IKST_JobsPanel.toggle(player)
     player = IKST.resolvePlayer(player)
     if not player or not IKST_Access.canOpenPanel(player) then
+        return
+    end
+    if type(IKST.uiFrameworkLoaded) == "function" and not IKST.uiFrameworkLoaded() then
+        IKST.notify(player, IKST.text("IGUI_IKST_NeedUiFramework", "Requires IKappaID UI Framework (Mod ID: IKappaID_UI)."), false)
         return
     end
     local panel = IKST_JobsPanel.ensure()

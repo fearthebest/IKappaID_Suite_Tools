@@ -86,7 +86,17 @@ function IKST_SafehouseClaimClient.bootstrap(player)
 end
 
 function IKST_SafehouseClaimClient.onSafehouseListResult(args)
-    IKST_SafehouseClaimClient.safehouses = (args and args.safehouses) or {}
+    local incoming = (args and args.safehouses) or {}
+    local offset = tonumber(args and args.offset) or 0
+    if offset <= 0 then
+        IKST_SafehouseClaimClient.safehouses = incoming
+    else
+        local list = IKST_SafehouseClaimClient.safehouses or {}
+        for i = 1, #incoming do
+            list[#list + 1] = incoming[i]
+        end
+        IKST_SafehouseClaimClient.safehouses = list
+    end
     IKST_SafehouseClaimClient.listBootstrapped = true
     IKST_SafehouseClaimClient.reindexSafehouses()
 end

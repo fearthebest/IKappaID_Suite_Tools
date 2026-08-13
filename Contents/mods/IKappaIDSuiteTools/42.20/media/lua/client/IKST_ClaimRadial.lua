@@ -100,7 +100,7 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
     if not menu then
         return
     end
-    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj, vehicle)
     local vidKey = tostring(vid)
 
     if not uiState or not uiState.claimed then
@@ -123,7 +123,10 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
             IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"),
             IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_UNCLAIM),
             function()
-                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleReleaseClaim, { vehicleId = vid })
+                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleReleaseClaim, {
+                    vehicleId = vid,
+                    claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
+                })
             end
         )
     end

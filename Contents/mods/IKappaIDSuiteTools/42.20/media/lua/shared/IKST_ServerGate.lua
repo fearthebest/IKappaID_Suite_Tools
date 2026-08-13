@@ -20,6 +20,9 @@ function IKST_ServerGate.ensureServerModules()
         if not IKST_AuditLog then
             require "IKST_AuditLog"
         end
+        if not IKST_ServerPlayers then
+            require "IKST_ServerPlayers"
+        end
     end
 end
 
@@ -449,6 +452,14 @@ function IKST_ServerGate.authorize(player, command, args)
         if not okRate then
             return false, code or "rate_limit", { retryAfterMs = retryMs }
         end
+        if IKST.isMultiplayerSession and IKST.isMultiplayerSession()
+            and IKST_ServerPlayers and type(IKST_ServerPlayers.joinHoldBlocks) == "function"
+            and IKST_ServerPlayers.joinHoldBlocks(command) then
+            local remain = IKST_ServerPlayers.joinHoldRemainingMs(player)
+            if remain and remain > 0 then
+                return false, "join_hold", { retryAfterMs = remain }
+            end
+        end
     end
 
     if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
@@ -619,6 +630,20 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "rate limited (" .. tostring(math.ceil((meta.retryAfterMs or 0) / 1000)) .. "s)"
     elseif code == "rate_limit" then
         msg = "rate limited"
+    elseif code == "join_hold" and meta.retryAfterMs then
+        msg = "joining (" .. tostring(math.ceil((meta.retryAfterMs or 0) / 1000)) .. "s)"
+    elseif code == "join_hold" then
+        msg = "joining"
+    elseif code == "bad_payload" then
+        msg = "invalid command payload"
+    elseif code == "too_deep" then
+        msg = "invalid command payload"
+    elseif code == "too_many_keys" then
+        msg = "invalid command payload"
+    elseif code == "string_too_long" then
+        msg = "invalid command payload"
+    elseif code == "bad_number" then
+        msg = "invalid command payload"
     elseif code == "staff_disabled" then
         msg = "staff tools disabled"
     elseif code == "utilities_disabled" then

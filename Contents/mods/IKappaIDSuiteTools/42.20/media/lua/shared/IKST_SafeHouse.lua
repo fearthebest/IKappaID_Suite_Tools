@@ -109,42 +109,46 @@ function IKST_SafeHouse.atRect(x, y, z, w, h)
     return SafeHouse.getSafeHouse(x, y, w, h)
 end
 
+-- Session onlineID is lookup-only (recycled after dedicated restart), same class
+-- as BaseVehicle:getId(). Durable identity is the rectangle. getSafeHouse(int)
+-- is the onlineID overload: https://projectzomboid.com/modding/zombie/iso/areas/SafeHouse.html
+function IKST_SafeHouse.findByOnlineId(onlineId)
+    onlineId = tonumber(onlineId)
+    if not onlineId or not SafeHouse or type(SafeHouse.getSafeHouse) ~= "function" then
+        return nil
+    end
+    return SafeHouse.getSafeHouse(onlineId)
+end
+
 function IKST_SafeHouse.find(entry, actor)
     if not entry or not IKST_SafeHouse.available() then
         return nil
     end
-    local id = tonumber(entry.id)
-    if id and SafeHouse.getSafeHouse then
-        local byOnline = SafeHouse.getSafeHouse(id)
-        if byOnline then
-            return byOnline
+    if entry.x ~= nil and entry.y ~= nil then
+        local x = math.floor(tonumber(entry.x) or 0)
+        local y = math.floor(tonumber(entry.y) or 0)
+        local w = math.floor(tonumber(entry.w) or 1)
+        local h = math.floor(tonumber(entry.h) or 1)
+        if w < 1 then
+            w = 1
         end
-    end
-    if id then
-        local byId = nil
-        IKST_SafeHouse.iter(function(sh)
-            if byId then
-                return
-            end
-            if type(sh.getId) == "function" and sh:getId() == id then
-                byId = sh
-            end
-            if not byId and type(sh.getOnlineID) == "function" and sh:getOnlineID() == id then
-                byId = sh
-            end
-        end)
-        if byId then
-            return byId
+        if h < 1 then
+            h = 1
         end
+        local byRect = IKST_SafeHouse.atRect(x, y, 0, w, h)
+        if byRect then
+            return byRect
+        end
+        return nil
     end
     local entryId = entry.id
-    if entryId and type(entryId) == "string" and entryId ~= "" then
+    if type(entryId) == "string" and entryId ~= "" then
         local byTitle = nil
         IKST_SafeHouse.iter(function(sh)
             if byTitle then
                 return
             end
-            if sh.getId and tostring(sh:getId()) == entryId then
+            if type(sh.getId) == "function" and tostring(sh:getId()) == entryId then
                 byTitle = sh
             end
         end)
@@ -152,22 +156,12 @@ function IKST_SafeHouse.find(entry, actor)
             return byTitle
         end
     end
-    local x = math.floor(tonumber(entry.x) or 0)
-    local y = math.floor(tonumber(entry.y) or 0)
-    local w = math.floor(tonumber(entry.w) or 1)
-    local h = math.floor(tonumber(entry.h) or 1)
-    if w < 1 then
-        w = 1
-    end
-    if h < 1 then
-        h = 1
-    end
-    local byRect = IKST_SafeHouse.atRect(x, y, 0, w, h)
-    if byRect then
-        return byRect
+    local byOnline = IKST_SafeHouse.findByOnlineId(entry.id)
+    if byOnline then
+        return byOnline
     end
     actor = IKST.resolvePlayer(actor)
-    if actor and actor.getCurrentSquare then
+    if actor and type(actor.getCurrentSquare) == "function" then
         local atPlayer = IKST_SafeHouse.atSquare(actor:getCurrentSquare())
         if atPlayer then
             local owner = entry.owner
@@ -179,27 +173,6 @@ function IKST_SafeHouse.find(entry, actor)
                 return atPlayer
             end
         end
-    end
-    local owner = entry.owner
-    if owner and owner ~= "" and IKST_ClaimPolicy then
-        local found = nil
-        IKST_SafeHouse.iter(function(sh)
-            if found then
-                return
-            end
-            local shOwner = type(sh.getOwner) == "function" and sh:getOwner()
-            if not IKST_ClaimPolicy.usernamesEqual(shOwner, owner) then
-                return
-            end
-            local sx, sy, sw, shh = IKST_SafeHouse.bounds(sh)
-            if sx and sy and sw and shh and IKST_SafehouseClaim
-                and IKST_SafehouseClaim.pointInside(x, y, sx, sy, sw, shh) then
-                found = sh
-            elseif not found then
-                found = sh
-            end
-        end)
-        return found
     end
     return nil
 end

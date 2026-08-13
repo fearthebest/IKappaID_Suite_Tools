@@ -2,7 +2,7 @@ name=IKappaID Suite Tools
 
 id=IKappaIDSuiteTools
 
-description=Control panel for Build 42 servers and players: claims, recovery journal, and server utilities. Optional World Edit, Vehicles, and Economy addons. Ctrl+Shift+W.
+description=Control panel for Build 42 servers and players: claims, recovery journal, and server utilities. Requires IKappaID UI Framework (Mod ID: IKappaID_UI). Optional World Edit, Vehicles, and Economy addons. Ctrl+Shift+W.
 
 author=IKappaID
 

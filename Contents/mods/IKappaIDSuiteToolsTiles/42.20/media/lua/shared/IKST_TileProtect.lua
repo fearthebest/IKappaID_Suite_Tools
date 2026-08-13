@@ -173,11 +173,38 @@ function IKST_TileProtect.countReadonly()
     return n
 end
 
+function IKST_TileProtect.isLiveVehicleProtected(vehicle)
+    if not vehicle then
+        return false
+    end
+    if not IKST_VehicleIdentity then
+        require "IKST_VehicleIdentity"
+    end
+    if not IKST_VehicleIdentity or type(IKST_VehicleIdentity.readKey) ~= "function" then
+        return false
+    end
+    local key = IKST_VehicleIdentity.readKey(vehicle)
+    if not key then
+        return false
+    end
+    return IKST_TileProtect.store().vehicles[key] == true
+end
+
 function IKST_TileProtect.isVehicleProtected(vehicleId)
     if vehicleId == nil then
         return false
     end
-    return IKST_TileProtect.store().vehicles[tostring(vehicleId)] == true
+    if IKST_VehicleIdentity and type(IKST_VehicleIdentity.isDurableKey) == "function"
+        and IKST_VehicleIdentity.isDurableKey(vehicleId) then
+        return IKST_TileProtect.store().vehicles[tostring(vehicleId)] == true
+    end
+    if IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
+        local vehicle = IKST_VehicleUtil.getVehicle(vehicleId)
+        if vehicle then
+            return IKST_TileProtect.isLiveVehicleProtected(vehicle)
+        end
+    end
+    return false
 end
 
 function IKST_TileProtect.protectVehicle(vehicleId)

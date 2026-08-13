@@ -16,13 +16,35 @@ function IKST_UI_Layout.uiScale()
             sh = core:getScreenHeight() or sh
         end
     end
+    local screenScale = 1.0
     if sh < 800 then
-        return 0.85
+        screenScale = 0.85
+    elseif sh >= 1400 then
+        screenScale = 1.25
     end
-    if sh >= 1400 then
-        return 1.25
+    local fontH = 14
+    if UIFont and UIFont.Small and getTextManager and type(getTextManager) == "function" then
+        local tm = getTextManager()
+        if tm and type(tm.getFontHeight) == "function" then
+            fontH = tm:getFontHeight(UIFont.Small) or fontH
+        elseif tm and type(tm.MeasureStringY) == "function" then
+            fontH = tm:MeasureStringY(UIFont.Small, "Ag") or fontH
+        end
     end
-    return 1.0
+    local fontScale = fontH / 14
+    if fontScale < 0.85 then
+        fontScale = 0.85
+    elseif fontScale > 1.4 then
+        fontScale = 1.4
+    end
+    local mixed = (screenScale + fontScale) * 0.5
+    if mixed < 0.8 then
+        return 0.8
+    end
+    if mixed > 1.4 then
+        return 1.4
+    end
+    return mixed
 end
 
 function IKST_UI_Layout.s(px)

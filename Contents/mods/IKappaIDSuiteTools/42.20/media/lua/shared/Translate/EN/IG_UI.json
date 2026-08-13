@@ -1,5 +1,6 @@
 {
     "IGUI_IKST_Title": "IKappaID Suite Tools",
+    "IGUI_IKST_NeedUiFramework": "Requires IKappaID UI Framework (Mod ID: IKappaID_UI).",
     "IGUI_IKST_Tab_Favorites": "Favorites",
     "IGUI_IKST_Tab_Players": "Manage players",
     "IGUI_IKST_Tab_Players_Desc": "Heal, items, weather, moderation",
@@ -727,6 +728,8 @@
     "IGUI_IKST_Guard_SH_Claim": "Claim land here",
     "IGUI_IKST_Guard_SH_ClaimNote": "Creates a safe area centered on you.",
     "IGUI_IKST_Guard_SH_None": "No safe areas yet. Use Claim land here.",
+    "IGUI_IKST_Guard_WaitingServer": "Waiting for server…",
+    "IGUI_IKST_Guard_LoadMore": "Load more",
     "IGUI_IKST_Guard_Vehicle_None": "No car nearby. Stand next to one or refresh the list.",
     "IGUI_IKST_Guard_Vehicle_Target": "Selected car",
     "IGUI_IKST_Guard_SH_Borders": "Show borders",

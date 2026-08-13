@@ -224,6 +224,21 @@ function IKST.isModEnabled()
     return v == true
 end
 
+-- Hub dashboard requires IKappaID_UI (mod.info require=). Dedicated Mods= must include it.
+function IKST.uiFrameworkLoaded()
+    if type(IKUI_Config) == "table" then
+        return true
+    end
+    if type(getActivatedMods) ~= "function" then
+        return false
+    end
+    local mods = getActivatedMods()
+    if not mods or type(mods.contains) ~= "function" then
+        return false
+    end
+    return mods:contains("IKappaID_UI") == true or mods:contains("\\IKappaID_UI") == true
+end
+
 function IKST.getMaxCleanupRadius()
     local sv = SandboxVars and SandboxVars.IKappaIDSuiteToolsTiles
     if sv and sv.MaxCleanupRadius then
