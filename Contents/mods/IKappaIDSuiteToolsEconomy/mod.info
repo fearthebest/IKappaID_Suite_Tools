@@ -6,9 +6,12 @@ description=Bank accounts, money transfers, and player shops for IKappaID Suite 
 
 author=IKappaID
 
-modversion=0.3.1.1
+poster=poster.png
+icon=icon.png
 
-versionMin=42.20
+modversion=0.3.0.1
+
+versionMin=42.18
 
 require=IKappaIDSuiteTools
 

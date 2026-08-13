@@ -1,4 +1,0 @@
-Tooltip_EN = {
-    Tooltip_IKST_RecoveryJournal = Craftable journal. Record your survivor and restore skills, traits, and recipes later.,
-    Tooltip_IKST_ClearanceTag = ID-bound clearance tag. Present at a matching clearance lock to unlock.,
-}
