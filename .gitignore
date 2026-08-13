@@ -12,3 +12,4 @@ __pycache__/
 Thumbs.db
 releases/
 *.zip
+node_modules/
