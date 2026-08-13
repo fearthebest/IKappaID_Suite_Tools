@@ -5,4 +5,6 @@ Sandbox_EN = {
     Sandbox_IKappaIDSuiteToolsLoot_LootMaxContainers_tooltip = "The maximum number of containers that can be refilled in a single loot action.",
     Sandbox_IKappaIDSuiteToolsLoot_LootClearBeforeFill = "Clear Before Refill",
     Sandbox_IKappaIDSuiteToolsLoot_LootClearBeforeFill_tooltip = "If enabled, containers will be emptied of all old items before new loot is generated.",
+    Sandbox_IKappaIDSuiteToolsLoot_MaxLootRadius = "Max Loot Radius",
+    Sandbox_IKappaIDSuiteToolsLoot_MaxLootRadius_tooltip = "Maximum radius for loot zone repopulate. Tiles world-edit cleanup uses IKST Tiles MaxCleanupRadius separately.",
 }

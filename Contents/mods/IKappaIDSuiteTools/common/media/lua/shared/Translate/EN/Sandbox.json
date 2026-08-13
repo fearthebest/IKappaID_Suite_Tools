@@ -11,13 +11,13 @@
     "Sandbox_IKappaIDSuiteTools_EnableMod_tooltip": "Turn on the main features of the IKappaID Suite Tools mod.",
 
     "Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService": "Allow Self-Service Claims",
-    "Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService_tooltip": "Allow players to claim vehicles and safehouses for themselves without admin help.",
+    "Sandbox_IKappaIDSuiteTools_ClaimPlayerSelfService_tooltip": "OFF by default. Players request a zone; staff review the ticket and claim it. Turn on only if you want unsupervised player claims.",
 
     "Sandbox_IKappaIDSuiteTools_MaxVehicleClaims": "Max Vehicle Claims",
-    "Sandbox_IKappaIDSuiteTools_MaxVehicleClaims_tooltip": "The maximum number of vehicles a single player can own at once. Set to 0 for no limit.",
+    "Sandbox_IKappaIDSuiteTools_MaxVehicleClaims_tooltip": "Maximum vehicles staff may grant one player. Already-approved claims count toward this cap. Set to 0 for no limit.",
 
     "Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims": "Max Safehouse Claims",
-    "Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims_tooltip": "The maximum number of safehouses a single player can own at once. Set to 0 for no limit.",
+    "Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims_tooltip": "Maximum residential houses staff may grant one player. Set to 0 for no limit.",
 
     "Sandbox_IKappaIDSuiteTools_ClaimDurationDays": "Claim Expiry (Days)",
     "Sandbox_IKappaIDSuiteTools_ClaimDurationDays_tooltip": "How many days a claim lasts before it expires. Set to 0 so claims never expire.",
@@ -103,8 +103,14 @@
     "Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin": "Remote Admin Tools",
     "Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip": "Allow admins to use tools like Protect Area from a distance. Not recommended for public servers.",
 
+    "Sandbox_IKappaIDSuiteTools_StaffRespectSafehouseClaims": "Staff Tools Respect Claims",
+    "Sandbox_IKappaIDSuiteTools_StaffRespectSafehouseClaims_tooltip": "In multiplayer, staff world tools only work inside safe areas where they have permission. Solo mode ignores this.",
+
     "Sandbox_IKappaIDSuiteTools_RateLimitEnabled": "Enable Rate Limiting",
     "Sandbox_IKappaIDSuiteTools_RateLimitEnabled_tooltip": "Prevent players from spamming commands to help keep the server running smoothly.",
+
+    "Sandbox_IKappaIDSuiteTools_StrictRemoteRateLimits": "Stricter Remote Admin Limits",
+    "Sandbox_IKappaIDSuiteTools_StrictRemoteRateLimits_tooltip": "In multiplayer, apply tighter rate limits to remote admin clients (loot, tiles, vehicles). Host and solo keep normal limits.",
 
     "Sandbox_IKappaIDSuiteTools_AuditLogEnabled": "Enable Audit Logging",
     "Sandbox_IKappaIDSuiteTools_AuditLogEnabled_tooltip": "Record important actions to the server log for security and troubleshooting.",

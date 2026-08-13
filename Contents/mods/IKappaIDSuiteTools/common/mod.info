@@ -6,14 +6,13 @@ description=Control panel for Build 42 servers and players: claims, recovery jou
 
 author=IKappaID
 
-poster=poster.png
-icon=icon.png
+modversion=0.3.1.1
 
-modversion=0.3.0.2
-
-versionMin=42.18
+versionMin=42.20
 
 category=Admin
 
 tags=Build 42;Admin;Multiplayer;Tools;QoL
+
+require=\IKappaID_UI
 

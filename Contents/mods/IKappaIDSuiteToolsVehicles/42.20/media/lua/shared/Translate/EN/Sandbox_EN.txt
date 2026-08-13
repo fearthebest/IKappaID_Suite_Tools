@@ -1,0 +1,15 @@
+Sandbox_IKappaIDSuiteToolsVehicles = IKappaID Suite Tools — Vehicles
+
+Sandbox_IKST_Claims_Vehicles = IKST: Vehicle Claims
+
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleListRadius = How far to look for cars to list or remove
+
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleClaimRequireKeys = Players must have the car key before claiming it
+
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleShowAllClaims = Let any player see all vehicle claims on the server (not just their own)
+
+Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryEnabled = Allow owners and keyed players to flip their claimed vehicle upright nearby
+
+Sandbox_IKappaIDSuiteToolsVehicles_FieldRecoveryDistance = How close a player must be to use field recovery on a vehicle
+
+Sandbox_IKappaIDSuiteToolsVehicles_VehicleRemoteListMinDistance = Minimum distance (tiles) for the remote-only vehicle list filter

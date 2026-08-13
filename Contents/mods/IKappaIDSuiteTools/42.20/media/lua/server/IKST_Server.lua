@@ -1,0 +1,436 @@
+-- Dedicated / listen-server JVM only (not remote MP client).
+if type(isClient) == "function" and isClient()
+    and type(isServer) == "function" and not isServer() then
+    return
+end
+require "IKST_Shared"
+require "IKST_Debug"
+require "IKST_Plugins"
+require "IKST_Utility"
+require "IKST_Access"
+require "IKST_Args"
+require "IKST_ServerGate"
+require "IKST_WorldOps"
+require "IKST_VehicleUtil"
+require "IKST_StaffOps"
+require "IKST_Waypoints"
+require "IKST_GuardOps"
+require "IKST_ClaimPolicy"
+require "IKST_RestoreServer"
+require "IKST_RateLimit"
+require "IKST_AuditLog"
+require "IKST_BriefingServer"
+require "IKST_ArrivalServer"
+require "IKST_VehicleClaimSync"
+require "IKST_SafehouseClaimSync"
+require "IKST_TransferServer"
+require "IKST_CommandQueue"
+require "IKST_StaffHistory"
+require "IKST_HelpQueue"
+require "IKST_Tickets"
+require "IKST_DashboardServer"
+require "IKST_Unstuck"
+require "IKST_EventTp"
+
+IKST_Server = IKST_Server or {}
+
+local function noteLockAttempt(playerObj, args, ok)
+    if not IKST_RateLimit then
+        return
+    end
+    local x = IKST_Args.readCoord(args, "x") or (playerObj and math.floor(playerObj:getX()))
+    local y = IKST_Args.readCoord(args, "y") or (playerObj and math.floor(playerObj:getY()))
+    local z = tonumber(args and args.z) or (playerObj and playerObj:getZ()) or 0
+    if ok then
+        IKST_RateLimit.clearLockFails(playerObj, x, y, z)
+    else
+        IKST_RateLimit.recordLockFail(playerObj, x, y, z)
+    end
+end
+
+function IKST_Server.logSuccess(player, command, args, msg)
+    if IKST_AuditLog and IKST_AuditLog.record then
+        local logIt = false
+        if IKST.STAFF_COMMANDS and IKST.STAFF_COMMANDS[command] then
+            logIt = true
+        elseif command == IKST.CMD.backupSafehouses or command == IKST.CMD.restoreSafehouses
+            or command == IKST.CMD.quickSave or command == IKST.CMD.quickBroadcast
+            or command == IKST.CMD.quickWater or command == IKST.CMD.quickPower then
+            logIt = true
+        elseif command == IKST.CMD.economyDeposit or command == IKST.CMD.economyWithdraw
+            or command == IKST.CMD.economyWire or command == IKST.CMD.economyVendBuy
+            or command == IKST.CMD.economyAtmPlace or command == IKST.CMD.economyVendEnable then
+            logIt = true
+        elseif command == IKST.CMD.giveItem or command == IKST.CMD.giveTarget then
+            logIt = true
+        elseif command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore then
+            logIt = true
+        end
+        if logIt then
+            IKST_AuditLog.record(player, command, args, true, msg)
+        end
+    end
+end
+
+function IKST_Server.handleUtilityToggle(playerObj, command, args)
+    local which = command == IKST.CMD.quickWater and "water" or "power"
+    local currentlyOn
+    if which == "water" then
+        currentlyOn = IKST.isWaterOn()
+    else
+        currentlyOn = IKST.isPowerOn()
+    end
+    local wantOn = not currentlyOn
+    if args and args.on ~= nil then
+        wantOn = args.on == true
+    end
+    if not IKST.setUtilityOnServer(which, wantOn) then
+        return false, "utility toggle failed"
+    end
+    IKST_Utility.broadcastSync()
+    local state = wantOn and "ON" or "OFF"
+    return true, which .. ": " .. state
+end
+
+function IKST_Server.handleCommand(moduleName, command, playerObj, args)
+    if moduleName ~= IKST.MODULE then
+        return
+    end
+
+    args = args or {}
+
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.logNet then
+        IKST_Debug.logNet("client->server", command, playerObj, args, "")
+    end
+
+    local okAuth, reason, meta = IKST_ServerGate.authorize(playerObj, command, args)
+    if not okAuth then
+        local msg, denyMeta = IKST_ServerGate.deny(playerObj, command, args, reason, meta)
+        denyMeta = denyMeta or meta or {}
+        IKST_WorldOps.sendResult(playerObj, false, msg, args.x, args.y, args.z, command, {
+            code = denyMeta.code or reason,
+            plugin = denyMeta.plugin,
+            retryAfterMs = denyMeta.retryAfterMs,
+        })
+        return
+    end
+
+    if IKST_Debug and IKST_Debug.logAuth then
+        IKST_Debug.logAuth(command, playerObj, meta)
+    end
+    if IKST_Debug and IKST_Debug.logAction then
+        IKST_Debug.logAction("handle", command, playerObj, IKST_Debug.summarizeArgs(args, command))
+    end
+
+    local pluginHandled, ok, msg, pluginSpec = IKST.Plugins.handleServerCommand(command, playerObj, args)
+    if pluginHandled then
+        if ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
+        elseif not ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, false, msg)
+        end
+        if command == IKST.CMD.lockTryUnlock or command == IKST.CMD.lockTryClearance then
+            noteLockAttempt(playerObj, args, ok)
+        end
+        if not pluginSpec or not pluginSpec.afterServer then
+            IKST_WorldOps.sendResult(playerObj, ok, msg, args.x, args.y, args.z, command, meta)
+        end
+        return
+    end
+
+    if command == IKST.CMD.auditTail then
+        IKST_AuditLog.sendTail(playerObj, args and args.count)
+        return
+    end
+
+    if command == IKST.CMD.debugStatus then
+        if IKST_Debug and IKST_Debug.sendStatus then
+            IKST_Debug.sendStatus(playerObj)
+        end
+        return
+    end
+
+    if command == IKST.CMD.debugTail then
+        if IKST_Debug and IKST_Debug.sendTail then
+            IKST_Debug.sendTail(playerObj, args and args.count)
+        end
+        return
+    end
+
+    if command == IKST.CMD.briefingFetch then
+        if IKST_BriefingServer and IKST_BriefingServer.handleFetch then
+            IKST_BriefingServer.handleFetch(playerObj, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimPing then
+        if IKST_VehicleClaimSync and IKST_VehicleClaimSync.handlePing then
+            IKST_VehicleClaimSync.handlePing(playerObj, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseClaimPing then
+        if IKST_SafehouseClaimSync and IKST_SafehouseClaimSync.handlePing then
+            IKST_SafehouseClaimSync.handlePing(playerObj, args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.threatCull then
+        local x, y, z = IKST_Args.readCoord(args, "x"), IKST_Args.readCoord(args, "y"), IKST_Args.readCoord(args, "z")
+        local radius = IKST_Args.readRadius(args, "radius")
+        local n = IKST_WorldOps.threatCull(x, y, z, radius, tonumber(args.maxPerTick) or 100)
+        IKST.deliverClientCommand(playerObj, IKST.CMD.threatResult, {
+            removed = n,
+            x = x,
+            y = y,
+            z = z,
+            radius = radius,
+            mirrorCull = true,
+        })
+        if IKST_WorldOps.broadcastThreatCull then
+            IKST_WorldOps.broadcastThreatCull(playerObj, x, y, z, radius, n)
+        end
+        IKST_Server.logSuccess(playerObj, command, args, "culled " .. n)
+        return
+    end
+
+    if command == IKST.CMD.threatPopulation then
+        local x, y, z = IKST_Args.readCoord(args, "x"), IKST_Args.readCoord(args, "y"), IKST_Args.readCoord(args, "z")
+        local total, sprinters = IKST_WorldOps.threatPopulation(x, y, z, IKST_Args.readRadius(args, "radius"))
+        IKST.deliverClientCommand(playerObj, IKST.CMD.threatResult, { total = total, sprinters = sprinters, x = x, y = y, z = z })
+        return
+    end
+
+    if command == IKST.CMD.quickWater or command == IKST.CMD.quickPower then
+        ok, msg = IKST_Server.handleUtilityToggle(playerObj, command, args)
+        IKST_Server.logSuccess(playerObj, command, args, msg)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.setWeather or command == IKST.CMD.clearWeather then
+        if not IKST_StaffOps or not IKST_StaffOps.handle then
+            IKST_WorldOps.sendResult(playerObj, false, "staff ops unavailable", nil, nil, nil, command)
+            return
+        end
+        ok, msg = IKST_StaffOps.handle(command, playerObj, args)
+        if ok then
+            IKST_Server.logSuccess(playerObj, command, args, msg)
+        end
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.quickSave then
+        if saveGame then saveGame() end
+        IKST_Server.logSuccess(playerObj, command, args, "save requested")
+        IKST_WorldOps.sendResult(playerObj, true, "save requested", nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.quickBroadcast then
+        local text = args.message and tostring(args.message) or ""
+        local maxLen = IKST.QUICK_BROADCAST_MAX_LEN or 512
+        if #text > maxLen then
+            text = string.sub(text, 1, maxLen)
+        end
+        if text ~= "" and serverMsg then
+            serverMsg(text)
+        end
+        IKST_Server.logSuccess(playerObj, command, args, "broadcast sent")
+        IKST_WorldOps.sendResult(playerObj, true, "broadcast sent", nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.staffListPlayers then
+        IKST.deliverClientCommand(playerObj, IKST.CMD.staffListResult, {
+            players = IKST_StaffOps.listOnlinePlayers(),
+        })
+        return
+    end
+
+    if command == IKST.CMD.listWaypoints then
+        IKST.deliverClientCommand(playerObj, IKST.CMD.waypointListResult, {
+            waypoints = IKST_Waypoints.list(),
+        })
+        return
+    end
+
+    if command == IKST.CMD.unstuck then
+        ok, msg = IKST_Unstuck.apply(playerObj)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.dashboardSnapshot then
+        if IKST_DashboardServer and IKST_DashboardServer.sendSnapshot then
+            IKST_DashboardServer.sendSnapshot(playerObj)
+        end
+        return
+    end
+
+    if command == IKST.CMD.helpRequest then
+        ok, msg = IKST_HelpQueue.submit(playerObj, args and args.message)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.reportPlayer then
+        ok, msg = IKST_Tickets.submit(playerObj, args and args.message, "report")
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.claimRequest then
+        ok, msg = IKST_Tickets.requestClaim(playerObj, args)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.claimDispute then
+        ok, msg = IKST_Tickets.submit(playerObj, args and args.message, "dispute")
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.helpList then
+        IKST.deliverClientCommand(playerObj, IKST.CMD.helpListResult, {
+            pending = IKST_HelpQueue.list(),
+        })
+        return
+    end
+
+    if command == IKST.CMD.helpResolve then
+        ok, msg = IKST_HelpQueue.resolve(playerObj, args and args.id)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.eventSet then
+        ok, msg = IKST_EventTp.setEvent(playerObj, args and args.name)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.eventClear then
+        ok, msg = IKST_EventTp.clearEvent(playerObj)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.eventJoin then
+        ok, msg = IKST_EventTp.join(playerObj)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.eventReturn then
+        ok, msg = IKST_EventTp.returnHome(playerObj)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.staffHistoryList then
+        if not IKST_StaffHistory then
+            require "IKST_StaffHistory"
+        end
+        local rows = IKST_StaffHistory.tail(args and args.count or 40, args and args.kind)
+        IKST.deliverClientCommand(playerObj, IKST.CMD.staffHistoryResult, { entries = rows })
+        return
+    end
+
+    if IKST.GUARD_COMMANDS and IKST.GUARD_COMMANDS[command] then
+        ok, msg = IKST_GuardOps.handle(command, playerObj, args)
+        if ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
+        end
+        IKST_WorldOps.sendResult(playerObj, ok, msg, args.x, args.y, args.z, command)
+        return
+    end
+
+    if command == IKST.CMD.journalRecord or command == IKST.CMD.journalRestore then
+        ok, msg = IKST_RestoreServer.handle(command, playerObj, args)
+        if ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, true, msg)
+        elseif not ok and IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, false, msg)
+        end
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if IKST.STAFF_COMMANDS and IKST.STAFF_COMMANDS[command] then
+        if not IKST_StaffOps or not IKST_StaffOps.handle then
+            IKST_WorldOps.sendResult(playerObj, false, "staff ops unavailable", nil, nil, nil, command)
+            return
+        end
+        ok, msg = IKST_StaffOps.handle(command, playerObj, args)
+        if ok then
+            IKST_Server.logSuccess(playerObj, command, args, msg)
+        elseif IKST_AuditLog and IKST_AuditLog.record then
+            IKST_AuditLog.record(playerObj, command, args, false, msg)
+        end
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    local msg = IKST_ServerGate.deny(playerObj, command, args, "unknown_command", meta)
+    IKST_WorldOps.sendResult(playerObj, false, msg, nil, nil, nil, command)
+end
+
+local function onClientCommand(moduleName, command, playerObj, args)
+    IKST_Server.handleCommand(moduleName, command, playerObj, args)
+end
+
+if type(isServer) == "function" and isServer() then
+    Events.OnClientCommand.Add(onClientCommand)
+
+    local function onTickCatch()
+        IKST_Server._catchTick = (IKST_Server._catchTick or 0) + 1
+        if IKST_Server._catchTick % 30 ~= 0 then
+            return
+        end
+        local list = getOnlinePlayers and getOnlinePlayers()
+        if not list or not list.size then
+            return
+        end
+        for i = 0, list:size() - 1 do
+            local p = list:get(i)
+            if p and IKST_GuardOps then
+                if IKST_GuardOps.enforceCaughtPosition then
+                    IKST_GuardOps.enforceCaughtPosition(p)
+                end
+                if IKST_GuardOps.enforceVehicleClaim then
+                    IKST_GuardOps.enforceVehicleClaim(p)
+                end
+            end
+        end
+    end
+    if Events.OnTick then
+        Events.OnTick.Add(onTickCatch)
+    end
+    if Events.EveryOneMinute then
+        Events.EveryOneMinute.Add(function()
+            if IKST_VehicleClaim and IKST_VehicleClaim.purgeExpired then
+                IKST_VehicleClaim.purgeExpired()
+            end
+            if IKST_GuardOps and IKST_GuardOps.purgeExpiredSafehouses then
+                IKST_GuardOps.purgeExpiredSafehouses()
+            end
+        end)
+    end
+
+    print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (server, Tier C gate)")
+    if not IKST_Debug then
+        require "IKST_Debug"
+    end
+    if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
+        IKST_Debug.log("boot", "server JVM ready — grep IB/server log for [IKST-DEBUG]")
+    end
+end

@@ -6,18 +6,13 @@ description=Paint, cleanup, tile protection, blueprints, and container locks for
 
 author=IKappaID
 
-poster=poster.png
-icon=icon.png
+modversion=0.3.1.1
 
-modversion=0.3.0.1
-
-versionMin=42.18
+versionMin=42.20
 
 require=IKappaIDSuiteTools
 
 category=Admin
 
 tags=Build 42;Admin;Tiles;World Edit;Multiplayer
-pack=ikst_suite
-tiledef=ikst_suite_tiles 4218
 

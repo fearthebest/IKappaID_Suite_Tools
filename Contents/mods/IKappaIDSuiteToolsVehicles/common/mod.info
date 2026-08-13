@@ -6,12 +6,9 @@ description=Vehicle list, repair, and cleanup tools for server hosts using IKapp
 
 author=IKappaID
 
-poster=poster.png
-icon=icon.png
+modversion=0.3.1.1
 
-modversion=0.3.0.1
-
-versionMin=42.18
+versionMin=42.20
 
 require=IKappaIDSuiteTools,IKappaIDSuiteToolsTiles
 

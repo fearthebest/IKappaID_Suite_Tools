@@ -1,0 +1,12 @@
+{
+    "IGUI_IKST_WS_Admin": "Admin",
+    "IGUI_IKST_WS_Admin_Desc": "Spectator, kick, and ban — vanilla server commands",
+    "IGUI_IKST_Tip_Admin": "Tip: Kick and ban use vanilla server lists. Spectator is Ghost mode.",
+    "IGUI_IKST_Admin_Reason": "Reason",
+    "IGUI_IKST_Admin_MpOnly": "Kick and ban are multiplayer only",
+    "IGUI_IKST_Admin_ConfirmKick": "Kick",
+    "IGUI_IKST_Admin_ConfirmBan": "Ban",
+    "IGUI_IKST_Admin_BanHint": "Ban writes vanilla username and Steam ID lists, then disconnects.",
+    "IGUI_IKST_Admin_CannotKickAdmin": "Cannot kick another admin",
+    "IGUI_IKST_Admin_CannotBanAdmin": "Cannot ban another admin"
+}
