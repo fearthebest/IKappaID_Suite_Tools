@@ -1,4 +1,4 @@
-# Package IKST Workshop tree for dedicated server upload (Indifferent Broccoli / self-host).
+# Package IKST Workshop tree for dedicated server upload.
 # Run from repo: scripts\package_ikst_server.ps1
 # Output: Desktop\IKST_ServerUpload.zip (all Contents/mods + workshop.txt)
 

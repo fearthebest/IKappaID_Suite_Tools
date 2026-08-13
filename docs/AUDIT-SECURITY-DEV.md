@@ -1,10 +1,10 @@
 # IKST Security & Development Audit
 
-**Mod:** IKappaID Suite Tools · **Build:** B42.18 / B42.19 · **Repo branch:** `cursor/tier-c-testing-05ab`  
+**Mod:** IKappaID Suite Tools · **Build:** B42.18 / B42.19 · **Repo branch:** Tier C testing  
 **Audit date:** 2026-06-27  
 **Baseline:** Tier C testing build (`IKST_ServerGate`, `IKST_RateLimit`, `IKST_AuditLog`, `IKST_Args`)
 
-**Guidance reference:** [PZ-AI-Dev-Guidance](https://github.com/fearthebest/PZ-AI-Dev-Guidance) — full checklist cross-walk in [`PZ-GUIDANCE-COMPLIANCE.md`](./PZ-GUIDANCE-COMPLIANCE.md). This audit also uses IKST’s `docs/SECURITY.md`, `docs/COMMAND-MATRIX.md`, `docs/REDTEAM-TIER-C.md`, and standard PZ MP rules: **server JVM is authoritative; never trust client coords, IDs, or sandbox mutations.**
+**Quality checklist:** [`QUALITY-AUDIT.md`](./QUALITY-AUDIT.md). This audit also uses IKST’s `docs/SECURITY.md`, `docs/COMMAND-MATRIX.md`, `docs/REDTEAM-TIER-C.md`, and standard PZ MP rules: **server JVM is authoritative; never trust client coords, IDs, or sandbox mutations.**
 
 ---
 
@@ -178,21 +178,21 @@ See `docs/ADMIN-RUNBOOK.md`. Minimum for hostile MP:
 
 ---
 
-## PZ-AI-Dev-Guidance alignment
+## Quality checklist alignment
 
-Full MOD-QUALITY-CHECK cross-walk: [`PZ-GUIDANCE-COMPLIANCE.md`](./PZ-GUIDANCE-COMPLIANCE.md).
+Full cross-walk: [`QUALITY-AUDIT.md`](./QUALITY-AUDIT.md).
 
-| Guidance theme | IKST status |
-|----------------|-------------|
+| Theme | IKST status |
+|-------|-------------|
 | Server authority for MP mutations | Partial — gate yes; coords/secrets gaps |
 | No client-trusted globals | Partial — utilities API remains |
 | Input validation at boundary | Partial — `IKST_Args` underused |
 | Secrets never on client | **Fail** — lock passwords in ModData |
 | Zero `pcall` | **Pass** |
 | Server JVM guards on all server Lua | **Fail** — 11 / 20 files |
-| Red-team / IB sign-off before ship | **Fail** — not executed |
+| Red-team / dedicated sign-off before ship | **Fail** — not executed |
 | Single source tree | Partial — dual Workshop copies |
-| MOD-QUALITY-CHECK Blockers | **6 / 14 pass** — do not ship public MP |
+| Quality blockers | **6 / 14 pass** — do not ship public MP |
 
 ---
 
@@ -204,4 +204,4 @@ Full MOD-QUALITY-CHECK cross-walk: [`PZ-GUIDANCE-COMPLIANCE.md`](./PZ-GUIDANCE-C
 - [ADMIN-RUNBOOK.md](./ADMIN-RUNBOOK.md) — operator guide
 - [AUDIT-0.2.5.md](./AUDIT-0.2.5.md) — Tier C implementation status
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — load errors (orphan files)
-- [PZ-GUIDANCE-COMPLIANCE.md](./PZ-GUIDANCE-COMPLIANCE.md) — PZ-AI-Dev-Guidance checklist
+- [QUALITY-AUDIT.md](./QUALITY-AUDIT.md) — quality checklist

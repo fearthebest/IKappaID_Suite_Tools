@@ -1,13 +1,12 @@
-# IKST — PZ-AI-Dev-Guidance compliance audit
+# IKST — Quality and MP-authority audit
 
-**Guidance repo:** [fearthebest/PZ-AI-Dev-Guidance](https://github.com/fearthebest/PZ-AI-Dev-Guidance)  
-**Mod:** IKappaID Suite Tools · **Build:** `42.18/` · **Branch:** `cursor/tier-c-testing-05ab`  
+**Mod:** IKappaID Suite Tools · **Build:** `42.18/` · **Branch:** Tier C testing  
 **Audit date:** 2026-06-27  
-**Checklist source:** `AI-DEV-GUIDANCE/MOD-QUALITY-CHECK.md` + `cursor-rules/pz-security-safety-first.mdc`
+**Checklist:** in-repo quality bar (`docs/SECURITY.md`, `docs/COMMAND-MATRIX.md`, `docs/REDTEAM-TIER-C.md`) plus standard PZ MP rules: server JVM is authoritative; never trust client coords, IDs, or sandbox mutations.
 
 **Legend:** `[x]` pass · `[!]` fail / known issue · `[~]` partial · `[ ]` not verified in this run
 
-**Pass bar (guidance):** Every **Blocker** must pass before Workshop upload / public MP.
+**Pass bar:** Every **Blocker** must pass before Workshop upload / public MP.
 
 ---
 
@@ -50,7 +49,7 @@
 | Server JVM guard on all `server/*.lua` | [!] | **11 / 20** server files lack top guard (see below) |
 | Client JVM guard on all `client/*.lua` | [x] | 53 / 53 use `isServer() and not isClient()` pattern |
 
-**Server files missing JVM guard (guidance Blocker):**
+**Server files missing JVM guard (quality Blocker):**
 
 - `IKST_GuardOps.lua`, `IKST_StaffOps.lua`, `IKST_WorldOps.lua`, `IKST_VehicleUtil.lua`, `IKST_RestoreServer.lua`
 - `IKST_VehicleOps.lua`, `IKST_TilesWorldOps.lua`, `IKST_TilesGuardOps.lua`, `IKST_ProtectOps.lua`, `IKST_CommandQueue.lua`, `IKST_AutomationOps.lua`
@@ -61,7 +60,7 @@
 
 ## §1 Blockers — multiplayer authority
 
-Maps to `pz-security-safety-first.mdc` trust model.
+Maps to the MP trust model in `docs/SECURITY.md`.
 
 | Item | Status | Notes |
 |------|--------|-------|
@@ -84,7 +83,7 @@ Maps to `pz-security-safety-first.mdc` trust model.
 | Recipes reference loaded items | [x] | |
 | `mod.info` id matches folder | [x] | `IKappaIDSuiteTools` etc. |
 | Build folder `42.18/` | [x] | |
-| Workshop tree — no dev files in `Contents/` | [x] | No `.md` / `.cursor` in ship tree |
+| Workshop tree — no dev files in `Contents/` | [x] | No `.md` or tooling folders in ship tree |
 | Edits in git → sync to Workshop | [~] | Dual `IKST_Workshop/` + `Workshop/` — drift risk |
 | Clean load — no SEVERE | [ ] | Manual — user had orphan `IKST_RecipeGate.lua` locally |
 | No secrets in Lua/git | [!] | Lock **passwords** stored in ModData (operator data, not API keys) |
@@ -115,7 +114,7 @@ Maps to `pz-security-safety-first.mdc` trust model.
 | Standalone unless approved deps | [x] | Optional addons via `require=`; PhoneShop soft bridge |
 | Version unchanged unless asked | [x] | `0.2.3` |
 
-Guidance prefers no plugin/registry for one-offs; IKST is intentionally a **hub + addon suite** — keep registry but document in mod README.
+The quality bar prefers no plugin/registry for one-offs; IKST is intentionally a **hub + addon suite** — keep registry but document in the mod README.
 
 ---
 
@@ -130,7 +129,7 @@ Guidance prefers no plugin/registry for one-offs; IKST is intentionally a **hub 
 | Single `OnServerCommand` router | [x] | `IKST_Z_Bootstrap.onServerCommand` |
 | No trust of client coords/IDs/prices | [!] | **Fails** — P0 items in security audit |
 
-**B42 branch pattern:** IKST uses `isClient()` / `isServer()` / SP integrated paths in `IKST_Shared.dispatchCommand` — aligned with guidance §4.
+**B42 branch pattern:** IKST uses `isClient()` / `isServer()` / SP integrated paths in `IKST_Shared.dispatchCommand` — aligned with the [PZwiki Networking](https://pzwiki.net/wiki/Networking) page.
 
 ---
 
@@ -161,20 +160,20 @@ Guidance prefers no plugin/registry for one-offs; IKST is intentionally a **hub 
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Private GitHub repo | [x] | `fearthebest/IKappaID_Suite_Tools` |
+| Private GitHub repo | [x] | This repository |
 | Workspace at git root | [x] | |
 | Dev docs in `docs/` not `Contents/` | [x] | |
 | Sync script for Workshop | [~] | Manual dual-tree copy; add robocopy script |
-| Guidance repo linked | [x] | This audit references PZ-AI-Dev-Guidance |
+| Quality checklist in-repo | [x] | This audit |
 
 ---
 
 ## §8 Test matrix — not executed
 
-All rows **unchecked** in repo. Required before ship per guidance:
+All rows **unchecked** in repo. Required before ship:
 
 - SP load + feature + save/reload
-- IB dedicated + 2 clients
+- Dedicated host + 2 clients
 - Remote client cannot dupe items/money
 - `REDTEAM-TIER-C.md` rows 1–10
 
@@ -200,10 +199,10 @@ rg -n "OnClientCommand" --glob "*.lua"                    # IKST_Server.lua ✓
 
 ---
 
-## Mapping: guidance rules → IKST P0 fixes
+## Mapping: quality rules → IKST P0 fixes
 
-| Guidance rule (`pz-security-safety-first`) | IKST gap | Fix |
-|---------------------------------------------|----------|-----|
+| Quality rule | IKST gap | Fix |
+|--------------|----------|-----|
 | Never trust client coordinates | `bankGate`, claims, locks | `playerNearCoord` / `actorNearCoord` |
 | Never trust client vehicle/item IDs | `vehicleClaim` | Server proximity resolve |
 | `modData` untrusted; server owns sync writes | Lock passwords synced | Server-only hash; redacted sync |
@@ -218,9 +217,8 @@ rg -n "OnClientCommand" --glob "*.lua"                    # IKST_Server.lua ✓
 
 1. Fix P0 security items (`docs/AUDIT-SECURITY-DEV.md`)
 2. Add server JVM guards to 11 server Lua files
-3. Run `MOD-QUALITY-CHECK.md` §8 on IB + update `REDTEAM-TIER-C.md`
+3. Run `REDTEAM-TIER-C.md` on a dedicated host you control
 4. Add Workshop sync script; single canonical tree (`IKST_Workshop` → `Workshop`)
-5. Copy `PZ-AI-Dev-Guidance` cursor rules to maintainer machine; link from `README.md`
 
 ---
 
@@ -230,9 +228,9 @@ rg -n "OnClientCommand" --glob "*.lua"                    # IKST_Server.lua ✓
 Mod name:        IKappaID Suite Tools
 Build folder:    42.18
 Last full check: 2026-06-27
-Checked by:      Cursor agent (guidance cross-audit)
-Known issues:    P0 coords/ModData; 11 server guards; IB tests pending
-MP sign-off (IB): not yet
+Checked by:      internal audit
+Known issues:    P0 coords/ModData; 11 server guards; dedicated tests pending
+MP sign-off:     not yet
 ```
 
 ---
@@ -242,4 +240,3 @@ MP sign-off (IB): not yet
 - [AUDIT-SECURITY-DEV.md](./AUDIT-SECURITY-DEV.md) — detailed P0/P1/P2
 - [SECURITY.md](./SECURITY.md) — Tier C threat model
 - [REDTEAM-TIER-C.md](./REDTEAM-TIER-C.md) — attack checklist
-- [PZ-AI-Dev-Guidance](https://github.com/fearthebest/PZ-AI-Dev-Guidance) — canonical rules

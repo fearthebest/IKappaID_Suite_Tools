@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Apply recommended GitHub protection for fearthebest/IKappaID_Suite_Tools
+  Apply recommended GitHub protection for this repository
 
 .DESCRIPTION
   Requires GitHub CLI (gh) logged in as repo owner:
@@ -14,7 +14,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$Repo = 'fearthebest/IKappaID_Suite_Tools'
 $Branch = 'master'
 
 function Require-Gh {
@@ -103,7 +102,7 @@ Manual checks (GitHub web UI):
 
 Protection model:
   - master: no force-push, no delete
-  - External PRs: 1 review + CODEOWNERS (@fearthebest)
+  - External PRs: 1 review + CODEOWNERS (repo owner)
   - You (owner): can still push directly to master (enforce_admins=false)
 
 Issues:     https://github.com/$Repo/issues
@@ -113,6 +112,10 @@ Branches:   https://github.com/$Repo/settings/branches
 }
 
 Require-Gh
+$Repo = (gh repo view --json nameWithOwner --jq .nameWithOwner)
+if (-not $Repo) {
+    Write-Error "Could not detect the GitHub repo. Run from a clone with origin set, after gh auth login."
+}
 Set-BranchProtection
 Set-RepoSettings
 Enable-SecurityFeatures

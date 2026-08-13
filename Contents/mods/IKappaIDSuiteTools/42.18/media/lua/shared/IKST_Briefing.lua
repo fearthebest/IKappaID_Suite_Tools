@@ -79,8 +79,8 @@ IKST_Briefing.DEFAULT_SECTIONS = {
         title = "Reporting & support",
         body = table.concat({
             "For bugs or feature requests for IKST itself:",
-            "• GitHub: fearthebest/IKappaID_Suite_Tools",
-            "• Discord: callmekappaid",
+            "• Steam Workshop: IKappaID Suite Tools",
+            "• Ko-fi: ko-fi.com/ikappaid",
             "",
             "For in-game issues on this server, contact staff through your usual channel (Discord, forum, etc.).",
             "",

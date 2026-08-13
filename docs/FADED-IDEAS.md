@@ -219,7 +219,7 @@ Not a Workshop pack. Installed into the **game directory**: `steamapps/common/Pr
 |-------|------------|
 | `FadedJavaLoader-Agent.jar` | JVM `-javaagent` on `ProjectZomboid64.bat` |
 | `FadedJavaLoader-Native.dll` | `-agentpath` in `ProjectZomboid64.json` |
-| `plugins/` | Empty on this install — plugins ship inside mods as `42/java/*.jar` (Echoes) |
+| `plugins/` | Empty on a typical install — plugins ship inside mods as `42/java/*.jar` (Echoes) |
 | `FadedJavaLoaderBridge` mod | Lua handshake + `isAvailable()`; Java fills a narrow bind |
 
 **IKappaID policy:** do not copy the agent, native DLL, or launch-bat patches. Do not make FJL a Workshop dependency. Detect `FadedJavaLoaderBridge.isAvailable()` only if a feature can accelerate; **Lua path must work with the agent absent**. Dedicated/listen hosts would need a matching agent — we will not require that.

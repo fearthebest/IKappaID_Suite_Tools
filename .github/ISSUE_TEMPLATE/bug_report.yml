@@ -16,7 +16,7 @@ body:
         - **SP / listen host:** attach the client `DebugLog` from the same session.
         - Prefer **`.txt`** paste or attachment. Avoid `.exe` or unknown `.zip` files.
 
-        You can also report on [Steam Discussions](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193) or Discord **callmekappaid**.
+        You can also report on [Steam Discussions](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193).
 
   - type: input
     id: ikst_version

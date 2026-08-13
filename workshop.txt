@@ -3,7 +3,7 @@ id=3750835193
 title=IKappaID Suite Tools
 description=Build 42 admin suite — [b]v0.3.2.0 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
 description=
-description=[b]Requires[/b] [url=https://github.com/fearthebest/IKappaID_UI]IKappaID UI Framework[/url] (Mod ID: IKappaID_UI). Subscribe/enable it with this suite — the hub will not open without it. Dedicated servers must list it in Mods= as \IKappaID_UI.
+description=[b]Requires[/b] IKappaID UI Framework (Mod ID: IKappaID_UI). Enable it with this suite — the hub will not open without it. Dedicated servers must list it in Mods= as \IKappaID_UI.
 description=
 description=[b]BETA[/b] means the suite is ready for real multiplayer playtesting on private servers. Core tools are usable; please share feedback in Discussions if something breaks — steps and console.txt help a lot.
 description=
@@ -43,8 +43,7 @@ description=
 description=Made by [b]IKappaID[/b]. A community mod — not affiliated with or endorsed by The Indie Stone. Not affiliated with bikinihorst or the BTSE / Bikinitools projects.
 description=
 description=[b]Links[/b]
-description=GitHub: https://github.com/fearthebest/IKappaID_Suite_Tools
-description=UI framework: https://github.com/fearthebest/IKappaID_UI
+description=Steam Workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193
 description=Ko-fi: https://ko-fi.com/ikappaid
 description=
 description=Workshop ID: 3750835193

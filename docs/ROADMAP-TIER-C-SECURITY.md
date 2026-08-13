@@ -6,17 +6,9 @@
 
 ---
 
-## Copy-paste prompt for Composer 2.5
+## Why these phases exist
 
-**Standalone files:** [PROMPT-TIER-C-COMPOSER.md](./PROMPT-TIER-C-COMPOSER.md) · plain-text variant in uploads
-
-Use the prompt block in those files as the **full task prompt** for an agent session. Work phase-by-phase; do not skip acceptance criteria.
-
----
-
-## AI guide (any agent)
-
-This section explains **why** each phase exists and how to execute without context loss.
+Work phase-by-phase; do not skip acceptance criteria.
 
 ### Threat model (assume true)
 
@@ -81,7 +73,7 @@ Dedicated server → Events.OnClientCommand → IKST_Server.handleCommand
 
 0 → 1 → 2 → 3 → 4 → 6 (parallel with 5) → 5 → 7 → 8 → 9
 
-See [PROMPT-TIER-C-COMPOSER.md](./PROMPT-TIER-C-COMPOSER.md) for full phase acceptance criteria.
+See [COMMAND-MATRIX.md](./COMMAND-MATRIX.md) and [REDTEAM-TIER-C.md](./REDTEAM-TIER-C.md) for command contracts and acceptance tests.
 
 ---
 

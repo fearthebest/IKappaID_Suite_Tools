@@ -13,7 +13,7 @@ For B42.19 use **`42.18/`** for both `sandbox-options.txt` and `Sandbox.json` (d
 
 Expected in-game tabs: **IKST: General**, **IKST: Claims**, **IKST: Admin Tools**, **IKST: Security & Logs**, **IKST: Miscellaneous**, plus Economy / Tiles / Vehicles / Loot addon tabs.
 
-Full method (for all mods): [PZ-AI-Dev-Guidance `SANDBOX-TRANSLATIONS.md`](https://github.com/fearthebest/PZ-AI-Dev-Guidance/blob/master/AI-DEV-GUIDANCE/SANDBOX-TRANSLATIONS.md).
+B42 loads sandbox labels from `{build}/media/lua/shared/Translate/EN/Sandbox.json` next to `sandbox-options.txt`. UTF-8, no BOM. Locale folder is `EN`.
 
 ## Tier C security options (new)
 

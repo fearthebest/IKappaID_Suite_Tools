@@ -76,7 +76,7 @@ IKappaIDSuiteTools/
 | Layer | Details |
 |-------|---------|
 | **Version** | `modversion=0.2.6`, `versionMin=42.18` (runs on B42.19 via `42.18/` fallback) |
-| **Branch** | `cursor/tier-c-testing-05ab` adds Tier C security (ServerGate, RateLimit, AuditLog, Args) |
+| **Branch** | Tier C security (ServerGate, RateLimit, AuditLog, Args) |
 | **Addons** | Base → Economy, Tiles, Loot (optional); Vehicles requires Tiles |
 
 ### Load model

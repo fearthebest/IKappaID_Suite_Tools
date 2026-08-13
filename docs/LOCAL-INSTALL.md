@@ -11,10 +11,8 @@ Workshop/IKappaID Suite Tools/
 to your Project Zomboid Workshop directory:
 
 ```text
-C:\Users\mpass\Zomboid\Workshop\IKappaID Suite Tools\
+%USERPROFILE%\Zomboid\Workshop\IKappaID Suite Tools\
 ```
-
-(or `%UserProfile%\Zomboid\Workshop\IKappaID Suite Tools\` on Windows)
 
 ## Zip download
 
@@ -46,7 +44,7 @@ Sandbox labels load from each addon's `common/media/lua/shared/Translate/EN/Sand
 
 ## Git branch
 
-Tier C testing code: `cursor/tier-c-testing-05ab`
+Tier C testing code lives on the current working branch (ServerGate, RateLimit, AuditLog, Args).
 
 ## Troubleshooting
 
