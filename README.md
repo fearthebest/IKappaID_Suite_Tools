@@ -9,7 +9,7 @@ Build 42 admin and player toolkit for Project Zomboid: safehouse and vehicle cla
 
 ## Overview
 
-IKappaID Suite Tools is a hub panel (`Ctrl+Shift+W`) for multiplayer servers and the players on them. The base mod covers claims, recovery journal, and staff tools. Optional addons add world editing, vehicle admin, player economy (with [IKappaID Phone Shop](https://steamcommunity.com/sharedfiles/filedetails/?id=3749926419)), and admin loot repopulation.
+IKappaID Suite Tools is a hub panel (`Ctrl+Shift+W`) for multiplayer servers and the players on them. The base mod covers claims, recovery journal, and staff tools. Optional addons add world editing, vehicle admin, player economy (with IKappaID Phone Shop), and admin loot repopulation.
 
 ## Mod IDs
 
@@ -31,7 +31,7 @@ Enable only the addons your server needs.
 ├── CHANGELOG.md
 ├── LICENSE
 ├── docs/
-│   └── ASSETS-CREDITS.md      # Third-party tile art attribution
+│   └── LICENSED-ART.md        # Licensed economy tile attribution (ship line only)
 └── IKST_Workshop/             # Steam Workshop upload tree
     ├── workshop.txt
     ├── preview.png
@@ -53,9 +53,9 @@ Edit Lua and assets under `IKST_Workshop/Contents/mods/`. Upload from `IKST_Work
 3. Upload from `IKST_Workshop/`.
 4. Add a change note on Steam (see `CHANGELOG.md`). Keep the main Workshop description stable unless intentionally rewritten.
 
-## Art credits
+## Licensed art
 
-Economy tile sprites (`ikst_economy_01`) are 2D renders from CGTrader models (Royalty Free). See [docs/ASSETS-CREDITS.md](docs/ASSETS-CREDITS.md).
+Economy tile sprites (`ikst_economy_01`) use royalty-free source models; see `docs/LICENSED-ART.md` for the Workshop credit line.
 
 ## Links
 

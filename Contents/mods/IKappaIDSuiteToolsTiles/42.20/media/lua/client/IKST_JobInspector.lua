@@ -2,9 +2,11 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
+require "ISUI/ISLabel"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_JobLayout"
+require "IKST_WorldPick"
 
 IKST_JobInspector = IKST_JobInspector or {}
 
@@ -26,95 +28,107 @@ function IKST_JobInspector.build(panel)
         return 8
     end
 
-    local y = 8
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
     local armed = state.armed and state.armedJob == IKST.VIEW.inspector
 
-    panel:makeJobButton(12, y, 160, 24, IKST.text("IGUI_IKST_ArmInspect", "Arm inspect cursor"), function()
-        if IKST_WorldPick and IKST_WorldPick.armInspect then
-            IKST_WorldPick.armInspect(panel.player)
-        end
-        panel:refreshJobUI()
-    end, armed and not (state.inspectAudit == true))
-
-    panel:makeJobButton(178, y, 150, 24, IKST.text("IGUI_IKST_TilesTile_ContainerAudit", "Container audit"), function()
-        if IKST_WorldPick and IKST_WorldPick.armInspect then
-            IKST_WorldPick.armInspect(panel.player, false, true)
-        end
-        panel:refreshJobUI()
-    end, armed and state.inspectAudit == true)
-
-    panel:makeJobButton(IKST_JobLayout.contentRight(panel) - 84, y, 84, 22, IKST.text("IGUI_IKST_Disarm", "DISARM"), function()
-        if IKST_WorldPick and IKST_WorldPick.disarm then
-            IKST_WorldPick.disarm(panel.player)
-        end
-        panel:refreshJobUI()
-    end, false)
-
-    y = y + 34
-
-    local inspect = state.lastInspect
-    local header = IKST.text("IGUI_IKST_NoInspect", "Click a square to inspect objects and sprites.")
-    if inspect and inspect.x then
-        header = IKST.text("IGUI_IKST_Inspect_Square", "Square %1, %2, %3")
-        header = string.gsub(header, "%%1", tostring(inspect.x))
-        header = string.gsub(header, "%%2", tostring(inspect.y))
-        header = string.gsub(header, "%%3", tostring(inspect.z or 0))
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_SectionArm", "Arm"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_ArmInspect", "Arm inspect"),
+                primary = armed and not (state.inspectAudit == true),
+                onClick = function()
+                    if IKST_WorldPick and type(IKST_WorldPick.armInspect) == "function" then
+                        IKST_WorldPick.armInspect(panel.player)
+                    end
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_TilesTile_ContainerAudit", "Container audit"),
+                primary = armed and state.inspectAudit == true,
+                onClick = function()
+                    if IKST_WorldPick and type(IKST_WorldPick.armInspect) == "function" then
+                        IKST_WorldPick.armInspect(panel.player, false, true)
+                    end
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Disarm", "Disarm"),
+                onClick = function()
+                    if IKST_WorldPick and type(IKST_WorldPick.disarm) == "function" then
+                        IKST_WorldPick.disarm(panel.player)
+                    end
+                    panel:refreshJobUI()
+                end,
+            },
+        })
     end
 
-    local info = ISPanel:new(IKST_JobLayout.MARGIN, y, panel.contentW or (panel.width - 24), 36)
-    info.backgroundColor = IKST_Chrome.colors.bgCard
-    info.borderColor = IKST_Chrome.colors.accentDim
-    info:initialise()
-    info.render = function(p)
-        ISPanel.render(p)
-        local cc = IKST_Chrome.colors
-        p:drawText(header, 8, 10, cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
-    end
-    panel:addJobWidget(info)
-    y = y + 44
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_SectionResults", "Results"))
+        local inspect = state.lastInspect
+        local header = IKST.text("IGUI_IKST_NoInspect", "Click a square to inspect objects and sprites.")
+        if inspect and inspect.x then
+            header = IKST.text("IGUI_IKST_Inspect_Square", "Square {1}, {2}, {3}")
+            header = string.gsub(header, "{1}", tostring(inspect.x))
+            header = string.gsub(header, "{2}", tostring(inspect.y))
+            header = string.gsub(header, "{3}", tostring(inspect.z or 0))
+        end
+        local lineH = 16
+        local note = ISLabel:new(ax, ay, lineH, header, 1, 1, 1, 1, UIFont.Small, true)
+        note:initialise()
+        card:addChild(note)
 
-    if inspect and inspect.items then
-        for i, item in ipairs(inspect.items) do
-            if i > 14 then
-                break
-            end
-            local label = tostring(item.name or IKST.text("IGUI_IKST_Inspect_Object", "object"))
-            if item.isFloor then
-                label = label .. " " .. IKST.text("IGUI_IKST_Inspect_Floor", "(floor)")
-            end
-            local rowY = y
-            local rowH = 20
-            local extra = item.containerItems
-            if type(extra) == "table" and #extra > 0 then
-                rowH = 20 + (#extra * 16)
-                if #extra > 8 then
-                    rowH = 20 + (8 * 16)
+        local rows = {}
+        if inspect and inspect.items then
+            for i, item in ipairs(inspect.items) do
+                if i > 24 then
+                    break
                 end
-            end
-            local row = ISPanel:new(IKST_JobLayout.MARGIN, rowY, panel.contentW or (panel.width - 24), rowH)
-            row.backgroundColor = IKST_Chrome.colors.bgToolbar
-            row.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-            row:initialise()
-            row.render = function(p)
-                ISPanel.render(p)
-                local cc = IKST_Chrome.colors
-                p:drawText(label, 8, 3, cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small)
+                local label = tostring(item.name or IKST.text("IGUI_IKST_Inspect_Object", "object"))
+                if item.isFloor then
+                    label = label .. " " .. IKST.text("IGUI_IKST_Inspect_Floor", "(floor)")
+                end
+                rows[#rows + 1] = { id = i, label = label, data = item }
+                local extra = item.containerItems
                 if type(extra) == "table" then
                     local max = #extra
-                    if max > 8 then
-                        max = 8
+                    if max > 6 then
+                        max = 6
                     end
                     for n = 1, max do
                         local entry = extra[n]
-                        local line = "  " .. tostring(entry.count or 1) .. "x " .. tostring(entry.name or "?")
-                        p:drawText(line, 8, 4 + (n * 16), cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
+                        rows[#rows + 1] = {
+                            id = i .. ":" .. n,
+                            label = "  " .. tostring(entry.count or 1) .. "x " .. tostring(entry.name or "?"),
+                            data = entry,
+                        }
                     end
                 end
             end
-            panel:addJobWidget(row)
-            y = y + rowH + 2
         end
+        local listY = ay + lineH + 6
+        local listH = math.max(40, ah - lineH - 6)
+        IKST_JobLayout.makeSelectList(panel, card, ax, listY, aw, listH, rows, {})
     end
 
-    return y
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end

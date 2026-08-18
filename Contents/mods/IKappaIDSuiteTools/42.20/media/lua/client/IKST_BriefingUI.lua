@@ -8,7 +8,8 @@ require "ISUI/ISRichTextPanel"
 require "ISUI/ISButton"
 require "IKST_Shared"
 require "IKST_Briefing"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI/IKUI_Widgets"
 
 IKST_BriefingUI = ISCollapsableWindow:derive("IKST_BriefingUI")
 IKST_BriefingUI.instance = nil
@@ -24,7 +25,7 @@ function IKST_BriefingUI:new(x, y, w, h)
     o.activeId = nil
     o.pin = true
     o.resizable = true
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     return o
 end
 
@@ -32,7 +33,7 @@ function IKST_BriefingUI:doDrawItem(y, item, alt)
     if not item or not item.item then
         return y
     end
-    local c = IKST_Chrome.colors
+    local c = IKUI_Chrome.colors
     if self.selected == item.index then
         self:drawRect(0, y, self:getWidth(), self.itemheight, 0.35, c.accentDim.r, c.accentDim.g, c.accentDim.b)
     end
@@ -59,11 +60,10 @@ function IKST_BriefingUI:createChildren()
     self.body.autosetheight = false
     self.body.clip = true
     self.body.backgroundColor = { r = 0, g = 0, b = 0, a = 0.35 }
-    self.body:paginate()
     self:addChild(self.body)
-    self.body:addScrollBars()
+    IKUI_Widgets.configureRichText(self.body)
 
-    self.closeBtn = IKST_Chrome.newActionButton(self.width - 100, self.height - 30, 90, 22,
+    self.closeBtn = IKUI_Chrome.newActionButton(self.width - 100, self.height - 30, 90, 22,
         IKST.text("UI_btn_close", "Close"), self, IKST_BriefingUI.onClose, "outline")
     self:addChild(self.closeBtn)
 end

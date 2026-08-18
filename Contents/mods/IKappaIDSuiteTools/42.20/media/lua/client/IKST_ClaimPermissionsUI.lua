@@ -7,7 +7,7 @@ require "ISUI/ISButton"
 require "ISUI/ISLabel"
 require "ISUI/ISTextEntryBox"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_UI_Theme"
 require "IKST_ClaimPolicy"
@@ -29,7 +29,7 @@ end
 
 function Panel:createChildren()
     ISCollapsableWindow.createChildren(self)
-    IKST_Chrome.applyPanelColors(self)
+    IKUI_Chrome.applyPanelColors(self)
     local cfg = self.config
     if not cfg then
         return
@@ -45,7 +45,7 @@ function Panel:createChildren()
     local scopeW = math.floor((innerW - 8) / math.max(1, #scopes))
     local sx = pad
     for _, scope in ipairs(scopes) do
-        local btn = IKST_Chrome.newActionButton(sx, y, scopeW, btnH, scope.label, self, Panel.onScope, "chip")
+        local btn = IKUI_Chrome.newActionButton(sx, y, scopeW, btnH, scope.label, self, Panel.onScope, "chip")
         btn.internal = scope.id
         self:addChild(btn)
         self.scopeBtns[#self.scopeBtns + 1] = btn
@@ -61,9 +61,9 @@ function Panel:createChildren()
     self.userEntry = ISTextEntryBox:new("", pad, y, math.min(180, innerW - 90), btnH)
     self.userEntry:initialise()
     self.userEntry:instantiate()
-    IKST_Chrome.styleInput(self.userEntry, false)
+    IKUI_Chrome.styleInput(self.userEntry, false)
     self:addChild(self.userEntry)
-    self.userScopeBtn = IKST_Chrome.newActionButton(pad + math.min(180, innerW - 90) + 8, y, 70, btnH, IKST.text("IGUI_IKST_VehicleClaim_UserScope", "User"), self, Panel.onUserScope, "chip")
+    self.userScopeBtn = IKUI_Chrome.newActionButton(pad + math.min(180, innerW - 90) + 8, y, 70, btnH, IKST.text("IGUI_IKST_VehicleClaim_UserScope", "User"), self, Panel.onUserScope, "chip")
     self:addChild(self.userScopeBtn)
     y = y + btnH + 12
 
@@ -80,7 +80,7 @@ function Panel:createChildren()
     local ax = pad
     for i, action in ipairs(actions) do
         local label = cfg.actionLabel(action)
-        local btn = IKST_Chrome.newActionButton(ax, y, btnW, btnH, label, self, Panel.onToggleAction, "chip")
+        local btn = IKUI_Chrome.newActionButton(ax, y, btnW, btnH, label, self, Panel.onToggleAction, "chip")
         btn.internal = action
         self:addChild(btn)
         self.actionBtns[action] = btn
@@ -96,9 +96,9 @@ function Panel:createChildren()
         y = y + 8
     end
 
-    self.saveBtn = IKST_Chrome.newActionButton(pad, y, math.min(150, math.floor(innerW * 0.48)), btnH + 4, IKST.text("IGUI_IKST_VehicleClaim_SavePerms", "Save permissions"), self, Panel.onSave, "primary")
+    self.saveBtn = IKUI_Chrome.newActionButton(pad, y, math.min(150, math.floor(innerW * 0.48)), btnH + 4, IKST.text("IGUI_IKST_VehicleClaim_SavePerms", "Save permissions"), self, Panel.onSave, "primary")
     self:addChild(self.saveBtn)
-    self.removeUserBtn = IKST_Chrome.newActionButton(pad + math.min(150, math.floor(innerW * 0.48)) + 8, y, math.min(150, math.floor(innerW * 0.48)), btnH + 4, IKST.text("IGUI_IKST_VehicleClaim_RemoveUser", "Remove user"), self, Panel.onRemoveUser, "danger")
+    self.removeUserBtn = IKUI_Chrome.newActionButton(pad + math.min(150, math.floor(innerW * 0.48)) + 8, y, math.min(150, math.floor(innerW * 0.48)), btnH + 4, IKST.text("IGUI_IKST_VehicleClaim_RemoveUser", "Remove user"), self, Panel.onRemoveUser, "danger")
     self:addChild(self.removeUserBtn)
 end
 
@@ -153,10 +153,10 @@ end
 
 function Panel:refreshScopeHighlight()
     for _, btn in ipairs(self.scopeBtns) do
-        IKST_Chrome.styleChipButton(btn, btn.internal == self.scope)
+        IKUI_Chrome.styleChipButton(btn, btn.internal == self.scope)
     end
     if self.userScopeBtn then
-        IKST_Chrome.styleChipButton(self.userScopeBtn, self.scope == "user")
+        IKUI_Chrome.styleChipButton(self.userScopeBtn, self.scope == "user")
     end
 end
 
@@ -183,7 +183,7 @@ end
 
 function Panel:refreshActionButtons()
     for action, btn in pairs(self.actionBtns) do
-        IKST_Chrome.styleChipButton(btn, self.draft and self.draft[action] == true)
+        IKUI_Chrome.styleChipButton(btn, self.draft and self.draft[action] == true)
     end
 end
 
@@ -261,7 +261,7 @@ function Panel:new(player, config)
     o.resizable = false
     o.scope = config.defaultScope
     o.draft = config.permissions.emptyPerms()
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     o:setTitle(config.title or IKST.text("IGUI_IKST_Claim_Perms", "Claim permissions"))
     return o
 end
@@ -277,6 +277,9 @@ function IKST_ClaimPermissionsUI.open(player, config)
     end
     if config.vehicleId ~= nil then
         panel.vehicleId = config.vehicleId
+    end
+    if config.claimKey ~= nil then
+        panel.claimKey = config.claimKey
     end
     panel:initialise()
     panel:addToUIManager()
@@ -329,7 +332,7 @@ function IKST_ClaimPermissionsUI.safehouseConfig(x, y, w, h)
     }
 end
 
-function IKST_ClaimPermissionsUI.vehicleConfig(vehicleId)
+function IKST_ClaimPermissionsUI.vehicleConfig(vehicleId, claimKey)
     require "IKST_VehicleClaim"
     require "IKST_VehiclePermissions"
     return {
@@ -350,23 +353,40 @@ function IKST_ClaimPermissionsUI.vehicleConfig(vehicleId)
         end,
         cmd = IKST.CMD.vehicleClaimSetPerms,
         buildSavePayload = function(panel, scope, username, perms)
-            return {
+            local payload = {
                 vehicleId = panel.vehicleId,
-                claimKey = panel.vehicleId,
                 scope = scope,
                 username = username,
                 perms = perms,
             }
+            if panel.claimKey and panel.claimKey ~= "" then
+                payload.claimKey = panel.claimKey
+            elseif IKST_VehicleClaimClient and type(IKST_VehicleClaimClient.rowForVehicle) == "function" then
+                local row = IKST_VehicleClaimClient.rowForVehicle(panel.vehicleId)
+                if row and row.claimKey and row.claimKey ~= "" then
+                    payload.claimKey = row.claimKey
+                end
+            end
+            return payload
         end,
         buildRemovePayload = function(panel, username)
-            return {
+            local payload = {
                 vehicleId = panel.vehicleId,
-                claimKey = panel.vehicleId,
                 scope = "remove_user",
                 username = username,
             }
+            if panel.claimKey and panel.claimKey ~= "" then
+                payload.claimKey = panel.claimKey
+            elseif IKST_VehicleClaimClient and type(IKST_VehicleClaimClient.rowForVehicle) == "function" then
+                local row = IKST_VehicleClaimClient.rowForVehicle(panel.vehicleId)
+                if row and row.claimKey and row.claimKey ~= "" then
+                    payload.claimKey = row.claimKey
+                end
+            end
+            return payload
         end,
         vehicleId = vehicleId,
+        claimKey = claimKey,
     }
 end
 
@@ -378,8 +398,8 @@ function IKST_ClaimPermissionsUI.openSafehouse(player, x, y, w, h, defaultScope)
     IKST_ClaimPermissionsUI.open(player, cfg)
 end
 
-function IKST_ClaimPermissionsUI.openVehicle(player, vehicleId, defaultScope)
-    local cfg = IKST_ClaimPermissionsUI.vehicleConfig(vehicleId)
+function IKST_ClaimPermissionsUI.openVehicle(player, vehicleId, defaultScope, claimKey)
+    local cfg = IKST_ClaimPermissionsUI.vehicleConfig(vehicleId, claimKey)
     if defaultScope then
         cfg.defaultScope = defaultScope
     end

@@ -121,66 +121,14 @@ function IKST_Economy.shopObjectProtected(obj, player)
     return IKST_Economy.isProtectedShopObject(obj)
 end
 
-function IKST_Economy.encodeShopPriceTable(catalog)
-    local parts = {}
-    if type(catalog) ~= "table" then
-        return ""
-    end
-    for itemType, price in pairs(catalog) do
-        if type(itemType) == "string" and itemType ~= ""
-            and not string.find(itemType, "[;=]") then
-            local n = math.floor(tonumber(price) or 0)
-            if n > 0 then
-                parts[#parts + 1] = itemType .. "=" .. tostring(n)
-            end
-        end
-    end
-    table.sort(parts)
-    return table.concat(parts, ";")
-end
-
-function IKST_Economy.parseShopPriceTable(raw)
-    local catalog = {}
-    if type(raw) == "table" then
-        for itemType, price in pairs(raw) do
-            if type(itemType) == "string" then
-                local n = math.floor(tonumber(price) or 0)
-                if n > 0 then
-                    catalog[itemType] = n
-                end
-            end
-        end
-        return catalog
-    end
-    if type(raw) ~= "string" or raw == "" then
-        return catalog
-    end
-    for chunk in string.gmatch(raw, "[^;]+") do
-        local itemType, price = string.match(chunk, "^([^=]+)=(%d+)$")
-        if itemType then
-            catalog[itemType] = tonumber(price) or 0
-        end
-    end
-    return catalog
-end
-
-function IKST_Economy.persistShopPriceTable(shopMd, catalog)
-    if not shopMd then
-        return
-    end
-    shopMd[IKST_Economy.VEND_PRICES] = IKST_Economy.encodeShopPriceTable(catalog)
-end
-
--- Object getModData() can drop nested tables. Store Type=price; as one string.
--- https://pzwiki.net/wiki/Mod_data
 function IKST_Economy.getShopPriceTable(shopMd)
     if not shopMd then
         return nil
     end
-    local raw = shopMd[IKST_Economy.VEND_PRICES]
-    local catalog = IKST_Economy.parseShopPriceTable(raw)
-    if type(raw) == "table" then
-        IKST_Economy.persistShopPriceTable(shopMd, catalog)
+    local catalog = shopMd[IKST_Economy.VEND_PRICES]
+    if type(catalog) ~= "table" then
+        catalog = {}
+        shopMd[IKST_Economy.VEND_PRICES] = catalog
     end
     return catalog
 end
@@ -1016,11 +964,15 @@ function IKST_Economy.installServerSync()
 end
 
 function IKST_Economy.formatMsg(key, fallback, ...)
+    if IKST.format then
+        return IKST.format(key, fallback, ...)
+    end
     local fmt = IKST.text(key, fallback)
     local argc = select("#", ...)
     for i = 1, argc do
-        local v = select(i, ...)
-        fmt = string.gsub(fmt, "%%" .. i, tostring(v or ""))
+        local v = tostring(select(i, ...) or "")
+        fmt = string.gsub(fmt, "{" .. i .. "}", v)
+        fmt = string.gsub(fmt, "%%" .. i, v)
     end
     return fmt
 end
@@ -1121,39 +1073,39 @@ function IKST_Economy.formatResultMessage(code, extra)
     if msg == "deposit_ok" then
         local amount = extra.resultAmount
         if amount ~= nil then
-            return IKST_Economy.formatMsg("IGUI_IKST_Economy_DepositOk", "Deposited %1", IKST_Economy.formatAmount(amount))
+            return IKST_Economy.formatMsg("IGUI_IKST_Economy_DepositOk", "Deposited {1}", IKST_Economy.formatAmount(amount))
         end
         return IKST.text("IGUI_IKST_Economy_DepositOkShort", "Deposit complete.")
     end
     if msg == "withdraw_ok" then
         local amount = extra.resultAmount
         if amount ~= nil then
-            return IKST_Economy.formatMsg("IGUI_IKST_Economy_WithdrawOk", "Withdrew %1", IKST_Economy.formatAmount(amount))
+            return IKST_Economy.formatMsg("IGUI_IKST_Economy_WithdrawOk", "Withdrew {1}", IKST_Economy.formatAmount(amount))
         end
         return IKST.text("IGUI_IKST_Economy_WithdrawOkShort", "Withdraw complete.")
     end
     if msg == "wire_ok" then
         local receive = extra.resultReceive
         local target = extra.resultTarget or ""
-        local line = IKST_Economy.formatMsg("IGUI_IKST_Economy_WireOk", "Wired %1 to %2",
+        local line = IKST_Economy.formatMsg("IGUI_IKST_Economy_WireOk", "Wired {1} to {2}",
             receive ~= nil and IKST_Economy.formatAmount(receive) or "", target)
         local fee = extra.resultFee
         if fee ~= nil and tonumber(fee) and tonumber(fee) > 0 then
-            line = line .. IKST_Economy.formatMsg("IGUI_IKST_Economy_WireFeeSuffix", " (fee %1)", IKST_Economy.formatAmount(fee))
+            line = line .. IKST_Economy.formatMsg("IGUI_IKST_Economy_WireFeeSuffix", " (fee {1})", IKST_Economy.formatAmount(fee))
         end
         return line
     end
     if msg == "purchase_ok" then
         local price = extra.resultPrice
         if price ~= nil then
-            return IKST_Economy.formatMsg("IGUI_IKST_Economy_PurchaseOk", "Purchased 1 for %1", IKST_Economy.formatAmount(price))
+            return IKST_Economy.formatMsg("IGUI_IKST_Economy_PurchaseOk", "Purchased 1 for {1}", IKST_Economy.formatAmount(price))
         end
         return IKST.text("IGUI_IKST_Economy_PurchaseOkShort", "Purchase complete.")
     end
     if msg == "exchange_ok" then
         local payout = extra.resultPayout
         if payout ~= nil then
-            return IKST_Economy.formatMsg("IGUI_IKST_Economy_ExchangeOk", "Exchanged for %1", IKST_Economy.formatAmount(payout))
+            return IKST_Economy.formatMsg("IGUI_IKST_Economy_ExchangeOk", "Exchanged for {1}", IKST_Economy.formatAmount(payout))
         end
         return IKST.text("IGUI_IKST_Economy_ExchangeOkShort", "Exchange complete.")
     end
@@ -1161,7 +1113,7 @@ function IKST_Economy.formatResultMessage(code, extra)
         local count = extra.resultCount
         local payout = extra.resultPayout
         if count ~= nil and payout ~= nil then
-            return IKST_Economy.formatMsg("IGUI_IKST_Economy_ExchangeAllOk", "Sold %1 items for %2",
+            return IKST_Economy.formatMsg("IGUI_IKST_Economy_ExchangeAllOk", "Sold {1} items for {2}",
                 tostring(count), IKST_Economy.formatAmount(payout))
         end
         return IKST.text("IGUI_IKST_Economy_ExchangeAllOkShort", "Sold valuables.")

@@ -244,132 +244,24 @@ function IKST_RestoreOps.applySnapshot(player, snap)
     return true, "restored from journal"
 end
 
-local function encodeSkillLine(skills)
-    local parts = {}
-    if type(skills) ~= "table" then
-        return ""
-    end
-    for _, row in ipairs(skills) do
-        if row and row.id then
-            local id = tostring(row.id)
-            if not string.find(id, "[:;]") then
-                parts[#parts + 1] = id .. ":"
-                    .. tostring(math.floor(tonumber(row.level) or 0)) .. ":"
-                    .. tostring(tonumber(row.xp) or 0)
-            end
-        end
-    end
-    return table.concat(parts, ";")
-end
-
-local function decodeSkillLine(s)
-    local skills = {}
-    if type(s) ~= "string" or s == "" then
-        return skills
-    end
-    for chunk in string.gmatch(s, "[^;]+") do
-        local id, level, xp = string.match(chunk, "^([^:]+):([^:]+):([^:]+)$")
-        if id then
-            skills[#skills + 1] = {
-                id = id,
-                level = tonumber(level) or 0,
-                xp = tonumber(xp) or 0,
-            }
-        end
-    end
-    return skills
-end
-
-local function encodeIdList(list)
-    local parts = {}
-    if type(list) ~= "table" then
-        return ""
-    end
-    for _, id in ipairs(list) do
-        local s = tostring(id or "")
-        if s ~= "" and not string.find(s, ";") then
-            parts[#parts + 1] = s
-        end
-    end
-    return table.concat(parts, ";")
-end
-
-local function decodeIdList(s)
-    local list = {}
-    if type(s) ~= "string" or s == "" then
-        return list
-    end
-    for chunk in string.gmatch(s, "[^;]+") do
-        list[#list + 1] = chunk
-    end
-    return list
-end
-
-local function flag01(v)
-    if v == true or v == 1 or v == "1" then
-        return true
-    end
-    return false
-end
-
--- Item getModData() can drop nested tables. Flat primitives survive save.
--- https://pzwiki.net/wiki/Mod_data
 function IKST_RestoreOps.snapshotOnItem(item, snap)
-    if not item or not snap or type(item.getModData) ~= "function" then
+    if not item or not snap or not item.getModData then
         return false
     end
     local md = item:getModData()
-    md.IKST_restoreSnapshot = nil
-    md.IKST_rs_ver = tonumber(snap.version) or 1
-    md.IKST_rs_user = snap.username and tostring(snap.username) or ""
-    md.IKST_rs_time = tonumber(snap.time) or 0
-    md.IKST_rs_x = tonumber(snap.x) or 0
-    md.IKST_rs_y = tonumber(snap.y) or 0
-    md.IKST_rs_z = tonumber(snap.z) or 0
-    md.IKST_rs_health = tonumber(snap.health) or 100
-    md.IKST_rs_infected = snap.infected == true and "1" or "0"
-    md.IKST_rs_hunger = tonumber(snap.hunger) or 0
-    md.IKST_rs_thirst = tonumber(snap.thirst) or 0
-    md.IKST_rs_caught = snap.caught == true and "1" or "0"
-    md.IKST_rs_skills = encodeSkillLine(snap.skills)
-    md.IKST_rs_traits = encodeIdList(snap.traits)
-    md.IKST_rs_recipes = encodeIdList(snap.recipes)
-    md.IKST_rs_books = encodeIdList(snap.books)
-    if type(item.transmitModData) == "function" then
+    md.IKST_restoreSnapshot = snap
+    if item.transmitModData then
         item:transmitModData()
     end
     return true
 end
 
 function IKST_RestoreOps.snapshotFromItem(item)
-    if not item or type(item.getModData) ~= "function" then
+    if not item or not item.getModData then
         return nil
     end
     local md = item:getModData()
-    local nested = md.IKST_restoreSnapshot
-    if type(nested) == "table" then
-        return nested
-    end
-    if md.IKST_rs_ver == nil and md.IKST_rs_user == nil then
-        return nil
-    end
-    return {
-        version = tonumber(md.IKST_rs_ver) or 1,
-        username = md.IKST_rs_user,
-        time = tonumber(md.IKST_rs_time) or 0,
-        x = tonumber(md.IKST_rs_x) or 0,
-        y = tonumber(md.IKST_rs_y) or 0,
-        z = tonumber(md.IKST_rs_z) or 0,
-        health = tonumber(md.IKST_rs_health) or 100,
-        infected = flag01(md.IKST_rs_infected),
-        hunger = tonumber(md.IKST_rs_hunger) or 0,
-        thirst = tonumber(md.IKST_rs_thirst) or 0,
-        caught = flag01(md.IKST_rs_caught),
-        skills = decodeSkillLine(md.IKST_rs_skills),
-        traits = decodeIdList(md.IKST_rs_traits),
-        recipes = decodeIdList(md.IKST_rs_recipes),
-        books = decodeIdList(md.IKST_rs_books),
-    }
+    return md.IKST_restoreSnapshot
 end
 
 function IKST_RestoreOps.isJournalItem(item)

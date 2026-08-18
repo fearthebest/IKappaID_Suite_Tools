@@ -2,9 +2,9 @@ require "IKST_Shared"
 
 IKST_ClaimIcons = IKST_ClaimIcons or {}
 
--- Hub sidebar / dashboard button glyphs. Context-menu icons always on.
--- Roll out per-icon; dashboard ships first (ws_dashboard.png).
+-- Custom media/ui/ikst glyphs look soft when scaled small — text-only hub/UI.
 IKST_ClaimIcons.HUB_UI_ICONS = false
+IKST_ClaimIcons.CONTEXT_ICONS = false
 
 IKST_ClaimIcons.DASHBOARD = "media/ui/ikst/ws_dashboard.png"
 -- Source PNGs are 128x128 (2x); drawn smaller in UI for sharp downscale.
@@ -24,9 +24,10 @@ function IKST_ClaimIcons.texture(path)
     return getTexture(path)
 end
 
--- Draw a 64x64 source icon at (x,y) with square edge size. Works on any panel
--- with drawTextureScaled; not gated by HUB_UI_ICONS.
 function IKST_ClaimIcons.drawIcon(panel, path, x, y, size, alpha)
+    if IKST_ClaimIcons.HUB_UI_ICONS == false then
+        return false
+    end
     if not panel or not path or not size or size < 1 then
         return false
     end
@@ -43,6 +44,9 @@ function IKST_ClaimIcons.drawIcon(panel, path, x, y, size, alpha)
 end
 
 function IKST_ClaimIcons.applyContextIcon(option, path)
+    if IKST_ClaimIcons.CONTEXT_ICONS == false then
+        return
+    end
     if not option or not path then
         return
     end

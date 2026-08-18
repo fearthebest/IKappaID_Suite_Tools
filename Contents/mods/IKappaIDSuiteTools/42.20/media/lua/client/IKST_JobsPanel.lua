@@ -7,7 +7,8 @@ require "ISUI/ISButton"
 require "ISUI/ISUIElement"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI/IKUI_Config"
 require "IKST_UI_Layout"
 require "IKST_UIPrefs"
 require "IKST_DragHandle"
@@ -43,7 +44,7 @@ function IKST_JobsPanel:new(x, y, width, height)
     o.logPanel = nil
     o._lastScrollContentH = 0
     o._layoutCompact = nil
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     o:setTitle(IKST.text("IGUI_IKST_Title", "IKappaID Suite Tools"))
     IKST_DragHandle.attach(o, "right", {
         clampFn = function(p)
@@ -79,14 +80,14 @@ function IKST_JobsPanel:createChildren()
     self.jobLayer:setVisible(false)
     -- Q1: NAV
     self.q1Panel = ISPanel:new(0, 0, 100, 100)
-    local sc = IKST_Chrome.colors.bgSidebar
+    local sc = IKUI_Chrome.colors.bgSidebar
     self.q1Panel.backgroundColor = { r = sc.r, g = sc.g, b = sc.b, a = sc.a }
     self.q1Panel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     self.q1Panel:initialise()
     self.jobLayer:addChild(self.q1Panel)
     -- Q2: TARGET
     self.q2Panel = ISPanel:new(0, 0, 100, 100)
-    local card = IKST_Chrome.colors.bgCard
+    local card = IKUI_Chrome.colors.bgCard
     self.q2Panel.backgroundColor = { r = card.r, g = card.g, b = card.b, a = 0.55 }
     self.q2Panel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
     self.q2Panel:initialise()
@@ -117,11 +118,8 @@ function IKST_JobsPanel:createChildren()
     self.q4Panel:initialise()
     self.jobLayer:addChild(self.q4Panel)
     local homeH = math.max(22, IKST_UI_Layout.s(24))
-    self.homeNavBtn = IKST_Chrome.newActionButton(6, 0, 72, homeH,
+    self.homeNavBtn = IKUI_Chrome.newActionButton(6, 0, 72, homeH,
         IKST.text("IGUI_IKST_BackHome", "Home"), self, IKST_JobsPanel.onHomeNavClick, "outline")
-    if IKST_ClaimIcons and IKST_ClaimIcons.applyButtonIcon then
-        IKST_ClaimIcons.applyButtonIcon(self.homeNavBtn, "media/ui/ikst/nav_back.png")
-    end
     self:addChild(self.homeNavBtn)
     self.homeNavBtn:setVisible(false)
     if IKST_DragHandle and type(IKST_DragHandle.ensureTab) == "function" then
@@ -252,8 +250,8 @@ function IKST_JobsPanel:makeJobHeader(x, y, text)
     local w = IKST_JobLayout.clampWidth(self, x, self.contentW or (self.width - 24))
     local label = ISLabel:new(x, y, 18, text or "", 1, 1, 1, 1, UIFont.Medium, true)
     label:initialise()
-    if IKST_Chrome and IKST_Chrome.styleHeaderLabel then
-        IKST_Chrome.styleHeaderLabel(label)
+    if IKUI_Chrome and IKUI_Chrome.styleHeaderLabel then
+        IKUI_Chrome.styleHeaderLabel(label)
     end
     self:addJobWidget(label)
     return y + 22
@@ -262,13 +260,13 @@ end
 function IKST_JobsPanel:makeJobButton(x, y, w, h, label, onClick, primary)
     w = IKST_JobLayout.clampWidth(self, x, w)
     local kind = primary and "primary" or "outline"
-    local btn = IKST_Chrome.newActionButton(x, y, w, h, label, self, onClick, kind)
+    local btn = IKUI_Chrome.newActionButton(x, y, w, h, label, self, onClick, kind)
     return self:addJobWidget(btn)
 end
 
 function IKST_JobsPanel:makeChromeButton(x, y, w, h, label, onClick, primary)
     local kind = primary and "primary" or "outline"
-    local btn = IKST_Chrome.newActionButton(x, y, w, h, label, self, onClick, kind)
+    local btn = IKUI_Chrome.newActionButton(x, y, w, h, label, self, onClick, kind)
     return self:addChromeWidget(btn)
 end
 
@@ -308,7 +306,7 @@ function IKST_JobsPanel:makeJobLabel(x, y, text, font)
     label.ikstHeight = h
     label.render = function(p)
         ISPanel.render(p)
-        local cc = IKST_Chrome.colors
+        local cc = IKUI_Chrome.colors
         local ly = 0
         for line in string.gmatch(wrapped .. "\n", "(.-)\n") do
             p:drawText(line, 0, ly, cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, labelFont)
@@ -337,8 +335,8 @@ function IKST_JobsPanel:onResize()
     ISCollapsableWindow.onResize(self)
     IKST_JobLayout.relayoutJobLayer(self)
     IKST_JobLayout.syncHomeNav(self)
-    if IKST_Chrome and IKST_Chrome.syncArmedStopButton then
-        IKST_Chrome.syncArmedStopButton(self)
+    if IKUI_Chrome and IKUI_Chrome.syncArmedStopButton then
+        IKUI_Chrome.syncArmedStopButton(self)
     end
     self:refreshJobUI(true)
     if IKST_DragHandle and type(IKST_DragHandle.layoutTab) == "function" then
@@ -461,7 +459,7 @@ function IKST_JobsPanel:updateTarget()
     end
     local state = IKST.getPlayerState(self.player)
     local tool = state and state.navTool
-    local cc = IKST_Chrome.colors
+    local cc = IKUI_Chrome.colors
     local x = 8
     local y = 4
     local targetText = ""
@@ -470,14 +468,12 @@ function IKST_JobsPanel:updateTarget()
     local hasContent = false
 
     if self.view == IKST.VIEW.tiles then
-        icon = "media/textures/CellPhoneMod/icon_compose.png"
         if tool == "inspect" and state and state.lastInspect then
             targetText = "Square: " .. state.lastInspect.x .. ", " .. state.lastInspect.y .. ", " .. state.lastInspect.z
             subText = (state.lastInspect.objects or 0) .. " objects"
             hasContent = true
         end
     elseif self.view == IKST.VIEW.vehicles then
-        icon = "media/textures/CellPhoneMod/icon_phone.png"
         local tool = state and state.navTool
         if tool == "spawn" or tool == "cleanup" or tool == "prune" then
             if not IKST_JobVehicle or not IKST_JobVehicle.listCache or #IKST_JobVehicle.listCache == 0 then
@@ -502,14 +498,7 @@ function IKST_JobsPanel:updateTarget()
                 hasContent = true
             end
         end
-    elseif self.view == IKST.VIEW.utilities then
-        icon = "media/textures/CellPhoneMod/icon_911.png"
-    elseif self.view == IKST.VIEW.claim then
-        icon = "media/textures/CellPhoneMod/icon_avatar.png"
-    elseif self.view == IKST.VIEW.economy then
-        icon = "media/textures/CellPhoneMod/icon_send.png"
     elseif self.view == IKST.VIEW.loot then
-        icon = "media/textures/CellPhoneMod/icon_in.png"
         local preview = IKST_JobLoot and IKST_JobLoot.previewForPanel and IKST_JobLoot.previewForPanel(self)
         if preview and IKST_LootOps and IKST_LootOps.previewSummary then
             local line = IKST_LootOps.previewSummary(preview)
@@ -519,10 +508,6 @@ function IKST_JobsPanel:updateTarget()
                 hasContent = true
             end
         end
-    elseif self.view == IKST.VIEW.admin then
-        icon = "media/ui/ikst/tool_players.png"
-    elseif self.view == IKST.VIEW.everyone then
-        icon = "media/textures/CellPhoneMod/icon_people.png"
     end
 
     self._q2HasContent = hasContent == true
@@ -532,21 +517,6 @@ function IKST_JobsPanel:updateTarget()
 
     if not targetText or targetText == "" then
         targetText = IKST_HubNav.labelForNav(self.view, tool)
-    end
-
-    if icon then
-        local tex = getTexture(icon)
-        if tex then
-            local iconPanel = ISPanel:new(x, y + 2, 24, 24)
-            iconPanel:initialise()
-            iconPanel.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-            iconPanel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-            iconPanel.render = function(p)
-                p:drawTextureScaled(tex, 0, 0, 24, 24, 1, 1, 1, 1)
-            end
-            self:addQ2Widget(iconPanel)
-            x = x + 32
-        end
     end
 
     local titleColor = cc.textPrimary or cc.textMuted
@@ -597,8 +567,11 @@ function IKST_JobsPanel:updateActions(preserveScroll)
 end
 
 function IKST_JobsPanel:updateLog()
-    if self.logPanel and self.logPanel.parent and self.logPanel.parent.removeChild then
-        self.logPanel.parent:removeChild(self.logPanel)
+    if self.logPanel then
+        local widget = self.logPanel._ikstLogCard or self.logPanel
+        if widget.parent and widget.parent.removeChild then
+            widget.parent:removeChild(widget)
+        end
     end
     self.logPanel = nil
     if self.q4Panel then
@@ -745,6 +718,37 @@ function IKST_JobsPanel:getHintText()
     return IKST.text("IGUI_IKST_Tip_Home", "Tip: Pick a mode, then a tool on the left. Pinned actions are above.")
 end
 
+function IKST_JobsPanel:statusStripTexts()
+    local player = self.player
+    local leftText = ""
+    local rightText = IKST.text("IGUI_IKST_Player", "Player")
+    local rightAccent = false
+    local textX = IKUI_Config.hubMargin
+    local homeBtn = self.homeNavBtn
+    if homeBtn and type(homeBtn.getIsVisible) == "function" and homeBtn:getIsVisible() then
+        textX = (homeBtn:getX() or 0) + (homeBtn:getWidth() or 0) + IKUI_Config.s(10)
+    end
+    if player then
+        local x, py, z = 0, 0, 0
+        if type(player.getX) == "function" then
+            x = player:getX() or 0
+        end
+        if type(player.getY) == "function" then
+            py = player:getY() or 0
+        end
+        if type(player.getZ) == "function" then
+            z = player:getZ() or 0
+        end
+        leftText = string.format("%d, %d, %d  ·  Cell %d,%d",
+            math.floor(x), math.floor(py), z, math.floor(x / 300), math.floor(py / 300))
+        if IKST_Access and type(IKST_Access.isAdmin) == "function" and IKST_Access.isAdmin(player) then
+            rightText = IKST.text("IGUI_IKST_Admin", "Admin")
+            rightAccent = true
+        end
+    end
+    return leftText, rightText, rightAccent, textX
+end
+
 function IKST_JobsPanel:prerender()
     if self._pendingRefresh then
         self._pendingRefresh = false
@@ -754,29 +758,40 @@ function IKST_JobsPanel:prerender()
         self:refreshJobUI(preserve)
         self._flushRefresh = false
     end
-    IKST_Chrome.drawDockedShell(self)
+    IKUI_Chrome.drawDockedShell(self)
     ISCollapsableWindow.prerender(self)
     if IKST_JobTilesGuard and IKST_JobTilesGuard.pruneOnOffFlash then
         IKST_JobTilesGuard.pruneOnOffFlash(self)
     end
     local chromeY = self:titleBarHeight()
-    IKST_Chrome.drawAccentBar(self, chromeY, 2)
+    IKUI_Chrome.drawAccentBar(self, chromeY, 2)
     IKST_JobLayout.syncHomeNav(self)
     local statusY = chromeY + 2
-    IKST_Chrome.drawStatusStrip(self, self.player, statusY)
+    local leftText, rightText, rightAccent, textX = self:statusStripTexts()
+    IKUI_Chrome.drawStatusStrip(self, leftText, rightText, statusY, {
+        textX = textX,
+        rightAccent = rightAccent,
+        stripH = IKST_JobLayout.STATUS_HEIGHT,
+    })
     local bannerY = statusY + (IKST_JobLayout.STATUS_HEIGHT or 28)
     local modeText = self:armedModeLabel()
     self._armedStopHit = nil
-    if modeText and IKST_Chrome.drawArmedBanner then
-        IKST_Chrome.drawArmedBanner(self, bannerY, modeText)
+    if modeText then
+        IKUI_Chrome.drawArmedBanner(self, bannerY, modeText, {
+            height = IKST_JobLayout.armedBannerHeight(self),
+            gripReserve = IKST_JobLayout.RESIZE_GRIP,
+        })
     end
-    if IKST_Chrome.syncArmedStopButton then
-        IKST_Chrome.syncArmedStopButton(self)
+    if IKUI_Chrome.syncArmedStopButton then
+        IKUI_Chrome.syncArmedStopButton(self)
     end
     if IKST_HubNav.isHomeView(self.view) then
         self:drawHome(IKST_HubNav.homeContentY(self))
     end
-    IKST_Chrome.drawHintStrip(self, self:getHintText(), IKST_JobLayout.hintStripY(self))
+    IKUI_Chrome.drawHintStrip(self, self:getHintText(), IKST_JobLayout.hintStripY(self), {
+        stripH = IKST_JobLayout.HINT_HEIGHT,
+        gripReserve = IKST_JobLayout.RESIZE_GRIP,
+    })
     if IKST_DragHandle and type(IKST_DragHandle.syncTab) == "function" then
         IKST_DragHandle.syncTab(self)
     end
@@ -977,10 +992,6 @@ function IKST_JobsPanel.open(player)
     if not player or not IKST_Access.canOpenPanel(player) then
         return
     end
-    if type(IKST.uiFrameworkLoaded) == "function" and not IKST.uiFrameworkLoaded() then
-        IKST.notify(player, IKST.text("IGUI_IKST_NeedUiFramework", "Requires IKappaID UI Framework (Mod ID: IKappaID_UI)."), false)
-        return
-    end
     IKST_JobsPanel.prepareOpen(player)
     local panel = IKST_JobsPanel.ensure()
     panel.player = player
@@ -1008,10 +1019,6 @@ end
 function IKST_JobsPanel.toggle(player)
     player = IKST.resolvePlayer(player)
     if not player or not IKST_Access.canOpenPanel(player) then
-        return
-    end
-    if type(IKST.uiFrameworkLoaded) == "function" and not IKST.uiFrameworkLoaded() then
-        IKST.notify(player, IKST.text("IGUI_IKST_NeedUiFramework", "Requires IKappaID UI Framework (Mod ID: IKappaID_UI)."), false)
         return
     end
     local panel = IKST_JobsPanel.ensure()

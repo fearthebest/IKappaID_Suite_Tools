@@ -5,7 +5,7 @@ end
 require "ISUI/ISPanel"
 require "IKST_Shared"
 require "IKST_Arrival"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_ArrivalClient = ISPanel:derive("IKST_ArrivalClient")
 IKST_ArrivalClient.instance = nil
@@ -29,7 +29,7 @@ function IKST_ArrivalClient:render()
     end
     local remaining = math.ceil(self.remainingMs / 1000)
     local label = IKST.text("IGUI_IKST_Arrival_HUD", "Arrival stabilization") .. " - " .. remaining .. "s"
-    local c = IKST_Chrome.colors
+    local c = IKUI_Chrome.colors
     self:drawRect(0, 0, self.width, self.height, 0.85, c.bgApp.r, c.bgApp.g, c.bgApp.b)
     self:drawRect(0, 0, 3, self.height, 1, c.accent.r, c.accent.g, c.accent.b)
     self:drawText(label, 10, 8, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)

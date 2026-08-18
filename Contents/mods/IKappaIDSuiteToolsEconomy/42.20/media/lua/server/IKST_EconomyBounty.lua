@@ -109,8 +109,8 @@ local function payBounty(player, amount)
 end
 
 local function bountyMessage(amount)
-    local fmt = IKST.text("IGUI_IKST_Economy_BountyKill", "Zombie bounty: %1")
-    return string.gsub(fmt, "%%1", IKST_Economy.formatAmount(amount))
+    local fmt = IKST.format("IGUI_IKST_Economy_BountyKill", "Zombie bounty: {1}", IKST_Economy.formatAmount(amount))
+    return fmt
 end
 
 function IKST_EconomyBounty.onHitZombie(zombie, attacker)

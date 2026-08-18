@@ -10,7 +10,7 @@
       2. Copy render/layout bits into IKST_ArrivalClient, or rename/swap after review
       3. Do NOT require this file from IKST_Z_Bootstrap until you want it live
 
-    Design goals (match IKST_Chrome + Phone Shop):
+    Design goals (match IKUI_Chrome + Phone Shop):
       - Dark panel, orange accent rail
       - Progress fill for remaining grace
       - Timer on the right, title on the left
@@ -24,7 +24,7 @@ end
 require "ISUI/ISPanel"
 require "IKST_Shared"
 require "IKST_Arrival"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_ArrivalHud_Example = ISPanel:derive("IKST_ArrivalHud_Example")
 IKST_ArrivalHud_Example.instance = nil
@@ -57,7 +57,7 @@ function IKST_ArrivalHud_Example:render()
         return
     end
 
-    local c = IKST_Chrome.colors
+    local c = IKUI_Chrome.colors
     local totalMs = self.totalMs or 0
     if totalMs <= 0 and IKST_Arrival and IKST_Arrival.durationMs then
         totalMs = IKST_Arrival.durationMs()

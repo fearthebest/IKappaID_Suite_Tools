@@ -74,83 +74,9 @@ function IKST_VehicleClaim.getForVehicle(vehicle)
     return nil, nil
 end
 
-function IKST_VehicleClaim.bindLoadedVehicle(vehicle)
-    if IKST_Authority and not IKST_Authority.guardServerMutate() then
-        return
-    end
-    if not vehicle then
-        return
-    end
-    -- Stamp on the vehicle is the only live identity. Never attach a different
-    -- row because sqlId / old getId() / nearby coords happened to match.
-    local stamped = IKST_VehicleIdentity.readKey(vehicle)
-    if stamped then
-        local entry = IKST_VehicleClaim.get(stamped)
-        if not entry then
-            return
-        end
-        local x, y, z = IKST_VehicleIdentity.coords(vehicle)
-        entry.x = x
-        entry.y = y
-        entry.z = z
-        entry.sqlId = IKST_VehicleIdentity.sqlId(vehicle) or entry.sqlId
-        local script = IKST_VehicleIdentity.scriptName(vehicle)
-        if script ~= "" then
-            entry.script = script
-        end
-        return
-    end
-    local entry = nil
-    local storeKey = nil
-    local sqlId = IKST_VehicleIdentity.sqlId(vehicle)
-    if sqlId then
-        local data = IKST_VehicleClaim.store()
-        local matchCount = 0
-        for key, row in pairs(data.byId) do
-            if row and tostring(row.sqlId or "") == sqlId then
-                matchCount = matchCount + 1
-                if matchCount == 1 then
-                    entry = row
-                    storeKey = key
-                end
-            end
-        end
-        if matchCount ~= 1 then
-            return
-        end
-    end
-    if not entry then
-        return
-    end
-    local key = storeKey
-    if IKST_VehicleIdentity.isDurableKey(storeKey) then
-        IKST_VehicleIdentity.stampWith(vehicle, storeKey)
-    else
-        key = IKST_VehicleClaim.ensureKey(vehicle)
-    end
-    if not key then
-        return
-    end
-    local x, y, z = IKST_VehicleIdentity.coords(vehicle)
-    entry.x = x
-    entry.y = y
-    entry.z = z
-    entry.sqlId = sqlId or entry.sqlId
-    local script = IKST_VehicleIdentity.scriptName(vehicle)
-    if script ~= "" then
-        entry.script = script
-    end
-    if key ~= tostring(storeKey) then
-        local data = IKST_VehicleClaim.store()
-        data.byId[tostring(storeKey)] = nil
-        entry.id = key
-        data.byId[key] = entry
-        if entry.owner then
-            IKST_VehicleClaim.removeFromOwnerList(entry.owner, tostring(storeKey))
-            IKST_VehicleClaim.addToOwnerList(entry.owner, key)
-        end
-        IKST_VehicleClaim.transmit("set", key, entry)
-    end
+function IKST_VehicleClaim.isVehicleClaimed(vehicle)
+    local entry, _ = IKST_VehicleClaim.getForVehicle(vehicle)
+    return entry ~= nil and not IKST_VehicleClaim.isEntryExpired(entry)
 end
 
 function IKST_VehicleClaim.maxClaimsForOwner()
@@ -324,7 +250,6 @@ function IKST_VehicleClaim.claim(vehicleId, ownerKey, meta)
         x = meta.x,
         y = meta.y,
         z = meta.z,
-        sqlId = meta.sqlId,
         groups = IKST_VehiclePermissions.defaultGroups(),
         users = {},
         claimedAt = IKST_ClaimPolicy.nowHours(),
@@ -354,46 +279,36 @@ function IKST_VehicleClaim.release(vehicleId)
     return true, "released"
 end
 
--- After admin relocate respawns the vehicle, keep the durable claim row.
--- newId is the session getId() of the new object; it is never stored as the claim key.
-function IKST_VehicleClaim.remapVehicleId(oldId, newId, coords)
+-- After admin relocate respawns the vehicle, keep the durable claim row on the new object.
+function IKST_VehicleClaim.remapAfterRelocate(claimKey, newVehicle, coords)
     if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false
     end
-    if oldId == nil then
+    if not claimKey or not newVehicle then
         return false
     end
-    local oldKey = tostring(oldId)
+    local oldKey = tostring(claimKey)
     local entry = IKST_VehicleClaim.get(oldKey)
-    local newVehicle = nil
-    if newId ~= nil and IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
-        newVehicle = IKST_VehicleUtil.getVehicle(newId)
-    end
-    if not entry and newVehicle then
-        entry, oldKey = IKST_VehicleClaim.getForVehicle(newVehicle)
-        oldKey = oldKey and tostring(oldKey) or oldKey
-    end
     if not entry then
         return false
+    end
+    local keepKey = oldKey
+    if IKST_VehicleIdentity.isDurableKey(oldKey) then
+        IKST_VehicleIdentity.stampWith(newVehicle, oldKey)
+    else
+        keepKey = IKST_VehicleClaim.ensureKey(newVehicle)
+        if not keepKey then
+            return false
+        end
     end
     if coords then
         entry.x = coords.x
         entry.y = coords.y
         entry.z = coords.z
     end
-    local keepKey = oldKey
-    if newVehicle then
-        local stamped = IKST_VehicleIdentity.readKey(newVehicle)
-        if stamped then
-            keepKey = stamped
-        elseif IKST_VehicleIdentity.isDurableKey(oldKey) then
-            IKST_VehicleIdentity.stampWith(newVehicle, oldKey)
-            keepKey = oldKey
-        else
-            keepKey = IKST_VehicleClaim.ensureKey(newVehicle) or oldKey
-        end
-        entry.sqlId = IKST_VehicleIdentity.sqlId(newVehicle) or entry.sqlId
-        entry.script = IKST_VehicleIdentity.scriptName(newVehicle)
+    local script = IKST_VehicleIdentity.scriptName(newVehicle)
+    if script ~= "" then
+        entry.script = script
     end
     if keepKey ~= oldKey then
         local data = IKST_VehicleClaim.store()
@@ -405,8 +320,38 @@ function IKST_VehicleClaim.remapVehicleId(oldId, newId, coords)
         IKST_VehicleClaim.transmit("set", keepKey, entry)
         return true
     end
+    entry.id = keepKey
     IKST_VehicleClaim.transmit("set", keepKey, entry)
     return true
+end
+
+-- Legacy callers pass runtime ids; remapAfterRelocate is preferred.
+function IKST_VehicleClaim.remapVehicleId(oldId, newId, coords)
+    if oldId == nil or newId == nil then
+        return false
+    end
+    if IKST_VehicleIdentity.isDurableKey(oldId) then
+        local vehicle = nil
+        if IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
+            vehicle = IKST_VehicleUtil.getVehicle(newId)
+        end
+        if vehicle then
+            return IKST_VehicleClaim.remapAfterRelocate(oldId, vehicle, coords)
+        end
+    end
+    local oldKey = tostring(oldId)
+    local entry = IKST_VehicleClaim.get(oldKey)
+    if not entry then
+        return false
+    end
+    local vehicle = nil
+    if IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
+        vehicle = IKST_VehicleUtil.getVehicle(newId)
+    end
+    if vehicle then
+        return IKST_VehicleClaim.remapAfterRelocate(oldKey, vehicle, coords)
+    end
+    return false
 end
 
 function IKST_VehicleClaim.transfer(vehicleId, newOwner)
@@ -581,23 +526,20 @@ function IKST_VehicleClaim.canUseVehicle(player, vehicle, action)
         and not IKST_VehicleClaimMirror.isReady() then
         return true
     end
-    local entry = IKST_VehicleClaim.getForVehicle(vehicle)
-    if not entry then
-        local runtimeId = IKST_VehicleIdentity.runtimeId(vehicle)
+    local entry, _ = IKST_VehicleClaim.getForVehicle(vehicle)
+    if not entry or IKST_VehicleClaim.isEntryExpired(entry) then
         if IKST_Authority and IKST_Authority.mpClientEnforcementActive and IKST_Authority.mpClientEnforcementActive() then
             if IKST_VehicleClaimClient and not IKST_VehicleClaimClient.listBootstrapped then
                 return true
             end
             if IKST_VehicleClaimClient and IKST_VehicleClaimClient.rowForVehicle then
+                local runtimeId = type(vehicle.getId) == "function" and vehicle:getId() or nil
                 local row = IKST_VehicleClaimClient.rowForVehicle(runtimeId, vehicle)
                 if row and row.claimed == true then
                     return false
                 end
             end
         end
-        return true
-    end
-    if IKST_VehicleClaim.isEntryExpired(entry) then
         return true
     end
     return IKST_VehiclePermissions.resolve(entry, player, action)
@@ -641,7 +583,30 @@ function IKST_VehicleClaim.listAll()
 end
 
 function IKST_VehicleClaim.entryForDisplay(vehicleId)
-    local entry = IKST_VehicleClaim.get(vehicleId)
+    local lookupKey = vehicleId
+    if lookupKey ~= nil and not IKST_VehicleIdentity.isDurableKey(lookupKey) then
+        if IKST_VehicleClaimClient and type(IKST_VehicleClaimClient.rowForVehicle) == "function" then
+            local row = IKST_VehicleClaimClient.rowForVehicle(tonumber(lookupKey))
+            if row and row.claimKey and row.claimKey ~= "" then
+                lookupKey = row.claimKey
+            elseif row and IKST_VehicleIdentity.isDurableKey(row.id) then
+                lookupKey = row.id
+            end
+        end
+        if lookupKey == vehicleId and IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
+            local runtime = tonumber(vehicleId)
+            if runtime then
+                local vehicle = IKST_VehicleUtil.getVehicle(runtime)
+                if vehicle then
+                    local entry = select(1, IKST_VehicleClaim.getForVehicle(vehicle))
+                    if entry then
+                        lookupKey = entry.id
+                    end
+                end
+            end
+        end
+    end
+    local entry = IKST_VehicleClaim.get(lookupKey)
     if not entry then
         return nil
     end
@@ -666,7 +631,6 @@ function IKST_VehicleClaim.copyEntryPlain(entry)
         x = entry.x,
         y = entry.y,
         z = entry.z,
-        sqlId = entry.sqlId,
         claimedAt = entry.claimedAt,
         expiresAt = entry.expiresAt,
         groups = {},

@@ -6,7 +6,7 @@ require "ISUI/ISTextEntryBox"
 require "ISUI/ISButton"
 require "ISUI/ISLabel"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ActionLog"
 require "IKST_JobLayout"
 require "IKST_JobStaff"
@@ -17,70 +17,6 @@ require "IKST_StaffCheats"
 
 IKST_JobUtilities = IKST_JobUtilities or {}
 
-function IKST_JobUtilities.buildServerTools(panel)
-    local p = panel.player
-    local state = IKST.getPlayerState(p)
-    local y = 8
-
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Util_ServerTools", "Server tools"))
-    panel:makeJobButton(12, y, 100, 24, IKST.text("IGUI_IKST_Save", "Save world"), function()
-        IKST.dispatchCommand(p, IKST.CMD.quickSave, {})
-    end, true)
-    panel:makeJobButton(118, y, 100, 24, IKST.text("IGUI_IKST_Broadcast", "Broadcast"), function()
-        local msg = "Admin message"
-        if state and state.lastBroadcast and state.lastBroadcast ~= "" then
-            msg = state.lastBroadcast
-        end
-        IKST.dispatchCommand(p, IKST.CMD.quickBroadcast, { message = msg })
-    end, false)
-    panel:makeJobButton(224, y, 100, 24, IKST.text("IGUI_IKST_Util_AuditTail", "Audit log"), function()
-        IKST.dispatchCommand(p, IKST.CMD.auditTail, { count = 25 })
-    end, false)
-    y = y + 32
-
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Util_Utilities", "Utilities"))
-    panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_Water", "Water"), function()
-        IKST_QuickActions.run(p, "quickWater")
-        panel:refreshJobUI()
-    end, IKST.isWaterOn())
-    panel:makeJobButton(138, y, 120, 24, IKST.text("IGUI_IKST_Power", "Power"), function()
-        IKST_QuickActions.run(p, "quickPower")
-        panel:refreshJobUI()
-    end, IKST.isPowerOn())
-    y = y + 28
-    panel:makeJobLabel(12, y, IKST.utilityStatusLine(), UIFont.Small)
-    y = y + 24
-
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Util_TimeWeather", "Time & weather"))
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_TimeHour", "Hour (0-23)"), UIFont.Small)
-    y = y + 16
-    panel.staffHour = ISTextEntryBox:new("12", 12, y, 60, 22)
-    panel.staffHour:initialise()
-    panel.staffHour:instantiate()
-    panel:addJobWidget(panel.staffHour)
-    panel:makeJobButton(80, y, 80, 22, IKST.text("IGUI_IKST_SetTime", "Set time"), function()
-        IKST_ClientStaff.runSetTime(p, IKST_JobStaff.readNumber(panel.staffHour, 12))
-    end, true)
-    y = y + 30
-    local wx = 12
-    for _, preset in ipairs({ "Clear", "Rain", "Storm", "Fog" }) do
-        panel:makeJobButton(wx, y, 70, 24, preset, function()
-            IKST_ClientStaff.runWeather(p, preset)
-        end, false)
-        wx = wx + 76
-    end
-    y = y + 28
-    panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_ClearWeather", "Clear weather"), function()
-        IKST_ClientStaff.runClearWeather(p)
-    end, false)
-    y = y + 34
-
-    return y
-end
-
--- Utilities "Self" landing page (mockup: ikst-hyperos-panel-pill-toggles.png):
--- rounded section cards of toggle pills, wired to real dispatch commands and
--- vanilla getters. Kick / ban / spectator live in the Admin addon workspace.
 IKST_JobUtilities.SELF_TOGGLES = {
     {
         labelKey = "IGUI_IKST_UtilTile_GodMode", label = "God mode",
@@ -99,9 +35,6 @@ IKST_JobUtilities.SELF_TOGGLES = {
     },
 }
 
--- Vanilla debug cheats (unlimitedEndurance/fastMove) work standalone even
--- when the engine-only God/NoClip/Invisible flags are unavailable (SP w/o
--- -debug), so they stay in Self & Movement regardless of engineStaffModesAvailable.
 IKST_JobUtilities.SELF_CHEAT_TOGGLES = {
     { labelKey = "IGUI_IKST_UtilTile_UnlStamina", label = "Unlimited stamina", cheat = "unlimitedEndurance" },
     { labelKey = "IGUI_IKST_UtilTile_SuperSpeed", label = "Super speed", cheat = "fastMove" },
@@ -155,86 +88,24 @@ function IKST_JobUtilities.cycleTarget(panel, dir)
     panel:refreshJobUI()
 end
 
--- Pure width math: wraps {label=...} items into rows that fit cardW, without
--- creating any widgets, so callers can size the section's real ISPanel
--- before content exists to measure against.
-local function flowLayout(items, cardW, gap)
-    local padX = IKST_UI_Layout.s(14)
-    local usableW = math.max(40, cardW - (padX * 2))
-    local rows = {}
-    local curRow = {}
-    local curX = 0
-    for _, item in ipairs(items) do
-        local w = IKST_UI_Layout.buttonWidth(item.label, UIFont.Small, 96)
-        if curX > 0 and curX + gap + w > usableW then
-            rows[#rows + 1] = curRow
-            curRow = {}
-            curX = 0
-        end
-        if curX > 0 then
-            curX = curX + gap
-        end
-        curRow[#curRow + 1] = { item = item, x = padX + curX, w = w }
-        curX = curX + w
-    end
-    if #curRow > 0 then
-        rows[#rows + 1] = curRow
-    end
-    return rows
-end
-
--- Creates the actual toggle-pill / placeholder-chip ISButtons for a
--- pre-computed flowLayout() row set, as children of the section card panel.
-local function renderToggleRows(cardPanel, panel, rows, startY, rowH, gap)
-    local y = startY
-    for _, row in ipairs(rows) do
-        for _, cell in ipairs(row) do
-            local item = cell.item
-            local kind = "chip"
-            if not item.placeholder and item.on == true then
-                kind = "primary"
-            end
-            local btn = IKST_Chrome.newActionButton(cell.x, y, cell.w, rowH, item.label, panel, function()
-                item.onClick()
-                panel:refreshJobUI()
-            end, kind)
-            cardPanel:addChild(btn)
-        end
-        y = y + rowH + gap
-    end
-    return y
-end
-
-local function buildToggleSection(panel, x, y, w, icon, titleKey, titleFallback, items)
-    local rowH = math.max(26, IKST_UI_Layout.s(30))
-    local gap = IKST_UI_Layout.s(8)
-    local rows = flowLayout(items, w, gap)
-    local headerH = IKST_Chrome.sectionHeaderH()
-    local bottomPad = IKST_UI_Layout.s(14)
-    local contentH = (#rows * rowH) + (math.max(0, #rows - 1) * gap)
-    local cardH = headerH + contentH + bottomPad
-    local title = IKST.text(titleKey, titleFallback)
-    local card, contentY = IKST_Chrome.newSectionCardPanel(x, y, w, cardH, icon, title)
-    panel:addJobWidget(card)
-    renderToggleRows(card, panel, rows, contentY, rowH, gap)
-    return y + cardH + (IKST_JobLayout.GAP or gap)
-end
-
 local function selfMovementItems(p)
     local items = {}
     if IKST.engineStaffModesAvailable and IKST.engineStaffModesAvailable() then
         for _, t in ipairs(IKST_JobUtilities.SELF_TOGGLES) do
             items[#items + 1] = {
                 label = IKST.text(t.labelKey, t.label),
-                on = t.isOn(p),
-                onClick = function() t.fire(p) end,
+                primary = t.isOn(p) == true,
+                onClick = function()
+                    t.fire(p)
+                    -- refresh via JobsPanel after command result; local toggle state needs rebuild
+                end,
             }
         end
     end
     for _, t in ipairs(IKST_JobUtilities.SELF_CHEAT_TOGGLES) do
         items[#items + 1] = {
             label = IKST.text(t.labelKey, t.label),
-            on = IKST_StaffCheats.isActive(p, t.cheat),
+            primary = IKST_StaffCheats.isActive(p, t.cheat) == true,
             onClick = function()
                 IKST.dispatchCommand(p, IKST.CMD.toggleSelfCheat, { cheat = t.cheat })
             end,
@@ -248,7 +119,7 @@ local function itemsInventoryItems(p)
     for _, t in ipairs(IKST_JobUtilities.ITEM_CHEAT_TOGGLES) do
         items[#items + 1] = {
             label = IKST.text(t.labelKey, t.label),
-            on = IKST_StaffCheats.isActive(p, t.cheat),
+            primary = IKST_StaffCheats.isActive(p, t.cheat) == true,
             onClick = function()
                 IKST.dispatchCommand(p, IKST.CMD.toggleSelfCheat, { cheat = t.cheat })
             end,
@@ -263,65 +134,133 @@ local function itemsInventoryItems(p)
     return items
 end
 
--- Players & moderation: same selected target as the Players tool
--- (panel.staffTargetId / IKST_JobStaff.onlinePlayers), with a scrolling list.
-local function buildPlayersModerationSection(panel, x, y, w, icon, titleKey, titleFallback)
+local function wrapRefresh(panel, fn)
+    return function()
+        fn()
+        panel:refreshJobUI()
+    end
+end
+
+function IKST_JobUtilities.buildServerTools(panel)
     local p = panel.player
-    if IKST.isMultiplayerSession() and #(IKST_JobStaff.onlinePlayers or {}) == 0
-        and not panel._utilSelfPlayersRequested then
-        panel._utilSelfPlayersRequested = true
-        IKST_JobStaff.requestPlayers(p)
+    local state = IKST.getPlayerState(p)
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 8
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+
+    local function bandContent(band)
+        local card, contentY = IKST_JobLayout.placeSectionCard(
+            panel, rect.x, band.y, rect.w, band.h, nil, band.title
+        )
+        local padY = inner
+        local areaY = contentY + padY
+        local areaH = math.max(36, band.h - contentY - padY * 2)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        return card, areaX, areaY, areaW, areaH
     end
 
-    local rowH = math.max(26, IKST_UI_Layout.s(30))
-    local gap = IKST_UI_Layout.s(8)
-    local noTargetMsg = IKST.text("IGUI_IKST_UtilTile_NoTarget", "No target selected")
-    local listH = IKST_JobLayout.selectListHeight(6)
-    local filterBlockH = 16 + 6 + 22 + 6 + listH
+    -- Server tools
+    do
+        local band = bands[1]
+        band.title = IKST.text("IGUI_IKST_Util_ServerTools", "Server tools")
+        local card, ax, ay, aw, ah = bandContent(band)
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Save", "Save game"),
+                primary = true,
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.quickSave, {})
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Broadcast", "Broadcast"),
+                onClick = function()
+                    local msg = "Admin message"
+                    if state and state.lastBroadcast and state.lastBroadcast ~= "" then
+                        msg = state.lastBroadcast
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.quickBroadcast, { message = msg })
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Util_AuditTail", "Audit log"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.auditTail, { count = 25 })
+                end,
+            },
+        })
+    end
 
-    local items = {
-        {
-            label = IKST.text("IGUI_IKST_UtilTile_TpToMe", "Teleport to me"),
-            onClick = function()
-                local target = IKST_JobStaff.getSelectedTarget(panel)
-                if target then
-                    IKST.dispatchCommand(p, IKST.CMD.bringTarget, { target = target.id })
-                else
-                    IKST.notify(p, noTargetMsg, false)
-                end
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_UtilTile_HealPlayer", "Heal player"),
-            onClick = function()
-                local target = IKST_JobStaff.getSelectedTarget(panel)
-                if target then
-                    IKST.dispatchCommand(p, IKST.CMD.healTarget, { target = target.id })
-                else
-                    IKST.notify(p, noTargetMsg, false)
-                end
-            end,
-        },
-    }
-    local rows = flowLayout(items, w, gap)
-    local headerH = IKST_Chrome.sectionHeaderH()
-    local bottomPad = IKST_UI_Layout.s(14)
-    local contentH = filterBlockH + gap + (#rows * rowH) + (math.max(0, #rows - 1) * gap)
-    local cardH = headerH + contentH + bottomPad
-    local title = IKST.text(titleKey, titleFallback)
-    local card, contentY = IKST_Chrome.newSectionCardPanel(x, y, w, cardH, icon, title)
-    panel:addJobWidget(card)
+    -- Utilities (water / power)
+    do
+        local band = bands[2]
+        band.title = IKST.text("IGUI_IKST_Util_Utilities", "Utilities")
+        local card, ax, ay, aw, ah = bandContent(band)
+        local noteH = 16
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah - noteH, {
+            {
+                label = IKST.text("IGUI_IKST_Water", "Water"),
+                primary = IKST.isWaterOn() == true,
+                onClick = wrapRefresh(panel, function()
+                    IKST_QuickActions.run(p, "quickWater")
+                end),
+            },
+            {
+                label = IKST.text("IGUI_IKST_Power", "Power"),
+                primary = IKST.isPowerOn() == true,
+                onClick = wrapRefresh(panel, function()
+                    IKST_QuickActions.run(p, "quickPower")
+                end),
+            },
+        })
+        local note = ISLabel:new(ax, ay + ah - noteH, noteH, IKST.utilityStatusLine(), 1, 1, 1, 1, UIFont.Small, true)
+        note:initialise()
+        if IKUI_Chrome and IKUI_Chrome.styleHeaderLabel then
+            -- muted via chrome if available; else default
+        end
+        card:addChild(note)
+    end
 
-    local padX = IKST_UI_Layout.s(14)
-    local innerW = math.max(80, w - (padX * 2))
-    local cc = IKST_Chrome.colors
-    local filterLbl = ISLabel:new(padX, contentY, 16, IKST.text("IGUI_IKST_ListFilter", "Filter"),
-        cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
-    filterLbl:initialise()
-    card:addChild(filterLbl)
-    local listBottom = IKST_JobStaff.buildPlayerSelectList(panel, card, padX, contentY + 18, innerW, 6)
-    renderToggleRows(card, panel, rows, listBottom + gap, rowH, gap)
-    return y + cardH + (IKST_JobLayout.GAP or gap)
+    -- Time: hour top-left, Set time bottom-right (matched side margins)
+    do
+        local band = bands[3]
+        band.title = IKST.text("IGUI_IKST_TimeHour", "Time")
+        local card, ax, ay, aw, ah = bandContent(band)
+        IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
+            { text = "12", fieldName = "staffHour" },
+        }, IKST.text("IGUI_IKST_SetTime", "Set time"), function()
+            IKST_ClientStaff.runSetTime(p, IKST_JobStaff.readNumber(panel.staffHour, 12))
+        end)
+    end
+
+    -- Weather
+    do
+        local band = bands[4]
+        band.title = IKST.text("IGUI_IKST_SectionWeather", "Weather")
+        local card, ax, ay, aw, ah = bandContent(band)
+        local weatherItems = {}
+        for _, preset in ipairs({ "Clear", "Rain", "Storm", "Fog" }) do
+            weatherItems[#weatherItems + 1] = {
+                label = IKST.text("IGUI_IKST_Weather_" .. preset, preset),
+                onClick = function()
+                    IKST_ClientStaff.runWeather(p, preset)
+                end,
+            }
+        end
+        weatherItems[#weatherItems + 1] = {
+            label = IKST.text("IGUI_IKST_ClearWeather", "Clear weather"),
+            primary = true,
+            onClick = function()
+                IKST_ClientStaff.runClearWeather(p)
+            end,
+        }
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, weatherItems)
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobUtilities.buildSelfOverview(panel)
@@ -329,36 +268,118 @@ function IKST_JobUtilities.buildSelfOverview(panel)
     if not p then
         return 8
     end
-    local x = panel.contentX or IKST_JobLayout.MARGIN
-    local w = math.max(220, panel.contentW or (panel.width - 24))
-    local y = 8
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 8
+    local headerH = 36
+    local btnW, btnH = IKST_JobLayout.standardPillSize(panel)
+    local inner = IKST_JobLayout.SECTION_INNER
 
-    local title = IKST.text("IGUI_IKST_WS_Utilities", "Utilities")
-    local titleLabel = ISLabel:new(x, y, 26, title, 1, 1, 1, 1, UIFont.Large, true)
-    titleLabel:initialise()
-    panel:addJobWidget(titleLabel)
+    -- Title + disarm (standard pill size)
+    local title = ISLabel:new(rect.x, rect.y, headerH, IKST.text("IGUI_IKST_WS_Utilities", "Utilities"), 1, 1, 1, 1, UIFont.Large, true)
+    title:initialise()
+    if IKUI_Chrome and IKUI_Chrome.styleHeaderLabel then
+        IKUI_Chrome.styleHeaderLabel(title)
+    end
+    panel:addJobWidget(title)
 
     local disarmLabel = IKST.text("IGUI_IKST_UtilTile_DisarmAll", "Disarm all tools")
-    local disarmW = IKST_UI_Layout.buttonWidth(disarmLabel, UIFont.Small, 100)
-    local headerBtnH = math.max(24, IKST_UI_Layout.s(28))
-    local rightEdge = x + w
-    local disarmX = rightEdge - disarmW
-
-    local disarmBtn = IKST_Chrome.newActionButton(disarmX, y, disarmW, headerBtnH, disarmLabel, panel, function()
+    local ox, gridW = IKST_JobLayout.packFrame(rect.x, rect.w, btnW)
+    IKST_JobLayout.placePill(panel, panel, {
+        x = ox + gridW - btnW,
+        y = rect.y + math.floor((headerH - btnH) / 2),
+        w = btnW,
+        h = btnH,
+    }, disarmLabel, function()
         IKST_JobUtilities.disarmAllSelfTools(panel)
-    end, "outline")
-    panel:addJobWidget(disarmBtn)
+    end, false)
 
-    y = y + math.max(26, headerBtnH) + (IKST_JobLayout.GAP or IKST_UI_Layout.s(12))
+    local bandsY = rect.y + headerH + gap
+    local bandsH = rect.h - headerH - gap
+    local bands = IKST_JobLayout.splitCompactFlex(bandsY, bandsH, IKST_JobLayout.compactPillBandH(2), gap)
 
-    y = buildToggleSection(panel, x, y, w, "media/ui/ikst/tool_self.png",
+    local function fillBand(band, titleKey, titleFallback, items, extraFn)
+        local card, contentY = IKST_JobLayout.placeSectionCard(
+            panel, rect.x, band.y, rect.w, band.h, nil, IKST.text(titleKey, titleFallback)
+        )
+        local padY = inner
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(36, band.h - contentY - padY * 2)
+        if extraFn then
+            areaH = extraFn(card, areaX, areaY, areaW, areaH) or areaH
+        end
+        local wired = {}
+        for i = 1, #items do
+            local it = items[i]
+            wired[i] = {
+                label = it.label,
+                primary = it.primary,
+                onClick = wrapRefresh(panel, it.onClick),
+            }
+        end
+        IKST_JobLayout.placePillGroup(panel, card, areaX, areaY, areaW, areaH, wired)
+    end
+
+    fillBand(bands[1],
         "IGUI_IKST_UtilTile_SectionSelf", "Self & movement", selfMovementItems(p))
-    y = buildToggleSection(panel, x, y, w, "media/ui/ikst/tool_items.png",
+    fillBand(bands[2],
         "IGUI_IKST_UtilTile_SectionItems", "Items & inventory", itemsInventoryItems(p))
-    y = buildPlayersModerationSection(panel, x, y, w, "media/ui/ikst/tool_players.png",
-        "IGUI_IKST_UtilTile_SectionPlayers", "Players & moderation")
 
-    return y
+    -- Players band: list on top, action pills on bottom
+    do
+        local band = bands[3]
+        if IKST.isMultiplayerSession() and #(IKST_JobStaff.onlinePlayers or {}) == 0
+            and not panel._utilSelfPlayersRequested then
+            panel._utilSelfPlayersRequested = true
+            IKST_JobStaff.requestPlayers(p)
+        end
+        local card, contentY = IKST_JobLayout.placeSectionCard(
+            panel, rect.x, band.y, rect.w, band.h, nil,
+            IKST.text("IGUI_IKST_UtilTile_SectionPlayers", "Players & moderation")
+        )
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + inner
+        local areaH = math.max(36, band.h - contentY - inner * 2)
+        local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(areaH, 1, true)
+        local noTargetMsg = IKST.text("IGUI_IKST_UtilTile_NoTarget", "No target selected")
+        local rows = IKST_JobLayout.rowsForListHeight(listH)
+        local listBottom = IKST_JobStaff.buildPlayerSelectList(panel, card, areaX, areaY, areaW, rows)
+        local actionY = listBottom + gapLP
+        local actionH = math.max(btnH, pillH)
+        if actionY + actionH > areaY + areaH then
+            actionY = math.max(areaY, areaY + areaH - actionH)
+        end
+        IKST_JobLayout.placePillGroup(panel, card, areaX, actionY, areaW, actionH, {
+            {
+                label = IKST.text("IGUI_IKST_UtilTile_TpToMe", "Teleport to me"),
+                primary = true,
+                onClick = function()
+                    local target = IKST_JobStaff.getSelectedTarget(panel)
+                    if target then
+                        IKST.dispatchCommand(p, IKST.CMD.bringTarget, { target = target.id })
+                    else
+                        IKST.notify(p, noTargetMsg, false)
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_UtilTile_HealPlayer", "Heal player"),
+                onClick = function()
+                    local target = IKST_JobStaff.getSelectedTarget(panel)
+                    if target then
+                        IKST.dispatchCommand(p, IKST.CMD.healTarget, { target = target.id })
+                    else
+                        IKST.notify(p, noTargetMsg, false)
+                    end
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobUtilities.build(panel)

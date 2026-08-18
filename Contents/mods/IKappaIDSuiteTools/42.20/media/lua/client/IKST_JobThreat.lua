@@ -3,7 +3,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_JobLayout"
 require "IKST_Threat"
 
@@ -15,64 +15,100 @@ function IKST_JobThreat.build(panel)
         panel.threatRadius = IKST.RADIUS_PRESETS.M
     end
 
-    local y = 8
-    panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_Scope_Radius", "Radius") .. " " .. panel.threatRadius, function()
-        local presets = { IKST.RADIUS_PRESETS.S, IKST.RADIUS_PRESETS.M, IKST.RADIUS_PRESETS.L }
-        local idx = 1
-        for i, val in ipairs(presets) do
-            if val == panel.threatRadius then
-                idx = i
-                break
-            end
+    local p = panel.player
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_SectionScope", "Scope"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Scope_Radius", "Radius") .. " " .. tostring(panel.threatRadius),
+                onClick = function()
+                    local presets = { IKST.RADIUS_PRESETS.S, IKST.RADIUS_PRESETS.M, IKST.RADIUS_PRESETS.L }
+                    local idx = 1
+                    for i, val in ipairs(presets) do
+                        if val == panel.threatRadius then
+                            idx = i
+                            break
+                        end
+                    end
+                    panel.threatRadius = presets[(idx % #presets) + 1]
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Scan", "Scan"),
+                onClick = function()
+                    if not p then
+                        return
+                    end
+                    IKST_Threat.applyClientPreview(p:getX(), p:getY(), p:getZ(), panel.threatRadius, "warn")
+                    IKST.dispatchCommand(p, IKST.CMD.threatPopulation, {
+                        x = math.floor(p:getX()),
+                        y = math.floor(p:getY()),
+                        z = p:getZ(),
+                        radius = panel.threatRadius,
+                    })
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Cull", "Cull"),
+                primary = true,
+                onClick = function()
+                    if not p then
+                        return
+                    end
+                    IKST_Threat.applyClientPreview(p:getX(), p:getY(), p:getZ(), panel.threatRadius, "warn")
+                    IKST.dispatchCommand(p, IKST.CMD.threatCull, {
+                        x = math.floor(p:getX()),
+                        y = math.floor(p:getY()),
+                        z = p:getZ(),
+                        radius = panel.threatRadius,
+                    })
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_SectionPopulation", "Population"))
+        local stats = IKST_JobThreat.stats
+        local statsText = "Zombies: " .. tostring(stats.total) .. "  Sprinters: " .. tostring(stats.sprinters)
+        local affects = ""
+        if IKST_Threat and type(IKST_Threat.affectsLabel) == "function" then
+            affects = IKST_Threat.affectsLabel(panel.threatRadius)
         end
-        panel.threatRadius = presets[(idx % #presets) + 1]
-        panel:refreshJobUI()
-    end, false)
-
-    panel:makeJobButton(140, y, 100, 24, IKST.text("IGUI_IKST_Scan", "Scan"), function()
-        local p = panel.player
-        IKST_Threat.applyClientPreview(p:getX(), p:getY(), p:getZ(), panel.threatRadius, "warn")
-        IKST.dispatchCommand(p, IKST.CMD.threatPopulation, {
-            x = math.floor(p:getX()),
-            y = math.floor(p:getY()),
-            z = p:getZ(),
-            radius = panel.threatRadius,
-        })
-    end, false)
-
-    panel:makeJobButton(250, y, 100, 24, IKST.text("IGUI_IKST_Cull", "Cull"), function()
-        local p = panel.player
-        IKST_Threat.applyClientPreview(p:getX(), p:getY(), p:getZ(), panel.threatRadius, "warn")
-        IKST.dispatchCommand(p, IKST.CMD.threatCull, {
-            x = math.floor(p:getX()),
-            y = math.floor(p:getY()),
-            z = p:getZ(),
-            radius = panel.threatRadius,
-        })
-    end, true)
-
-    y = y + 34
-    local stats = IKST_JobThreat.stats
-    local statsText = "Zombies: " .. tostring(stats.total) .. "  Sprinters: " .. tostring(stats.sprinters)
-    local info = ISPanel:new(IKST_JobLayout.MARGIN, y, panel.contentW or (panel.width - 24), 40)
-    info.backgroundColor = IKST_Chrome.colors.bgCard
-    info.borderColor = IKST_Chrome.colors.accentDim
-    info:initialise()
-    info.render = function(p)
-        ISPanel.render(p)
-        local cc = IKST_Chrome.colors
-        p:drawText(statsText, 8, 12, cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
+        local lineH = 16
+        local note = ISLabel:new(ax, ay, lineH, statsText, 1, 1, 1, 1, UIFont.Small, true)
+        note:initialise()
+        card:addChild(note)
+        if affects ~= "" then
+            local note2 = ISLabel:new(ax, ay + lineH + 4, lineH, affects, 1, 1, 1, 1, UIFont.Small, true)
+            note2:initialise()
+            card:addChild(note2)
+        end
     end
-    panel:addJobWidget(info)
 
-    y = y + 48
-    panel:makeJobLabel(12, y, IKST_Threat.affectsLabel(panel.threatRadius), UIFont.Small)
-    y = y + 20
-    if panel.player then
-        IKST_Threat.applyClientPreview(
-            panel.player:getX(), panel.player:getY(), panel.player:getZ(), panel.threatRadius, "warn")
+    if p then
+        IKST_Threat.applyClientPreview(p:getX(), p:getY(), p:getZ(), panel.threatRadius, "warn")
     end
-    return y
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobThreat.onResult(args)

@@ -3,8 +3,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
-require "IKST_Chrome"
-require "IKST_ActionLog"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_JobLayout"
 
 IKST_JobAutomation = IKST_JobAutomation or {}
@@ -40,44 +39,67 @@ function IKST_JobAutomation.build(panel)
         state.autoRadius = IKST.RADIUS_PRESETS.M
     end
 
-    local y = 8
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Auto_Note", "Batch admin tools at your feet. Protected tiles are skipped."), UIFont.Small)
-    y = y + 22
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
 
-    local presets = { IKST.RADIUS_PRESETS.S, IKST.RADIUS_PRESETS.M, IKST.RADIUS_PRESETS.L }
-    local x = 12
-    for _, preset in ipairs(presets) do
-        panel:makeJobButton(x, y, 90, 24, IKST_JobAutomation.radiusLabel(preset), function()
-            state.autoRadius = preset
-            panel:refreshJobUI()
-        end, state.autoRadius == preset)
-        x = x + 94
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
     end
-    y = y + 32
 
-    local p = panel.player
-    local actions = {
-        { cmd = IKST.CMD.autoGardener, label = IKST.text("IGUI_IKST_Auto_Gardener", "Gardener"), desc = IKST.text("IGUI_IKST_Auto_Gardener_Desc", "Removes shrubs and grass overlays in radius.") },
-        { cmd = IKST.CMD.autoLumberjack, label = IKST.text("IGUI_IKST_Auto_Lumberjack", "Lumberjack"), desc = IKST.text("IGUI_IKST_Auto_Lumberjack_Desc", "Removes tree sprites in radius.") },
-        { cmd = IKST.CMD.autoGravel, label = IKST.text("IGUI_IKST_Auto_Gravel", "Gravel buddy"), desc = IKST.text("IGUI_IKST_Auto_Gravel_Desc", "Gives dirt/sand/gravel bags for soil under feet. No rewind.") },
-        { cmd = IKST.CMD.autoCorpseStack, label = IKST.text("IGUI_IKST_Auto_Corpse", "Corpse stack"), desc = IKST.text("IGUI_IKST_Auto_Corpse_Desc", "Moves corpses to your square.") },
-        { cmd = IKST.CMD.autoHomeWreck, label = IKST.text("IGUI_IKST_Auto_HomeWreck", "Home wrecker"), desc = IKST.text("IGUI_IKST_Auto_HomeWreck_Desc", "Clears all objects in radius. Destructive.") },
-        { cmd = IKST.CMD.autoFarmer, label = IKST.text("IGUI_IKST_Auto_Farmer", "Farmer water"), desc = IKST.text("IGUI_IKST_Auto_Farmer_Desc", "Waters crops and plants in radius.") },
-        { cmd = IKST.CMD.autoUnloadContainers, label = IKST.text("IGUI_IKST_Auto_Unload", "Unload containers"), desc = IKST.text("IGUI_IKST_Auto_Unload_Desc", "Drops container contents on the ground.") },
-    }
-
-    local colW = math.floor(((panel.contentW or (panel.width - 24)) - 8) / 2)
-    for i, action in ipairs(actions) do
-        local col = (i - 1) % 2
-        local row = math.floor((i - 1) / 2)
-        local bx = IKST_JobLayout.MARGIN + col * (colW + 8)
-        local by = y + row * 40
-        panel:makeJobButton(bx, by, colW, 24, action.label, function()
-            IKST_JobAutomation.dispatchRadius(panel, action.cmd)
-        end, i == 1)
-        panel:makeJobLabel(bx, by + 24, action.desc, UIFont.Small)
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_SectionRadius", "Radius"))
+        local items = {}
+        for _, key in ipairs({ "S", "M", "L" }) do
+            local preset = IKST.RADIUS_PRESETS[key]
+            if preset then
+                local val = preset
+                items[#items + 1] = {
+                    label = key,
+                    primary = state.autoRadius == val,
+                    onClick = function()
+                        state.autoRadius = val
+                        panel:refreshJobUI()
+                    end,
+                }
+            end
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
     end
-    y = y + math.ceil(#actions / 2) * 40 + 8
 
-    return y
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_TilesTile_SectionAuto", "Actions"))
+        local actions = {
+            { cmd = IKST.CMD.autoGardener, label = IKST.text("IGUI_IKST_Auto_Gardener", "Gardener") },
+            { cmd = IKST.CMD.autoLumberjack, label = IKST.text("IGUI_IKST_Auto_Lumberjack", "Lumberjack") },
+            { cmd = IKST.CMD.autoGravel, label = IKST.text("IGUI_IKST_Auto_Gravel", "Gravel") },
+            { cmd = IKST.CMD.autoCorpseStack, label = IKST.text("IGUI_IKST_Auto_Corpse", "Corpse"), primary = true },
+            { cmd = IKST.CMD.autoHomeWreck, label = IKST.text("IGUI_IKST_Auto_HomeWreck", "Home wrecker") },
+            { cmd = IKST.CMD.autoFarmer, label = IKST.text("IGUI_IKST_Auto_Farmer", "Farmer") },
+            { cmd = IKST.CMD.autoUnloadContainers, label = IKST.text("IGUI_IKST_Auto_Unload", "Unload") },
+        }
+        local items = {}
+        for i = 1, #actions do
+            local action = actions[i]
+            items[#items + 1] = {
+                label = action.label,
+                primary = action.primary == true,
+                onClick = function()
+                    IKST_JobAutomation.dispatchRadius(panel, action.cmd)
+                end,
+            }
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end

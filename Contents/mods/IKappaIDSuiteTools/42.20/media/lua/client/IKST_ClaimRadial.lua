@@ -33,10 +33,14 @@ function IKST_ClaimRadial.playerMenu(playerObj)
 end
 
 function IKST_ClaimRadial.texture(path)
-    if IKST_ClaimIcons and IKST_ClaimIcons.texture then
+    -- Custom media/ui/ikst glyphs are off; vanilla paths (e.g. saddlebag) still OK.
+    if type(path) == "string" and string.find(path, "media/ui/ikst/", 1, true) then
+        return nil
+    end
+    if IKST_ClaimIcons and type(IKST_ClaimIcons.texture) == "function" then
         return IKST_ClaimIcons.texture(path)
     end
-    if not path or not getTexture then
+    if not path or type(getTexture) ~= "function" then
         return nil
     end
     return getTexture(path)
@@ -100,7 +104,7 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
     if not menu then
         return
     end
-    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj, vehicle)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj)
     local vidKey = tostring(vid)
 
     if not uiState or not uiState.claimed then
@@ -123,10 +127,7 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
             IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"),
             IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_UNCLAIM),
             function()
-                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleReleaseClaim, {
-                    vehicleId = vid,
-                    claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
-                })
+                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleReleaseClaim, { vehicleId = vid })
             end
         )
     end

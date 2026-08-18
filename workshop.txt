@@ -3,13 +3,13 @@ id=3750835193
 title=IKappaID Suite Tools
 description=Build 42 admin suite — [b]v0.3.2.0 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
 description=
-description=[b]Requires[/b] IKappaID UI Framework (Mod ID: IKappaID_UI). Enable it with this suite — the hub will not open without it. Dedicated servers must list it in Mods= as \IKappaID_UI.
+description=[b]Requires[/b] IKappaID UI Framework (Mod ID: IKappaID_UI). Subscribe and enable it with this suite.
 description=
 description=[b]BETA[/b] means the suite is ready for real multiplayer playtesting on private servers. Core tools are usable; please share feedback in Discussions if something breaks — steps and console.txt help a lot.
 description=
 description=English only in this release.
 description=
-description=A clear control panel for multiplayer servers and the people who play on them — land and vehicle claims, recovery journal, and optional world tools. Matches the dark layout and orange highlights of [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3749926419]IKappaID Phone Shop[/url].
+description=A clear control panel for multiplayer servers and the people who play on them — land and vehicle claims, recovery journal, and optional world tools. Dark layout with orange IKappaID accents; pairs with IKappaID Phone Shop for economy cash.
 description=
 description=[b]For players[/b]
 description=- Claim a safehouse or a vehicle so it is yours — who may enter, drive, loot, or use storage is set by permissions you control
@@ -43,7 +43,7 @@ description=
 description=Made by [b]IKappaID[/b]. A community mod — not affiliated with or endorsed by The Indie Stone. Not affiliated with bikinihorst or the BTSE / Bikinitools projects.
 description=
 description=[b]Links[/b]
-description=Steam Workshop: https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193
+description=GitHub: https://github.com/fearthebest/IKappaID_Suite_Tools
 description=Ko-fi: https://ko-fi.com/ikappaid
 description=
 description=Workshop ID: 3750835193

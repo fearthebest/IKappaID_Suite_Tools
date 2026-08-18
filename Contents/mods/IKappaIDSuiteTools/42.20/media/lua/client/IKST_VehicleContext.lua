@@ -51,7 +51,7 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
     if vid == nil then
         return
     end
-    local uiState = IKST_VehicleClaimClient.uiState(vid, player, vehicle)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, player)
     local claimed = uiState and uiState.claimed == true
     local showCreate = (not claimed) and uiState and uiState.canClaim == true
         and IKST_VehicleContext.mayCreateClaim(player)
@@ -86,10 +86,7 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
 
     if uiState.canRelease then
         IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"), player, function()
-            IKST.dispatchCommand(player, IKST.CMD.vehicleReleaseClaim, {
-                vehicleId = vid,
-                claimKey = uiState and (uiState.claimKey or uiState.id) or nil,
-            })
+            IKST.dispatchCommand(player, IKST.CMD.vehicleReleaseClaim, { vehicleId = vid })
         end, IKST_ClaimIcons.VEHICLE_UNCLAIM)
     end
 

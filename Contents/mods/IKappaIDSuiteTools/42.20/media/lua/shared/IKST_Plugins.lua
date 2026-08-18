@@ -94,10 +94,34 @@ function IKST.Plugins.hubToolsForMode(modeId)
     return out
 end
 
+-- True when this plugin owns hub tools for the given workspace mode.
+function IKST.Plugins.servesMode(spec, modeId)
+    if not spec or not modeId then
+        return false
+    end
+    if spec.hubTools then
+        for _, tool in ipairs(spec.hubTools) do
+            if tool and tool.mode == modeId then
+                return true
+            end
+        end
+    end
+    if spec.hubTool and spec.hubTool.mode == modeId then
+        return true
+    end
+    return false
+end
+
 function IKST.Plugins.buildJobTool(panel, toolId)
+    if not toolId then
+        return nil
+    end
+    local modeId = panel and panel.view or nil
     for pluginId, spec in pairs(registry) do
         if not IKST.Plugins.isActive(pluginId) then
             -- skip inactive addon
+        elseif modeId and not IKST.Plugins.servesMode(spec, modeId) then
+            -- tool ids like "overview" exist on multiple addons — bind to panel workspace
         elseif spec.jobTools and spec.buildJobTools and spec.buildJobTools[toolId] then
             return spec.buildJobTools[toolId](panel)
         elseif spec.jobTool == toolId and spec.buildJob then

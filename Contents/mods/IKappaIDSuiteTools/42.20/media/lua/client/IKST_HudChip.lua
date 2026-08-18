@@ -5,7 +5,7 @@ end
 require "ISUI/ISButton"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_HudChip = ISPanel:derive("IKST_HudChip")
 IKST_HudChip.instance = nil
@@ -18,14 +18,14 @@ function IKST_HudChip:new(player)
     setmetatable(o, self)
     self.__index = self
     o.player = player
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     o.moveWithMouse = false
     return o
 end
 
 function IKST_HudChip:createChildren()
     local openLabel = IKST.text("IGUI_IKST_Hud_Open", "Open panel")
-    self.openBtn = IKST_Chrome.newActionButton(self.width - 92, 6, 84, 22, openLabel, self, IKST_HudChip.onOpen, "outline")
+    self.openBtn = IKUI_Chrome.newActionButton(self.width - 92, 6, 84, 22, openLabel, self, IKST_HudChip.onOpen, "outline")
     self:addChild(self.openBtn)
 end
 
@@ -66,7 +66,7 @@ end
 
 function IKST_HudChip:prerender()
     ISPanel.prerender(self)
-    local c = IKST_Chrome.colors.accent
+    local c = IKUI_Chrome.colors.accent
     self:drawRect(0, 0, 3, self.height, 1, c.r, c.g, c.b)
 end
 
@@ -75,7 +75,7 @@ function IKST_HudChip:render()
     if text == "" then
         return
     end
-    local c = IKST_Chrome.colors
+    local c = IKUI_Chrome.colors
     self:drawRect(10, 6, 6, 6, 1, c.accent.r, c.accent.g, c.accent.b)
     self:drawText("IKST - " .. text, 22, 10, c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Small)
 end

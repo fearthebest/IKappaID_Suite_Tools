@@ -23,9 +23,6 @@ local function tryConnect(player)
         return
     end
     IKST_IdentityServer._seen[key] = true
-    if type(IKST_ServerPlayers.markConnected) == "function" then
-        IKST_ServerPlayers.markConnected(player)
-    end
     IKST_IdentityServer.onPlayerConnect(player)
 end
 

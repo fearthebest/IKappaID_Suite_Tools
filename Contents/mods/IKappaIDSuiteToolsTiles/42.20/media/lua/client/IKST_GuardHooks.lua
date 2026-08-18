@@ -10,7 +10,7 @@ require "IKST_ContainerRules"
 require "IKST_TransferRules"
 require "IKST_TileCheck"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_GuardHooks = IKST_GuardHooks or {}
 IKST_GuardHooks._shApplied = IKST_GuardHooks._shApplied or {}
@@ -149,13 +149,10 @@ function IKST_GuardHooks.safehouseStillListed(sh)
     if list and type(list.contains) == "function" and list:contains(sh) then
         return true
     end
-    local x = type(sh.getX) == "function" and sh:getX() or nil
-    local y = type(sh.getY) == "function" and sh:getY() or nil
-    local w = type(sh.getW) == "function" and sh:getW() or nil
-    local h = type(sh.getH) == "function" and sh:getH() or nil
-    if x ~= nil and y ~= nil and w and h and w > 0 and h > 0 and type(SafeHouse.getSafeHouse) == "function" then
-        local byRect = SafeHouse.getSafeHouse(x, y, w, h)
-        if byRect then
+    local onlineId = type(sh.getOnlineID) == "function" and sh:getOnlineID()
+    if onlineId and SafeHouse.getSafeHouse then
+        local byId = SafeHouse.getSafeHouse(onlineId)
+        if byId then
             return true
         end
     end
@@ -166,16 +163,19 @@ function IKST_GuardHooks.findSafehouseForRemoval(args)
     if not SafeHouse or not args then
         return nil
     end
+    local onlineId = tonumber(args.removedOnlineId)
+    if onlineId and SafeHouse.getSafeHouse then
+        local byId = SafeHouse.getSafeHouse(onlineId)
+        if byId then
+            return byId
+        end
+    end
     local x = math.floor(tonumber(args.x) or 0)
     local y = math.floor(tonumber(args.y) or 0)
     local w = math.floor(tonumber(args.w) or 0)
     local h = math.floor(tonumber(args.h) or 0)
-    if w > 0 and h > 0 and type(SafeHouse.getSafeHouse) == "function" then
+    if w > 0 and h > 0 and SafeHouse.getSafeHouse then
         return SafeHouse.getSafeHouse(x, y, w, h)
-    end
-    local onlineId = tonumber(args.removedOnlineId)
-    if onlineId and type(SafeHouse.getSafeHouse) == "function" then
-        return SafeHouse.getSafeHouse(onlineId)
     end
     return nil
 end
@@ -396,7 +396,7 @@ function IKST_GuardHooks.rebuildSafehouseHighlights()
     if not cell then
         return
     end
-    local c = IKST_Chrome.colors.accent
+    local c = IKUI_Chrome.colors.accent
     local r, g, b, a = c.r, c.g, c.b, 0.55
 
     IKST_GuardHooks.iterSafehouses(function(sh)
@@ -482,7 +482,7 @@ function IKST_GuardHooks.onRenderTickSafehouses()
     if (IKST_GuardHooks._shRenderN % (IKST_GuardHooks.SH_RENDER_EVERY_N or 8)) ~= 0 then
         return
     end
-    local c = IKST_Chrome.colors.accent
+    local c = IKUI_Chrome.colors.accent
     local r, g, b, a = c.r, c.g, c.b, 0.55
     for _, floor in pairs(IKST_GuardHooks._shApplied) do
         if floor and type(floor.setHighlighted) == "function" then

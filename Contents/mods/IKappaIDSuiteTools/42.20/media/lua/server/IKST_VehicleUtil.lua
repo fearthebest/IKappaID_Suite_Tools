@@ -97,13 +97,10 @@ function IKST_VehicleUtil.listNearby(x, y, z, radius)
             if v.getVehicleEngineQuality then
                 cond = v:getVehicleEngineQuality() or cond
             end
-            local runtimeId = nil
-            if type(v.getId) == "function" then
-                runtimeId = v:getId()
-            end
+            local claimKey = IKST_VehicleIdentity.readKey(v)
             out[#out + 1] = {
-                id = runtimeId,
-                claimKey = IKST_VehicleIdentity.readKey(v),
+                id = v:getId(),
+                claimKey = claimKey,
                 script = scriptName,
                 distance = math.floor(dist),
                 condition = cond,

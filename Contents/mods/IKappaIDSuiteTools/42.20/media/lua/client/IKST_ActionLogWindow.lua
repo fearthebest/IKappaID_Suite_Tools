@@ -1,14 +1,12 @@
--- Standalone horizontal action log — center third, bottom of screen (not inside JobsPanel).
--- Hard singleton: at most one panel + one drag tab may exist in UIManager.
+-- Standalone action log: fixed list of the latest 20 lines. No scrolling.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
 
 require "ISUI/ISPanel"
 require "ISUI/ISUIElement"
-require "ISUI/ISRichTextPanel"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_JobLayout"
 require "IKST_ActionLog"
@@ -19,7 +17,6 @@ local prevInstance = IKST_ActionLogWindow and IKST_ActionLogWindow.instance or n
 
 IKST_ActionLogWindow = ISPanel:derive("IKST_ActionLogWindow")
 IKST_ActionLogWindow.instance = prevInstance
--- Re-entrancy lock: never create/open while already ensuring.
 IKST_ActionLogWindow._ensuring = false
 
 function IKST_ActionLogWindow.isActionLogPanel(el)
@@ -32,15 +29,6 @@ function IKST_ActionLogWindow.isActionLogPanel(el)
     if el.Type == "IKST_ActionLogWindow" then
         return true
     end
-    -- Legacy duplicates (created before Type stamp or after Lua reload).
-    if el._ikstDragPlacement == "top" and el.logText then
-        return true
-    end
-    if el.logText and el.pin == true and el.moveWithMouse == false and el._ikstActionLogWindow ~= false then
-        if el.Type == "ISPanel" then
-            return true
-        end
-    end
     return false
 end
 
@@ -48,7 +36,6 @@ function IKST_ActionLogWindow.onUiList()
     if not UIManager then
         return nil
     end
-    -- Java method: use colon form (dot form can fail to return the live list).
     if type(UIManager.getUI) == "function" then
         local ui = UIManager:getUI()
         if ui then
@@ -105,7 +92,6 @@ function IKST_ActionLogWindow.destroyPanel(panel)
     end
 end
 
--- Only purge Action Log drag tabs (top). Never touch JobsPanel right tabs.
 function IKST_ActionLogWindow.purgeDragTabs()
     local ui = IKST_ActionLogWindow.onUiList()
     if not ui or type(ui.size) ~= "function" then
@@ -134,7 +120,6 @@ function IKST_ActionLogWindow.enforceSingleton()
     local panels = IKST_ActionLogWindow.collectPanels()
     local keeper = IKST_ActionLogWindow.instance
 
-    -- Prefer the known instance only if it is still live; otherwise reclaim from UI.
     if keeper and not IKST_ActionLogWindow.isLive(keeper) then
         keeper = nil
         IKST_ActionLogWindow.instance = nil
@@ -148,7 +133,6 @@ function IKST_ActionLogWindow.enforceSingleton()
                 break
             end
         end
-        -- Scan missed the instance (UIManager list flaky) — still keep it; purge others.
         if not found then
             panels[#panels + 1] = keeper
         end
@@ -178,9 +162,10 @@ function IKST_ActionLogWindow:new(x, y, width, height)
     o._ikstActionLogWindow = true
     o._ikstDestroyed = false
     o.player = nil
+    o.lines = {}
     o.pin = true
     o.moveWithMouse = false
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     IKST_DragHandle.attach(o, "top", {
         clampFn = function(p)
             if IKST_JobLayout and type(IKST_JobLayout.clampPanelEdges) == "function" then
@@ -201,42 +186,22 @@ function IKST_ActionLogWindow:initialise()
 end
 
 function IKST_ActionLogWindow:logInsets()
-    -- Printable area: 10px from each border (mirrors dashboard 20px, tighter for this strip).
     local pad = 10
     local headerH = math.max(18, IKST_UI_Layout.s(20))
     return pad, headerH
 end
 
-function IKST_ActionLogWindow:layoutLogText()
-    if not self.logText then
-        return
+function IKST_ActionLogWindow:lineHeight()
+    if getTextManager and type(getTextManager) == "function" then
+        local tm = getTextManager()
+        if tm and type(tm.getFontHeight) == "function" then
+            return tm:getFontHeight(UIFont.Small)
+        end
     end
-    local pad, headerH = self:logInsets()
-    local textY = pad + headerH
-    local w = math.max(40, self.width - (pad * 2))
-    local h = math.max(40, self.height - textY - pad)
-    self.logText:setX(pad)
-    self.logText:setY(textY)
-    self.logText:setWidth(w)
-    self.logText:setHeight(h)
-    self:syncLogScroll()
-end
-
-function IKST_ActionLogWindow:syncLogScroll()
-    local logText = self.logText
-    if not logText then
-        return
-    end
-    if type(logText.paginate) == "function" then
-        logText:paginate()
-    end
-    if type(logText.updateScrollbars) == "function" then
-        logText:updateScrollbars()
-    end
+    return 14
 end
 
 function IKST_ActionLogWindow:onGeometryChanged()
-    self:layoutLogText()
     if IKST_DragHandle and type(IKST_DragHandle.layoutTab) == "function" then
         IKST_DragHandle.layoutTab(self)
     end
@@ -244,36 +209,38 @@ end
 
 function IKST_ActionLogWindow:createChildren()
     ISPanel.createChildren(self)
-    local pad, headerH = self:logInsets()
-    local textY = pad + headerH
-    local logText = ISRichTextPanel:new(pad, textY, math.max(40, self.width - (pad * 2)),
-        math.max(40, self.height - textY - pad))
-    logText:initialise()
-    if type(logText.instantiate) == "function" then
-        logText:instantiate()
-    end
-    logText.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-    logText.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    -- Fixed panel height + clip + scrollbars (same pattern as BriefingUI).
-    logText.autosetheight = false
-    logText.clip = true
-    logText._ikstOmitTitle = true
-    logText:setMargins(4, 4, 16, 4)
-    self.logText = logText
-    self:addChild(logText)
-    if type(logText.addScrollBars) == "function" then
-        logText:addScrollBars()
-    end
-    -- Drag tab is created after addToUIManager (see ensure), not during createChildren.
 end
 
 function IKST_ActionLogWindow:prerender()
-    IKST_Chrome.drawDockedShell(self)
+    IKUI_Chrome.drawDockedShell(self)
     ISPanel.prerender(self)
-    local pad = self:logInsets()
+
+    local pad, headerH = self:logInsets()
+    local c = IKUI_Chrome.colors
     local title = IKST.text("IGUI_IKST_ActionLog", "Action log")
-    local c = IKST_Chrome.colors
     self:drawText(title, pad, pad + 2, c.accent.r, c.accent.g, c.accent.b, 1, UIFont.Small)
+
+    local y = pad + headerH
+    local lineH = self:lineHeight()
+    local lines = self.lines
+    if not lines or #lines == 0 then
+        local empty = IKST.text("IGUI_IKST_NoLog", "No actions yet.")
+        self:drawText(empty, pad, y, c.textMuted.r, c.textMuted.g, c.textMuted.b, 1, UIFont.Small)
+    else
+        local maxN = IKST_ActionLog.MAX_LINES or 20
+        local n = #lines
+        if n > maxN then
+            n = maxN
+        end
+        for i = 1, n do
+            local row = lines[i]
+            if row then
+                self:drawText(tostring(row.text or ""), pad, y, row.r or 1, row.g or 1, row.b or 1, 1, UIFont.Small)
+                y = y + lineH
+            end
+        end
+    end
+
     if IKST_DragHandle and type(IKST_DragHandle.syncTab) == "function" then
         IKST_DragHandle.syncTab(self)
     end
@@ -293,25 +260,6 @@ end
 
 function IKST_ActionLogWindow:onMouseDown(x, y)
     return ISPanel.onMouseDown(self, x, y)
-end
-
-function IKST_ActionLogWindow:onMouseWheel(del)
-    local logText = self.logText
-    if logText and type(ISRichTextPanel) == "table" and type(ISRichTextPanel.onMouseWheel) == "function" then
-        return ISRichTextPanel.onMouseWheel(logText, del)
-    end
-    if logText and type(logText.setYScroll) == "function" then
-        local cur = 0
-        if type(logText.getYScroll) == "function" then
-            cur = logText:getYScroll() or 0
-        end
-        logText:setYScroll(cur - (del * 40))
-        return true
-    end
-    if ISPanel.onMouseWheel then
-        return ISPanel.onMouseWheel(self, del)
-    end
-    return false
 end
 
 function IKST_ActionLogWindow:onMouseMove(dx, dy)
@@ -347,9 +295,10 @@ function IKST_ActionLogWindow:onMouseUp(x, y)
 end
 
 function IKST_ActionLogWindow:refresh()
-    if self.logText and self.player then
-        IKST_ActionLog.refresh(self.logText, self.player)
-        self:layoutLogText()
+    if self.player then
+        self.lines = IKST_ActionLog.linesForPlayer(self.player)
+    else
+        self.lines = {}
     end
 end
 
@@ -366,7 +315,6 @@ local function applyKeepAlive(panel)
 end
 
 function IKST_ActionLogWindow.ensure()
-    -- Hard gate: never create a second window while a live instance exists.
     local existing = IKST_ActionLogWindow.instance
     if existing and IKST_ActionLogWindow.isLive(existing) then
         if not IKST_ActionLogWindow._ensuring then
@@ -390,19 +338,16 @@ function IKST_ActionLogWindow.ensure()
         return keeper
     end
 
-    local x, y, w, h = 0, 0, 640, 270
+    local x, y, w, h = 0, 0, 640, 320
     if IKST_JobLayout and type(IKST_JobLayout.actionLogWindowSize) == "function" then
         w, h = IKST_JobLayout.actionLogWindowSize()
         x, y = IKST_JobLayout.actionLogWindowPosition(w, h)
     end
     local panel = IKST_ActionLogWindow:new(x, y, w, h)
-    -- Stamp instance before children so any re-entry reuses this panel.
     IKST_ActionLogWindow.instance = panel
     panel:initialise()
     panel:createChildren()
     panel:addToUIManager()
-    -- Must use vanilla ISUIElement.setVisible — never define Class.setVisible
-    -- (it shadows instance:setVisible and caused open→ensure→setVisible recursion).
     ISUIElement.setVisible(panel, false)
     applyKeepAlive(panel)
     IKST_ActionLogWindow.enforceSingleton()
@@ -446,7 +391,6 @@ function IKST_ActionLogWindow.close()
             ISUIElement.setVisible(panel, false)
         end
     end
-    -- Sweep any duplicates that stacked while open.
     IKST_ActionLogWindow.enforceSingleton()
 end
 

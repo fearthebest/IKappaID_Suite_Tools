@@ -7,7 +7,7 @@ require "ISUI/ISPanel"
 require "ISUI/ISButton"
 require "ISUI/ISUIElement"
 require "IKST_UI_Layout"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_DragHandle = IKST_DragHandle or {}
 -- Preserve across Lua reloads so we do not stack OnTick handlers.
@@ -232,12 +232,12 @@ function IKST_DragHandle.drawTabBody(tab, placement, hover)
     if not tab or type(tab.drawRect) ~= "function" then
         return
     end
-    local c = IKST_Chrome.colors
+    local c = IKUI_Chrome.colors
     local w = tab.width or 0
     local h = tab.height or 0
-    local radius = math.min(IKST_Chrome.ROUND_RADIUS, math.floor(math.min(w, h) / 2))
+    local radius = math.min(IKUI_Chrome.ROUND_RADIUS, math.floor(math.min(w, h) / 2))
     local fill = hover and c.bgCardHover or c.bgCard
-    IKST_Chrome.drawRoundedCard(tab, 0, 0, w, h, {
+    IKUI_Chrome.drawRoundedCard(tab, 0, 0, w, h, {
         fill = fill,
         borderColor = c.accent,
         selected = hover == true,
@@ -288,16 +288,22 @@ function IKST_DragHandle.syncTab(panel)
     local pw = panel:getWidth()
     local ph = panel:getHeight()
     local tw, th = IKST_DragHandle.tabSize(placement)
+    -- Overlap the shell border by a couple px so the tab covers the accent line
+    -- instead of sitting on top of it (or leaving a seam).
+    local seam = 2
     if placement == "right" then
-        tab:setX(px + pw)
+        tab:setX(px + pw - seam)
         tab:setY(py + math.floor((ph - th) / 2))
     elseif placement == "top" then
         tab:setX(px + math.floor((pw - tw) / 2))
-        tab:setY(py - th)
+        tab:setY(py - th + seam)
     end
     tab:setWidth(tw)
     tab:setHeight(th)
     IKST_DragHandle.setTabVisible(tab, true)
+    if type(tab.bringToTop) == "function" then
+        tab:bringToTop()
+    end
 end
 
 -- Hide panel then hide its drag tab (order matters — orphans happen when tab syncs while visible).
@@ -523,8 +529,8 @@ function IKST_DragHandle.clamp(panel)
         panel._ikstDragClampFn(panel)
         return
     end
-    if IKST_Chrome and type(IKST_Chrome.clampPanelPosition) == "function" then
-        IKST_Chrome.clampPanelPosition(panel)
+    if IKUI_Chrome and type(IKUI_Chrome.clampPanelPosition) == "function" then
+        IKUI_Chrome.clampPanelPosition(panel)
     end
 end
 

@@ -1,305 +1,201 @@
-if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then return end
+if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
+    return
+end
 
+require "ISUI/ISLabel"
 require "IKST_Shared"
-require "IKST_Chrome"
-require "IKST_Grid"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_PreviewOverlay"
 require "IKST_Rewind"
 require "IKST_JobLayout"
+require "IKST_WorldPick"
 
 IKST_JobCleanup = IKST_JobCleanup or {}
 
 function IKST_JobCleanup.selectAction(panel, action)
-
     local state = IKST.getPlayerState(panel.player)
-
     if not state then
-
         return
-
     end
-
     state.cleanupAction = action
-
     state.cleanupMode = action
-
     if IKST_PreviewOverlay then
-
         IKST_PreviewOverlay.clear()
-
     end
-
     IKST_JobCleanup.syncArm(panel)
-
     panel:refreshJobUI()
-
 end
 
 function IKST_JobCleanup.selectScope(panel, scope)
-
     local state = IKST.getPlayerState(panel.player)
-
     if not state then
-
         return
-
     end
-
     state.cleanupScope = scope
-
     if IKST_PreviewOverlay then
-
         IKST_PreviewOverlay.clear()
-
     end
-
     IKST_JobCleanup.syncArm(panel)
-
     panel:refreshJobUI()
-
 end
 
 function IKST_JobCleanup.syncArm(panel)
-
     local state = IKST.getPlayerState(panel.player)
-
     if not state then
-
         return
-
     end
-
-    IKST_WorldPick.arm(panel.player, IKST.getCleanupAction(state), IKST.getCleanupScope(state), true)
-
-end
-
-function IKST_JobCleanup.buildActionRow(panel, y, state)
-
-    local x = 12
-
-    panel:makeJobHeader(x, y, IKST.text("IGUI_IKST_Action_Label", "Action"))
-    y = y + 22
-
-    x = 12
-
-    for _, action in ipairs(IKST.CLEANUP_ACTIONS) do
-
-        local label = IKST.cleanupActionLabel(action)
-
-        local w = getTextManager():MeasureStringX(UIFont.Small, label) + 20
-
-        panel:makeJobButton(x, y, w, 24, label, function()
-
-            IKST_JobCleanup.selectAction(panel, action)
-
-        end, IKST.getCleanupAction(state) == action)
-
-        x = x + w + 6
-
+    if IKST_WorldPick and type(IKST_WorldPick.arm) == "function" then
+        IKST_WorldPick.arm(panel.player, IKST.getCleanupAction(state), IKST.getCleanupScope(state), true)
     end
-
-    return y + 32
-
-end
-
-function IKST_JobCleanup.buildScopeRow(panel, y, state)
-
-    local x = 12
-
-    panel:makeJobHeader(x, y, IKST.text("IGUI_IKST_Scope_Label", "Scope"))
-    y = y + 22
-
-    x = 12
-
-    for _, scope in ipairs(IKST.CLEANUP_SCOPE_LIST) do
-
-        local label = IKST.cleanupScopeLabel(scope, state)
-
-        local w = getTextManager():MeasureStringX(UIFont.Small, label) + 20
-
-        panel:makeJobButton(x, y, w, 24, label, function()
-
-            IKST_JobCleanup.selectScope(panel, scope)
-
-        end, IKST.getCleanupScope(state) == scope)
-
-        x = x + w + 6
-
-        if x > panel.width - 100 then
-
-            x = 12
-
-            y = y + 28
-
-        end
-
-    end
-
-    return y + 32
-
-end
-
-function IKST_JobCleanup.buildSizeRow(panel, y, state)
-
-    local scope = IKST.getCleanupScope(state)
-
-    if scope ~= IKST.CLEANUP_SCOPES.cube and scope ~= IKST.CLEANUP_SCOPES.radius then
-
-        return y
-
-    end
-
-    local x = 12
-
-    local sizeLabel = scope == IKST.CLEANUP_SCOPES.cube
-
-        and IKST.text("IGUI_IKST_Cube_Size", "Cube half-size")
-
-        or IKST.text("IGUI_IKST_Radius_Size", "Radius")
-
-    panel:makeJobLabel(x, y, IKST.text("IGUI_IKST_Size_Label", "Size") .. ": " .. sizeLabel, UIFont.Small)
-
-    y = y + 18
-
-    x = 12
-
-    local presets = scope == IKST.CLEANUP_SCOPES.cube and IKST.CUBE_PRESETS or IKST.RADIUS_PRESETS
-
-    local current = scope == IKST.CLEANUP_SCOPES.cube and state.cleanupCubeHalf or state.cleanupRadius
-
-    for _, key in ipairs({ "S", "M", "L" }) do
-        local val = presets[key]
-        if val then
-        panel:makeJobButton(x, y, 28, 24, key, function()
-
-            if scope == IKST.CLEANUP_SCOPES.cube then
-
-                state.cleanupCubeHalf = val
-
-            else
-
-                state.cleanupRadius = val
-
-            end
-
-            if IKST_PreviewOverlay then
-
-                IKST_PreviewOverlay.clear()
-
-            end
-
-            panel:refreshJobUI()
-
-        end, current == val)
-
-        x = x + 34
-        end
-    end
-
-    if scope == IKST.CLEANUP_SCOPES.cube then
-
-        local edge = IKST.cubeEdgeLength(state.cleanupCubeHalf)
-
-        panel:makeJobButton(x + 8, y, 90, 24, edge .. " x " .. edge .. " x " .. edge, function() end, false)
-
-    else
-
-        panel:makeJobButton(x + 8, y, 80, 24, tostring(state.cleanupRadius) .. " tiles", function() end, false)
-
-    end
-
-    return y + 34
-
 end
 
 function IKST_JobCleanup.describeState(state)
-
     local action = IKST.cleanupActionLabel(IKST.getCleanupAction(state))
-
     local scope = IKST.cleanupScopeLabel(IKST.getCleanupScope(state), state)
-
     return action .. " · " .. scope
-
 end
 
 function IKST_JobCleanup.build(panel)
     local state = IKST.getPlayerState(panel.player)
     if not state then
-        return
-    end
-    local y = 8
-    y = IKST_JobCleanup.buildActionRow(panel, y, state)
-    y = IKST_JobCleanup.buildScopeRow(panel, y, state)
-    y = IKST_JobCleanup.buildSizeRow(panel, y, state)
-
-    local roofHint = ISPanel:new(IKST_JobLayout.MARGIN, y, panel.contentW or (panel.width - 24), 18)
-    roofHint.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-    roofHint.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    roofHint:initialise()
-    local hintText = IKST.text("IGUI_IKST_Tip_Roof", "Roofs: use Remove tile or Remove object with Cube scope (hits upper Z levels).")
-    roofHint.render = function(p)
-        ISPanel.render(p)
-        local cc = IKST_Chrome.colors
-        p:drawText(hintText, 0, 0, cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small)
-    end
-    panel:addJobWidget(roofHint)
-    y = y + 22
-
-    local active = IKST_JobCleanup.describeState(state)
-
-    if state.armed and state.armedJob == IKST.VIEW.cleanup then
-
-        active = active .. " [" .. IKST.text("IGUI_IKST_Armed", "ARMED") .. "]"
-
+        return 8
     end
 
-    local barW = panel.contentW or (panel.width - 24)
-    local bar = ISPanel:new(IKST_JobLayout.MARGIN, y, barW, 30)
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
 
-    bar.backgroundColor = IKST_Chrome.colors.bgToolbar
-
-    bar.borderColor = IKST_Chrome.colors.accentDim
-
-    bar:initialise()
-
-    bar.render = function(p)
-
-        ISPanel.render(p)
-
-        local cc = IKST_Chrome.colors
-
-        p:drawText(IKST.text("IGUI_IKST_Active", "Active") .. ": " .. active, 8, 7,
-
-            cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
-
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
     end
 
-    panel:addJobWidget(bar)
-
-    local rewindCount = IKST_Rewind.count(panel.player)
-    local rewindLabel = IKST.text("IGUI_IKST_Rewind", "REWIND")
-    if rewindCount > 0 then
-        rewindLabel = rewindLabel .. " (" .. rewindCount .. ")"
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Action_Label", "Action"))
+        local items = {}
+        for _, action in ipairs(IKST.CLEANUP_ACTIONS) do
+            local id = action
+            items[#items + 1] = {
+                label = IKST.cleanupActionLabel(id),
+                primary = IKST.getCleanupAction(state) == id,
+                onClick = function()
+                    IKST_JobCleanup.selectAction(panel, id)
+                end,
+            }
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
     end
-    panel:makeJobButton(IKST_JobLayout.MARGIN + barW - 188, y + 4, 88, 22, rewindLabel, function()
-        IKST_WorldPick.disarm(panel.player)
-        IKST.dispatchCommand(panel.player, IKST.CMD.rewind, {})
-        panel:refreshJobUI()
-    end, rewindCount > 0)
-    panel:makeJobButton(IKST_JobLayout.MARGIN + barW - 92, y + 4, 84, 22, IKST.text("IGUI_IKST_Disarm", "DISARM"), function()
-        IKST_WorldPick.disarm(panel.player)
-        panel:refreshJobUI()
-    end, false)
 
-    y = y + 40
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Scope_Label", "Scope"))
+        local items = {}
+        for _, scope in ipairs(IKST.CLEANUP_SCOPE_LIST) do
+            local id = scope
+            items[#items + 1] = {
+                label = IKST.cleanupScopeLabel(id, state),
+                primary = IKST.getCleanupScope(state) == id,
+                onClick = function()
+                    IKST_JobCleanup.selectScope(panel, id)
+                end,
+            }
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
+    end
 
-    return y
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Size_Label", "Size"))
+        local scope = IKST.getCleanupScope(state)
+        local useCube = scope == IKST.CLEANUP_SCOPES.cube
+        local presets = useCube and IKST.CUBE_PRESETS or IKST.RADIUS_PRESETS
+        local current = useCube and state.cleanupCubeHalf or state.cleanupRadius
+        local items = {}
+        for _, key in ipairs({ "S", "M", "L" }) do
+            local val = presets[key]
+            if val then
+                local k = key
+                local v = val
+                items[#items + 1] = {
+                    label = k,
+                    primary = current == v,
+                    onClick = function()
+                        local sc = IKST.getCleanupScope(state)
+                        if sc ~= IKST.CLEANUP_SCOPES.cube and sc ~= IKST.CLEANUP_SCOPES.radius then
+                            state.cleanupScope = IKST.CLEANUP_SCOPES.radius
+                            sc = IKST.CLEANUP_SCOPES.radius
+                        end
+                        if sc == IKST.CLEANUP_SCOPES.cube then
+                            state.cleanupCubeHalf = IKST.CUBE_PRESETS[k] or v
+                        else
+                            state.cleanupRadius = IKST.RADIUS_PRESETS[k] or v
+                        end
+                        if IKST_PreviewOverlay then
+                            IKST_PreviewOverlay.clear()
+                        end
+                        IKST_JobCleanup.syncArm(panel)
+                        panel:refreshJobUI()
+                    end,
+                }
+            end
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Active", "Active"))
+        local rewindCount = 0
+        if IKST_Rewind and type(IKST_Rewind.count) == "function" then
+            rewindCount = IKST_Rewind.count(panel.player) or 0
+        end
+        local rewindLabel = IKST.text("IGUI_IKST_Rewind", "REWIND")
+        if rewindCount > 0 then
+            rewindLabel = rewindLabel .. " (" .. tostring(rewindCount) .. ")"
+        end
+        local armed = state.armed and state.armedJob == IKST.VIEW.cleanup
+        local active = IKST_JobCleanup.describeState(state)
+        if armed then
+            active = active .. " [" .. IKST.text("IGUI_IKST_Armed", "ARMED") .. "]"
+        end
+        local noteH = 16
+        local note = ISLabel:new(ax, ay, noteH, active, 1, 1, 1, 1, UIFont.Small, true)
+        note:initialise()
+        card:addChild(note)
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay + noteH + 4, aw, math.max(btnH, ah - noteH - 4), {
+            {
+                label = rewindLabel,
+                primary = rewindCount > 0,
+                onClick = function()
+                    if IKST_WorldPick and type(IKST_WorldPick.disarm) == "function" then
+                        IKST_WorldPick.disarm(panel.player)
+                    end
+                    IKST.dispatchCommand(panel.player, IKST.CMD.rewind, {})
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Disarm", "DISARM"),
+                primary = true,
+                onClick = function()
+                    if IKST_WorldPick and type(IKST_WorldPick.disarm) == "function" then
+                        IKST_WorldPick.disarm(panel.player)
+                    end
+                    panel:refreshJobUI()
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobCleanup.enter(panel)
-
     panel:enterJob(IKST.VIEW.cleanup)
-
     IKST_JobCleanup.syncArm(panel)
-
 end

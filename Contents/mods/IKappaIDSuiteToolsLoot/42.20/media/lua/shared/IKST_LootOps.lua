@@ -446,14 +446,13 @@ function IKST_LootOps.formatResultMessage(msg, extra)
         return IKST.text("IGUI_IKST_Loot_RollEmpty", "Loot roll came up empty; previous items kept")
     end
     if code == "repopulate_ok" then
-        local fmt = IKST.text("IGUI_IKST_Loot_RepopulateOk", "%1 containers repopulated%2")
-        fmt = string.gsub(fmt, "%%1", tostring(extra.resultCount or 0))
-        return string.gsub(fmt, "%%2", tostring(extra.resultSuffix or ""))
+        local fmt = IKST.format("IGUI_IKST_Loot_RepopulateOk", "{1} containers repopulated{2}",
+            tostring(extra.resultCount or 0), tostring(extra.resultSuffix or ""))
+        return fmt
     end
     if code == "container_repopulate_ok" then
         local label = tostring(extra.resultLabel or "")
-        local fmt = IKST.text("IGUI_IKST_Loot_ContainerRepopulateOk", "%1 repopulated")
-        return string.gsub(fmt, "%%1", label)
+        return IKST.format("IGUI_IKST_Loot_ContainerRepopulateOk", "{1} repopulated", label)
     end
     if code == "no distribution" then
         return IKST.text("IGUI_IKST_Loot_NoDistribution", "No loot distribution for that container")

@@ -9,7 +9,7 @@ require "ISUI/ISTextEntryBox"
 require "ISUI/ISScrollingListBox"
 require "IKST_Shared"
 require "IKST_Utility"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_Confirm"
 require "IKST_Catalog"
@@ -406,7 +406,7 @@ function IKST_JobVehicle.setSelectedLabel(panel, script)
     label.ikstWrapped = wrapped
     label.render = function(p)
         ISPanel.render(p)
-        local cc = IKST_Chrome.colors
+        local cc = IKUI_Chrome.colors
         local ly = 0
         local lineH = 16
         local font = p.ikstFont or UIFont.Small
@@ -537,314 +537,398 @@ function IKST_JobVehicle.resolveSelectedId(panel)
     return nil
 end
 
-local function vehicleOverviewBtn(parent, panel, x, y, w, h, label, kind, onClick)
-    local btn = IKST_Chrome.newActionButton(x, y, w, h, label, panel, function()
-        if onClick then
-            onClick()
-        end
-    end, kind or "chip")
-    parent:addChild(btn)
-    return btn
+local function vehicleNeedId(panel)
+    local vid = IKST_JobVehicle.resolveSelectedId(panel)
+    if not vid then
+        IKST.notify(panel.player, IKST.text("IGUI_IKST_NoVehicle", "No vehicle selected"), false)
+    end
+    return vid
 end
 
-local function vehicleFlowLayout(items, cardW, gap)
-    local padX = IKST_UI_Layout.s(14)
-    local usableW = math.max(40, cardW - (padX * 2))
-    local rows = {}
-    local curRow = {}
-    local curX = 0
-    for _, item in ipairs(items) do
-        local w = IKST_UI_Layout.buttonWidth(item.label, UIFont.Small, 96)
-        if curX > 0 and curX + gap + w > usableW then
-            rows[#rows + 1] = curRow
-            curRow = {}
-            curX = 0
-        end
-        if curX > 0 then
-            curX = curX + gap
-        end
-        curRow[#curRow + 1] = { item = item, x = padX + curX, w = w }
-        curX = curX + w
-    end
-    if #curRow > 0 then
-        rows[#rows + 1] = curRow
-    end
-    return rows
-end
-
-local function vehicleBuildPillSection(panel, x, y, w, icon, titleKey, titleFallback, items)
-    local rowH = math.max(26, IKST_UI_Layout.s(30))
-    local gap = IKST_UI_Layout.s(8)
-    local rows = vehicleFlowLayout(items, w, gap)
-    local headerH = IKST_Chrome.sectionHeaderH()
-    local bottomPad = IKST_UI_Layout.s(14)
-    local contentH = (#rows * rowH) + (math.max(0, #rows - 1) * gap)
-    if #rows == 0 then
-        contentH = rowH
-    end
-    local cardH = headerH + contentH + bottomPad
-    local title = IKST.text(titleKey, titleFallback)
-    local card, contentY = IKST_Chrome.newSectionCardPanel(x, y, w, cardH, icon, title)
-    panel:addJobWidget(card)
-    local cy = contentY
-    for _, row in ipairs(rows) do
-        for _, cell in ipairs(row) do
-            local item = cell.item
-            local kind = "chip"
-            if item.danger then
-                kind = "danger"
-            elseif item.primary then
-                kind = "primary"
-            elseif item.on then
-                kind = "primary"
-            elseif item.outline then
-                kind = "outline"
-            end
-            vehicleOverviewBtn(card, panel, cell.x, cy, cell.w, rowH, item.label, kind, function()
-                if item.onClick then
-                    item.onClick()
-                end
-                panel:refreshJobUI()
-            end)
-        end
-        cy = cy + rowH + gap
-    end
-    return y + cardH + (IKST_JobLayout.GAP or gap)
-end
-
--- Vehicles landing page (mockup: ikst-page-vehicles.png). Tool pills call
--- existing JobVehicle / CMD handlers.
 function IKST_JobVehicle.buildOverview(panel)
     local p = panel.player
     if not p then
         return 8
     end
-    if not panel._vehicleOverviewListRequested then
-        panel._vehicleOverviewListRequested = true
-        IKST_JobVehicle.requestList(p)
+
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
     end
 
-    local x = panel.contentX or IKST_JobLayout.MARGIN
-    local w = math.max(220, panel.contentW or (panel.width - 24))
-    local y = 8
-    local gap = IKST_JobLayout.GAP or IKST_UI_Layout.s(12)
-    local padX = IKST_UI_Layout.s(14)
-    local headerBtnH = math.max(24, IKST_UI_Layout.s(28))
-    local cc = IKST_Chrome.colors
-    IKST_JobVehicle.ensurePruneCondition(panel)
-    IKST_JobVehicle.ensureListFilters(panel)
-
-    local title = IKST.text("IGUI_IKST_WS_Vehicles", "Vehicles")
-    local titleLabel = ISLabel:new(x, y, 26, title, 1, 1, 1, 1, UIFont.Large, true)
-    titleLabel:initialise()
-    panel:addJobWidget(titleLabel)
-
-    local findLabel = IKST.text("IGUI_IKST_VehicleTile_FindNear", "Find near me")
-    local findW = IKST_UI_Layout.buttonWidth(findLabel, UIFont.Small, 100)
-    local remoteLabel = IKST.text("IGUI_IKST_VehicleTile_RemoteOnly", "Show remote only")
-    local remoteW = IKST_UI_Layout.buttonWidth(remoteLabel, UIFont.Small, 120)
-    local rightEdge = x + w
-    local findX = rightEdge - findW
-    local remoteX = findX - IKST_UI_Layout.s(8) - remoteW
-
-    local remoteBtn = IKST_Chrome.newActionButton(remoteX, y, remoteW, headerBtnH, remoteLabel, panel, function()
-        panel.vehicleListRemoteOnly = not (panel.vehicleListRemoteOnly == true)
-        panel:refreshJobUI()
-    end, panel.vehicleListRemoteOnly == true and "primary" or "chip")
-    panel:addJobWidget(remoteBtn)
-
-    local findBtn = IKST_Chrome.newActionButton(findX, y, findW, headerBtnH, findLabel, panel, function()
-        IKST_JobVehicle.requestList(p)
-        IKST.notify(p, IKST.text("IGUI_IKST_VehicleTile_FindDone", "Refreshing nearby vehicles…"), true)
-        panel:refreshJobUI()
-    end, "primary")
-    panel:addJobWidget(findBtn)
-
-    y = y + math.max(26, headerBtnH) + gap
-
-    y = vehicleBuildPillSection(panel, x, y, w, "media/ui/ikst/ws_vehicles.png",
-        "IGUI_IKST_VehicleTile_SectionTools", "Tools", {
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_Spawn", "Spawn vehicle"),
-            primary = true,
-            onClick = function()
-                if panel.enterNav then
-                    panel:enterNav(IKST.VIEW.vehicles, "spawn")
-                end
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_Repair", "Repair vehicle"),
-            onClick = function()
-                local vid = IKST_JobVehicle.resolveSelectedId(panel)
-                if vid then
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleRepair, { vehicleId = vid })
-                else
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleRepairNear, {})
-                end
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_Refuel", "Refuel"),
-            onClick = function()
-                local vid = IKST_JobVehicle.resolveSelectedId(panel)
-                if vid then
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleRefuel, { vehicleId = vid })
-                else
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleRefuelNear, {})
-                end
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleMove", "Move here"),
-            onClick = function()
-                local vid = IKST_JobVehicle.resolveSelectedId(panel)
-                if not vid then
-                    IKST.notify(p, IKST.text("IGUI_IKST_NoVehicle", "No vehicle selected"), false)
-                    return
-                end
-                panel.selectedVehicleId = vid
-                IKST_JobVehicle.dispatchMove(panel)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleDelete", "Remove vehicle"),
-            danger = true,
-            onClick = function()
-                local vid = IKST_JobVehicle.resolveSelectedId(panel)
-                IKST_JobVehicle.dispatchDelete(panel, vid)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_Snapshot", "Snapshot backup"),
-            primary = true,
-            onClick = function()
-                if IKST_JobVehicle.requestBackupList then
-                    IKST_JobVehicle.requestBackupList(p)
-                end
-                if panel.enterNav then
-                    panel:enterNav(IKST.VIEW.vehicles, "spawn")
-                end
-            end,
-        },
-    })
-
-    y = vehicleBuildPillSection(panel, x, y, w, "media/ui/ikst/tool_catch.png",
-        "IGUI_IKST_VehicleTile_SectionPrune", "Prune", {
-        {
-            label = IKST.text("IGUI_IKST_PruneBurnt", "Wrecked only"),
-            on = panel.pruneBurntOnly == true,
-            onClick = function()
-                panel.pruneBurntOnly = not (panel.pruneBurntOnly == true)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_UnclaimedOnly", "Unclaimed only"),
-            on = true,
-            onClick = function()
-                IKST.notify(p, IKST.text("IGUI_IKST_VehicleTile_UnclaimedHint",
-                    "Prune always skips claimed vehicles (server policy)."), true)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_MassPrune", "Mass prune (this cell)"),
-            onClick = function()
-                IKST_JobVehicle.confirmMassPrune(p, panel)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_VehicleTile_PrecisionPrune", "Precision prune"),
-            outline = true,
-            onClick = function()
-                IKST_JobVehicle.dispatchPrune(p, panel, false)
-            end,
-        },
-    })
-
-    local list = IKST_JobVehicle.filteredList(panel)
-    local rowH = math.max(44, IKST_UI_Layout.s(48))
-    local maxRows = math.min(#list, 6)
-    local listRows = math.max(1, maxRows)
-    local headerH = IKST_Chrome.sectionHeaderH()
-    local bottomPad = IKST_UI_Layout.s(14)
-    local listCardH = headerH + (listRows * (rowH + IKST_UI_Layout.s(6))) - IKST_UI_Layout.s(6) + bottomPad
-    local listCard, listY = IKST_Chrome.newSectionCardPanel(x, y, w, listCardH,
-        "media/ui/ikst/ws_vehicles.png",
-        IKST.text("IGUI_IKST_VehicleTile_SectionNearby", "Nearby"))
-    panel:addJobWidget(listCard)
-
-    if #list == 0 then
-        local empty = ISLabel:new(padX, listY + 8, 16,
-            IKST.text("IGUI_IKST_VehicleListEmpty", "No vehicles nearby — Refresh list."),
-            cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
-        empty:initialise()
-        listCard:addChild(empty)
-    else
-        local ry = listY
-        local selectLabel = IKST.text("IGUI_IKST_VehicleTile_Select", "Select")
-        local selectW = IKST_UI_Layout.buttonWidth(selectLabel, UIFont.Small, 64)
-        local btnH = math.max(26, IKST_UI_Layout.s(30))
-        for i, v in ipairs(list) do
-            if i > 6 then
-                break
-            end
-            local name = tostring(v.script or "?") .. " #" .. tostring(v.id or "?")
-            local nameLbl = ISLabel:new(padX, ry + 4, 16, name,
-                cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small, true)
-            nameLbl:initialise()
-            listCard:addChild(nameLbl)
-
-            local coords = ""
-            if v.x and v.y then
-                coords = tostring(v.x) .. ", " .. tostring(v.y)
-            elseif v.distance then
-                coords = tostring(v.distance) .. "m"
-            end
-            local subLbl = ISLabel:new(padX, ry + 20, 14, coords,
-                cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
-            subLbl:initialise()
-            listCard:addChild(subLbl)
-
-            local cond = tonumber(v.condition) or 0
-            if cond < 0 then
-                cond = 0
-            elseif cond > 100 then
-                cond = 100
-            end
-            local barW = math.max(60, math.floor(w * 0.22))
-            local barH = math.max(8, IKST_UI_Layout.s(10))
-            local barX = w - padX - selectW - IKST_UI_Layout.s(8) - barW
-            local barY = ry + math.floor((rowH - barH) / 2)
-            local barPanel = ISPanel:new(barX, barY, barW, barH)
-            barPanel:initialise()
-            barPanel.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-            barPanel.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-            barPanel._cond = cond
-            barPanel.render = function(bp)
-                local fillW = math.floor(bp.width * (bp._cond / 100))
-                bp:drawRect(0, 0, bp.width, bp.height, 0.9, cc.chipOff.r, cc.chipOff.g, cc.chipOff.b)
-                if fillW > 0 then
-                    bp:drawRect(0, 0, fillW, bp.height, 1, cc.accent.r, cc.accent.g, cc.accent.b)
-                end
-                local pct = tostring(bp._cond) .. "%"
-                local tw, th = IKST_UI_Layout.textSize(pct, UIFont.Small)
-                bp:drawText(pct, math.floor((bp.width - tw) / 2), math.floor((bp.height - th) / 2) - 1,
-                    cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small)
-            end
-            listCard:addChild(barPanel)
-
-            local selected = panel.selectedVehicleId == v.id
-            vehicleOverviewBtn(listCard, panel, w - padX - selectW,
-                ry + math.floor((rowH - btnH) / 2), selectW, btnH, selectLabel,
-                selected and "primary" or "chip", function()
-                    panel.selectedVehicleId = v.id
-                    panel:refreshJobUI()
-                end)
-            ry = ry + rowH + IKST_UI_Layout.s(6)
+    local function go(toolId)
+        if panel and type(panel.enterNav) == "function" then
+            panel:enterNav(IKST.VIEW.vehicles, toolId)
         end
     end
-    y = y + listCardH + gap
-    return y
+
+    -- Directory only — never dispatch vehicle commands from Overview.
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_VehicleTool_Spawn", "Spawn"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_VehicleTile_Spawn", "Spawn vehicle"),
+                primary = true,
+                onClick = function()
+                    go("spawn")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_RepairNear", "Repair nearby"),
+                onClick = function()
+                    go("spawn")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_KeyNear", "Give keys nearby"),
+                onClick = function()
+                    go("spawn")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_VehicleTool_Repair", "Repair"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_VehicleFlip", "Flip upright"),
+                primary = true,
+                onClick = function()
+                    go("repair")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"),
+                onClick = function()
+                    go("repair")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleRepair", "Repair"),
+                onClick = function()
+                    go("repair")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleDelete", "Delete vehicle"),
+                onClick = function()
+                    go("repair")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_VehicleTool_Prune", "Prune"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_PruneBurnt", "Burnt only"),
+                primary = true,
+                onClick = function()
+                    go("prune")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleTile_MassPrune", "Mass prune"),
+                onClick = function()
+                    go("prune")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleTile_PrecisionPrune", "Precision prune"),
+                onClick = function()
+                    go("prune")
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
+end
+
+function IKST_JobVehicle.buildSpawnHand(panel)
+    local p = panel.player
+    if not p then
+        return 8
+    end
+    local state = IKST.getPlayerState(p)
+    if state and not state.vehicleCategory then
+        state.vehicleCategory = IKST_Catalog.CATEGORY_ALL
+    end
+    if panel.spawnRepaired == nil then
+        panel.spawnRepaired = true
+    end
+    if panel.spawnWithKey == nil then
+        panel.spawnWithKey = true
+    end
+    if not panel.vehicleScriptFilter then
+        panel.vehicleScriptFilter = ""
+    end
+
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_VehicleScriptSearch", "Search"))
+        IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
+            { text = panel.vehicleScriptFilter or "", fieldName = "vehicleFilterEntry" },
+        }, IKST.text("IGUI_IKST_RefreshList", "Refresh"), function()
+            panel.vehicleScriptFilter = IKST_JobVehicle.readEntryText(panel.vehicleFilterEntry)
+            IKST_JobVehicle.scriptList = nil
+            IKST_JobVehicle.vehicleCatalog = nil
+            panel:refreshJobUI()
+        end)
+        if panel.vehicleFilterEntry then
+            panel.vehicleFilterEntry.onTextChange = function()
+                panel.vehicleScriptFilter = IKST_JobVehicle.readEntryText(panel.vehicleFilterEntry)
+                IKST_JobVehicle.refreshVehicleList(panel, panel.vehicleScriptFilter)
+            end
+        end
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Catalog", "Catalog"))
+        panel.vehicleListBox = ISScrollingListBox:new(ax, ay, aw, ah)
+        panel.vehicleListBox:initialise()
+        panel.vehicleListBox:instantiate()
+        panel.vehicleListBox.itemheight = IKST_JobLayout.listItemHeight()
+        panel.vehicleListBox.font = UIFont.Small
+        panel.vehicleListBox.drawBorder = true
+        if IKUI_Chrome and type(IKUI_Chrome.styleListBox) == "function" then
+            IKUI_Chrome.styleListBox(panel.vehicleListBox)
+        end
+        panel.vehicleListBox.onmousedown = function(target, mx, my)
+            if target and type(target.onMouseDown) == "function" then
+                target:onMouseDown(mx, my)
+            end
+            IKST_JobVehicle.onListSelect(panel)
+        end
+        card:addChild(panel.vehicleListBox)
+        local filterText = IKST_JobVehicle.trim(panel.vehicleScriptFilter or "")
+        if panel.vehicleFilterEntry and type(panel.vehicleFilterEntry.getText) == "function" then
+            local live = IKST_JobVehicle.readEntryText(panel.vehicleFilterEntry)
+            if live ~= "" then
+                filterText = live
+            end
+        end
+        IKST_JobVehicle.refreshVehicleList(panel, filterText)
+        if panel.vehicleScriptSelected and panel.vehicleScriptSelected ~= "" then
+            for i, row in ipairs(panel.vehicleListBox.items or {}) do
+                if row.item and row.item.full == panel.vehicleScriptSelected then
+                    panel.vehicleListBox.selected = i
+                    break
+                end
+            end
+        end
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_SpawnOptions", "Options"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_SpawnRepaired", "Repaired"),
+                primary = panel.spawnRepaired == true,
+                onClick = function()
+                    panel.spawnRepaired = not panel.spawnRepaired
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_SpawnKey", "With key"),
+                primary = panel.spawnWithKey == true,
+                onClick = function()
+                    panel.spawnWithKey = not panel.spawnWithKey
+                    panel:refreshJobUI()
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_VehicleTile_Spawn", "Spawn"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_SpawnFeet", "Spawn at feet"),
+                primary = true,
+                onClick = function()
+                    local script = IKST_JobVehicle.getSelectedScript(panel)
+                    if not IKST_JobVehicle.scriptExists(script) then
+                        IKST.notify(p, IKST.text("IGUI_IKST_InvalidScript", "Unknown vehicle script"), false)
+                        return
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleSpawn, {
+                        script = script,
+                        x = math.floor(p:getX()),
+                        y = math.floor(p:getY()),
+                        z = p:getZ(),
+                        angle = IKST_JobVehicle.playerAngle(p),
+                        repaired = panel.spawnRepaired == true,
+                        withKey = panel.spawnWithKey == true,
+                    })
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_RepairNear", "Repair near"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleRepairNear, {})
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_KeyNear", "Key near"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleKeyNear, {})
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
+end
+
+function IKST_JobVehicle.buildRepairHand(panel)
+    local p = panel.player
+    if not p then
+        return 8
+    end
+    if not panel._vehicleRepairListRequested then
+        panel._vehicleRepairListRequested = true
+        IKST_JobVehicle.requestList(p)
+    end
+
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_VehiclePick", "Pick"))
+        local list = IKST_JobVehicle.filteredList(panel)
+        local rows = {}
+        for i = 1, #list do
+            local v = list[i]
+            rows[#rows + 1] = {
+                id = v.id,
+                label = IKST_JobVehicle.vehicleListLabel(v, true),
+                data = v,
+            }
+        end
+        if #rows == 0 then
+            local empty = ISLabel:new(ax, ay, 16,
+                IKST.text("IGUI_IKST_VehicleListEmpty", "No vehicles nearby — Refresh list."),
+                1, 1, 1, 1, UIFont.Small, true)
+            empty:initialise()
+            card:addChild(empty)
+        else
+            local visible = math.max(4, math.floor(ah / math.max(18, IKST_JobLayout.listItemHeight())))
+            IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, IKST_JobLayout.selectListHeight(visible), rows, {
+                selectedId = panel.selectedVehicleId,
+                onSelect = function(row)
+                    panel.selectedVehicleId = row.id
+                    panel:refreshJobUI(true)
+                end,
+            })
+        end
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_VehicleActions", "Actions"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_VehicleFlip", "Flip"),
+                onClick = function()
+                    local vid = vehicleNeedId(panel)
+                    if vid then
+                        IKST.dispatchCommand(p, IKST.CMD.vehicleFlip, { vehicleId = vid })
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleRepair", "Repair"),
+                primary = true,
+                onClick = function()
+                    local vid = vehicleNeedId(panel)
+                    if vid then
+                        IKST.dispatchCommand(p, IKST.CMD.vehicleRepair, { vehicleId = vid })
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleKey", "Key"),
+                onClick = function()
+                    local vid = vehicleNeedId(panel)
+                    if vid then
+                        IKST.dispatchCommand(p, IKST.CMD.vehicleKey, { vehicleId = vid })
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock"),
+                onClick = function()
+                    local vid = vehicleNeedId(panel)
+                    if vid then
+                        IKST.dispatchCommand(p, IKST.CMD.vehicleUnlockDoors, { vehicleId = vid })
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleMove", "Move"),
+                onClick = function()
+                    local vid = vehicleNeedId(panel)
+                    if vid then
+                        panel.selectedVehicleId = vid
+                        IKST_JobVehicle.dispatchMove(panel)
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_VehicleDelete", "Delete"),
+                onClick = function()
+                    IKST_JobVehicle.dispatchDelete(panel, IKST_JobVehicle.resolveSelectedId(panel))
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobVehicle.build(panel)
@@ -855,6 +939,12 @@ function IKST_JobVehicle.build(panel)
     if state.navTool == "overview" or (panel.view == IKST.VIEW.vehicles and not state.navTool) then
         state.navTool = state.navTool or "overview"
         return IKST_JobVehicle.buildOverview(panel)
+    end
+    if panel.view == IKST.VIEW.vehicles and state.navTool == "spawn" then
+        return IKST_JobVehicle.buildSpawnHand(panel)
+    end
+    if panel.view == IKST.VIEW.vehicles and state.navTool == "repair" then
+        return IKST_JobVehicle.buildRepairHand(panel)
     end
     if not state.vehicleMode then
         state.vehicleMode = "list"
@@ -880,15 +970,7 @@ function IKST_JobVehicle.build(panel)
     local navTool = state.navTool
     local vehiclesWorkspace = panel.view == IKST.VIEW.vehicles
 
-    if vehiclesWorkspace and navTool == "spawn" then
-        if state.vehicleMode ~= "list" and state.vehicleMode ~= "spawn" and state.vehicleMode ~= "delete" then
-            state.vehicleMode = "list"
-        end
-        modes = { "list", "spawn", "delete" }
-    elseif vehiclesWorkspace and navTool == "repair" then
-        state.vehicleMode = "list"
-        modes = nil
-    elseif vehiclesWorkspace and navTool == "prune" then
+    if vehiclesWorkspace and navTool == "prune" then
         if state.vehicleMode ~= "prune" and state.vehicleMode ~= "delete" then
             state.vehicleMode = "prune"
         end
@@ -919,147 +1001,8 @@ function IKST_JobVehicle.build(panel)
         y = y + 36
     end
 
-    local backups = IKST_JobVehicle.backupCache or {}
-    if #backups > 0 and vehiclesWorkspace and navTool == "spawn" then
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleStoredBackups", "Stored vehicles (relocate backup)"), UIFont.Small)
-        y = y + 18
-        for i, row in ipairs(backups) do
-            if i > 2 then
-                break
-            end
-            local label = tostring(row.scriptName or "?") .. " #" .. tostring(row.backupId)
-            if row.origin and row.origin.x then
-                label = label .. " @ " .. tostring(row.origin.x) .. "," .. tostring(row.origin.y)
-            end
-            panel:makeJobLabel(12, y, label, UIFont.Small)
-            y = y + 16
-            panel:makeJobButton(12, y, 84, 22, IKST.text("IGUI_IKST_RestoreOrigin", "At origin"), function()
-                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "origin")
-            end, false)
-            panel:makeJobButton(100, y, 84, 22, IKST.text("IGUI_IKST_RestoreTarget", "At target"), function()
-                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "target")
-            end, false)
-            panel:makeJobButton(188, y, 84, 22, IKST.text("IGUI_IKST_RestoreHere", "Here"), function()
-                IKST_JobVehicle.dispatchRestore(panel, row.backupId, "here")
-            end, true)
-            y = y + 26
-        end
-        panel:makeJobButton(12, y, 120, 22, IKST.text("IGUI_IKST_RefreshBackups", "Refresh backups"), function()
-            IKST_JobVehicle.requestBackupList(panel.player)
-        end, false)
-        y = y + 28
-    end
-
     if state.vehicleMode == "spawn" then
-        if not state.vehicleCategory then
-            state.vehicleCategory = IKST_Catalog.CATEGORY_ALL
-        end
-        local vehicleCatalog = IKST_JobVehicle.loadVehicleCatalog()
-        local vehicleCategories = IKST_Catalog.listCategories(vehicleCatalog, IKST.text("IGUI_IKST_Catalog_All", "All"))
-        y = IKST_JobCatalog.buildCategoryRow(panel, y, vehicleCategories, state.vehicleCategory, function(catId)
-            state.vehicleCategory = catId
-            panel:refreshJobUI()
-        end)
-
-        local selected = IKST_JobVehicle.getSelectedScript(panel) or "Base.CarNormal"
-
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleScriptSearch", "Search vehicle script"), UIFont.Small)
-        y = y + 16
-
-        panel.vehicleFilterEntry = ISTextEntryBox:new(panel.vehicleScriptFilter or "", IKST_JobLayout.MARGIN, y, (panel.contentW or (panel.width - 24)) - 128, 22)
-        panel.vehicleFilterEntry:initialise()
-        panel.vehicleFilterEntry:instantiate()
-        panel:addJobWidget(panel.vehicleFilterEntry)
-        IKST_Chrome.styleInput(panel.vehicleFilterEntry, false)
-
-        panel:makeJobButton(IKST_JobLayout.contentRight(panel) - 108, y, 108, 22, IKST.text("IGUI_IKST_RefreshList", "Refresh"), function()
-            IKST_JobVehicle.scriptList = nil
-            IKST_JobVehicle.vehicleCatalog = nil
-            panel:refreshJobUI()
-        end, false)
-        y = y + 28
-
-        local listH = math.min(160, math.max(90, math.floor((panel.scrollHeight or 160) * 0.38)))
-        panel.vehicleListBox = ISScrollingListBox:new(IKST_JobLayout.MARGIN, y, panel.contentW or (panel.width - 24), listH)
-        panel.vehicleListBox:initialise()
-        panel.vehicleListBox:instantiate()
-        panel.vehicleListBox.itemheight = 20
-        panel.vehicleListBox.font = UIFont.Small
-        panel.vehicleListBox.drawBorder = true
-        panel:addJobWidget(panel.vehicleListBox)
-        panel.vehicleListBox.onmousedown = function(target, x, y)
-            if target and target.onMouseDown then
-                target:onMouseDown(x, y)
-            end
-            -- Select without rebuilding: keeps the filtered list and highlight in place.
-            IKST_JobVehicle.onListSelect(panel)
-        end
-        panel.vehicleFilterEntry.onTextChange = function()
-            panel.vehicleScriptFilter = IKST_JobVehicle.readEntryText(panel.vehicleFilterEntry)
-            IKST_JobVehicle.refreshVehicleList(panel, panel.vehicleScriptFilter)
-        end
-        local filterText = IKST_JobVehicle.trim(panel.vehicleScriptFilter or "")
-        if panel.vehicleFilterEntry and type(panel.vehicleFilterEntry.getText) == "function" then
-            local live = IKST_JobVehicle.readEntryText(panel.vehicleFilterEntry)
-            if live ~= "" then
-                filterText = live
-            end
-        end
-        IKST_JobVehicle.refreshVehicleList(panel, filterText)
-        -- Restore highlight on the already-selected row after a rebuild.
-        if panel.vehicleScriptSelected and panel.vehicleScriptSelected ~= "" then
-            for i, row in ipairs(panel.vehicleListBox.items or {}) do
-                if row.item and row.item.full == panel.vehicleScriptSelected then
-                    panel.vehicleListBox.selected = i
-                    break
-                end
-            end
-        end
-        y = y + listH + 6
-        local trunc = IKST_JobCatalog.truncationNote(panel.vehicleListShown or 0, panel.vehicleListTotal or 0)
-        if trunc then
-            panel:makeJobLabel(12, y, trunc, UIFont.Small)
-            y = y + 16
-        end
-
-        panel.vehicleSelectedLabel = panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_SelectedScript", "Selected") .. ": " .. IKST_JobVehicle.formatSelectedScript(selected), UIFont.Small)
-        IKST_JobVehicle.setSelectedLabel(panel, selected)
-        y = y + 18
-
-        panel:makeJobButton(12, y, 100, 24, IKST.text("IGUI_IKST_SpawnRepaired", "Repaired"), function()
-            panel.spawnRepaired = not panel.spawnRepaired
-            panel:refreshJobUI()
-        end, panel.spawnRepaired == true)
-        panel:makeJobButton(118, y, 90, 24, IKST.text("IGUI_IKST_SpawnKey", "With key"), function()
-            panel.spawnWithKey = not panel.spawnWithKey
-            panel:refreshJobUI()
-        end, panel.spawnWithKey == true)
-        y = y + 28
-
-        panel:makeJobButton(12, y, 140, 24, IKST.text("IGUI_IKST_SpawnFeet", "Spawn at feet"), function()
-            local p = panel.player
-            local script = IKST_JobVehicle.getSelectedScript(panel)
-            if not IKST_JobVehicle.scriptExists(script) then
-                IKST.notify(p, IKST.text("IGUI_IKST_InvalidScript", "Unknown vehicle script"), false)
-                return
-            end
-            IKST.dispatchCommand(p, IKST.CMD.vehicleSpawn, {
-                script = script,
-                x = math.floor(p:getX()),
-                y = math.floor(p:getY()),
-                z = p:getZ(),
-                angle = IKST_JobVehicle.playerAngle(p),
-                repaired = panel.spawnRepaired == true,
-                withKey = panel.spawnWithKey == true,
-            })
-        end, true)
-        panel:makeJobButton(160, y, 120, 24, IKST.text("IGUI_IKST_RepairNear", "Repair near"), function()
-            IKST.dispatchCommand(p, IKST.CMD.vehicleRepairNear, {})
-        end, false)
-        panel:makeJobButton(286, y, 100, 24, IKST.text("IGUI_IKST_KeyNear", "Key near"), function()
-            IKST.dispatchCommand(p, IKST.CMD.vehicleKeyNear, {})
-        end, false)
-        y = y + 34
+        return IKST_JobVehicle.buildSpawnHand(panel)
     elseif state.vehicleMode == "claims" and IKST_JobGuard then
         y = IKST_JobGuard.buildVehicles(panel, y)
     elseif state.vehicleMode == "cleanup" then
@@ -1071,54 +1014,7 @@ function IKST_JobVehicle.build(panel)
         y = IKST_JobVehicle.buildDeleteToolbar(panel, y)
         y = IKST_JobVehicle.buildVehiclePickList(panel, y, { visibleRows = 8 })
     elseif state.vehicleMode == "list" then
-        panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_RefreshList", "Refresh list"), function()
-            IKST_JobVehicle.requestList(panel.player)
-        end, false)
-        y = y + 28
-        y = IKST_JobVehicle.buildVehiclePickList(panel, y, {
-            showCondition = true,
-            showDelete = false,
-            showEmpty = true,
-            visibleRows = 8,
-        })
-        if panel.selectedVehicleId then
-            if vehiclesWorkspace and navTool == "repair" then
-                panel:makeJobButton(12, y, 64, 24, IKST.text("IGUI_IKST_VehicleFlip", "Flip"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleFlip, { vehicleId = panel.selectedVehicleId })
-                end, false)
-                panel:makeJobButton(82, y, 64, 24, IKST.text("IGUI_IKST_VehicleRepair", "Repair"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleRepair, { vehicleId = panel.selectedVehicleId })
-                end, true)
-                panel:makeJobButton(152, y, 52, 24, IKST.text("IGUI_IKST_VehicleKey", "Key"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleKey, { vehicleId = panel.selectedVehicleId })
-                end, false)
-                panel:makeJobButton(210, y, 120, 24, IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockDoors, { vehicleId = panel.selectedVehicleId })
-                end, false)
-            else
-                panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleRelocateKeysNote",
-                    "Relocate keeps trunk contents and keys when possible. If keys stop working, use Give keys."), UIFont.Small)
-                y = y + 18
-                panel:makeJobButton(12, y, 88, 24, IKST.text("IGUI_IKST_VehicleMove", "Move here"), function()
-                    IKST_JobVehicle.dispatchMove(panel)
-                end, true)
-                panel:makeJobButton(106, y, 58, 24, IKST.text("IGUI_IKST_VehicleFlip", "Flip"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleFlip, { vehicleId = panel.selectedVehicleId })
-                end, false)
-                panel:makeJobButton(170, y, 64, 24, IKST.text("IGUI_IKST_VehicleRepair", "Repair"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleRepair, { vehicleId = panel.selectedVehicleId })
-                end, false)
-                panel:makeJobButton(240, y, 52, 24, IKST.text("IGUI_IKST_VehicleKey", "Key"), function()
-                    IKST.dispatchCommand(panel.player, IKST.CMD.vehicleKey, { vehicleId = panel.selectedVehicleId })
-                end, false)
-                if not vehiclesWorkspace or navTool == "spawn" then
-                    panel:makeJobButton(298, y, 64, 24, IKST.text("IGUI_IKST_VehicleDelete", "Delete"), function()
-                        IKST_JobVehicle.dispatchDelete(panel, panel.selectedVehicleId)
-                    end, false)
-                end
-            end
-            y = y + 30
-        end
+        return IKST_JobVehicle.buildRepairHand(panel)
     elseif state.vehicleMode == "extras" then
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleExtrasNote", "Skin and unlock on selected or nearest vehicle."), UIFont.Small)
         y = y + 22
@@ -1139,24 +1035,6 @@ function IKST_JobVehicle.build(panel)
         y = y + 34
     elseif state.vehicleMode == "prune" then
         y = IKST_JobVehicle.buildPruneControls(panel, y)
-        if vehiclesWorkspace and navTool == "prune" then
-            y = IKST_JobLayout.flowRow(panel, y, {
-                {
-                    label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"),
-                    w = 120,
-                    fn = function()
-                        IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockDoors, { vehicleId = panel.selectedVehicleId })
-                    end,
-                },
-                {
-                    label = IKST.text("IGUI_IKST_UnlockTrunk", "Unlock trunk"),
-                    w = 120,
-                    fn = function()
-                        IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockTrunk, { vehicleId = panel.selectedVehicleId })
-                    end,
-                },
-            }, 6, 24)
-        end
     elseif state.vehicleMode == "delete" then
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleDeleteNote", "Pick a vehicle below, or delete the nearest."), UIFont.Small)
         y = y + 20
@@ -1171,12 +1049,12 @@ function IKST_JobVehicle.build(panel)
                     w = 160,
                     fn = function()
                         IKST_Confirm.showDestructive(IKST.text("IGUI_IKST_Confirm_Wipe", "Wipe all vehicles in this cell?"), function()
-                            local p = panel.player
-                            IKST.dispatchCommand(p, IKST.CMD.vehicleDeleteCell, {
-                                cellX = math.floor(p:getX() / 300),
-                                cellY = math.floor(p:getY() / 300),
+                            local pl = panel.player
+                            IKST.dispatchCommand(pl, IKST.CMD.vehicleDeleteCell, {
+                                cellX = math.floor(pl:getX() / 300),
+                                cellY = math.floor(pl:getY() / 300),
                             })
-                            IKST_JobVehicle.requestList(p)
+                            IKST_JobVehicle.requestList(pl)
                         end)
                     end,
                 },

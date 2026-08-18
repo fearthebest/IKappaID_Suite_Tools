@@ -7,14 +7,6 @@ IKST_UIPrefs = IKST_UIPrefs or {}
 
 local FILE = "IKST_UIPrefs.txt"
 local cache = nil
-local ALLOWED_KEYS = {
-    panelX = true,
-    panelY = true,
-    panelW = true,
-    panelH = true,
-    logX = true,
-    logY = true,
-}
 
 local function ensureCache()
     if cache then
@@ -31,7 +23,7 @@ local function ensureCache()
     local line = reader:readLine()
     while line ~= nil do
         local k, v = string.match(line, "^([^|]+)|(.*)$")
-        if k and k ~= "" and ALLOWED_KEYS[k] then
+        if k and k ~= "" then
             cache[k] = v
         end
         line = reader:readLine()
@@ -58,7 +50,7 @@ function IKST_UIPrefs.getNumber(key)
 end
 
 function IKST_UIPrefs.set(key, value)
-    if not key or key == "" or not ALLOWED_KEYS[key] then
+    if not key or key == "" then
         return
     end
     ensureCache()[key] = tostring(value)
@@ -70,9 +62,7 @@ function IKST_UIPrefs.set(key, value)
         return
     end
     for k, v in pairs(cache) do
-        if ALLOWED_KEYS[k] then
-            writer:write(tostring(k) .. "|" .. tostring(v) .. "\n")
-        end
+        writer:write(tostring(k) .. "|" .. tostring(v) .. "\n")
     end
     if type(writer.close) == "function" then
         writer:close()

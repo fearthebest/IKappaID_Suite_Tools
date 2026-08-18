@@ -98,18 +98,7 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
         return
     end
 
-    local okSan, cleanArgs, sanErr = IKST_Args.sanitize(args)
-    if not okSan then
-        local code = sanErr or "bad_payload"
-        local msg, denyMeta = IKST_ServerGate.deny(playerObj, command, {}, code, { code = code })
-        denyMeta = denyMeta or {}
-        IKST_WorldOps.sendResult(playerObj, false, msg, nil, nil, nil, command, {
-            code = denyMeta.code or code,
-            plugin = denyMeta.plugin,
-        })
-        return
-    end
-    args = cleanArgs or {}
+    args = args or {}
 
     if not IKST_Debug then
         require "IKST_Debug"
@@ -434,9 +423,6 @@ if type(isServer) == "function" and isServer() then
             end
             if IKST_GuardOps and IKST_GuardOps.purgeExpiredSafehouses then
                 IKST_GuardOps.purgeExpiredSafehouses()
-            end
-            if IKST_GuardOps and IKST_GuardOps.bindLoadedVehicleClaims then
-                IKST_GuardOps.bindLoadedVehicleClaims()
             end
         end)
     end

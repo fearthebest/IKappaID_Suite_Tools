@@ -52,7 +52,7 @@ Each wrap saves the previous function in a local and **calls it when the action 
 - No chat / UI class hijacks for enforcement
 - No fake timed-action constructors
 - No `pcall` around file or vanilla calls
-- Not a copy of any third-party hook registry; one IKST file per pack, calling IKST shared rules only
+- One IKST file per pack, calling IKST shared rules only
 
 ## Mod compatibility
 

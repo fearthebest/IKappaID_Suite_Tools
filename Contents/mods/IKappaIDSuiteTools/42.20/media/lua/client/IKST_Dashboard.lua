@@ -130,9 +130,12 @@ function IKST_Dashboard.statLines(statId)
     end
     if statId == "online" then
         local maxP = tonumber(s.maxPlayers) or 0
-        local sub = maxP > 0
-            and (IKST.text("IGUI_IKST_Dashboard_Stat_OnlineSub", "of %1 max"):gsub("%%1", tostring(maxP)))
-            or ""
+        -- Do not put %1 in getText strings — B42 Translator formats it and throws every frame.
+        local sub = ""
+        if maxP > 0 then
+            sub = IKST.text("IGUI_IKST_Dashboard_Stat_OnlineSub", "of") .. " " .. tostring(maxP) .. " "
+                .. IKST.text("IGUI_IKST_Dashboard_Stat_OnlineSubMax", "max")
+        end
         return tostring(s.online or 0), sub
     end
     if statId == "safehouse" then
@@ -144,7 +147,7 @@ function IKST_Dashboard.statLines(statId)
     if statId == "uptime" then
         local value, sub = formatUptime(s.uptimeSec)
         if s.uptimeSince and s.uptimeSince ~= "" then
-            sub = IKST.text("IGUI_IKST_Dashboard_Stat_UptimeSub", "since %1"):gsub("%%1", tostring(s.uptimeSince))
+            sub = IKST.text("IGUI_IKST_Dashboard_Stat_UptimeSub", "since") .. " " .. tostring(s.uptimeSince)
         end
         return value, sub
     end
@@ -161,7 +164,8 @@ function IKST_Dashboard.statLines(statId)
         local pending = tonumber(s.pendingHelp) or 0
         local sub = ""
         if pending > 0 and tonumber(s.helpOldestMin) and s.helpOldestMin > 0 then
-            sub = IKST.text("IGUI_IKST_Dashboard_Stat_HelpSub", "oldest %1m ago"):gsub("%%1", tostring(s.helpOldestMin))
+            sub = IKST.text("IGUI_IKST_Dashboard_Stat_HelpSub", "oldest") .. " "
+                .. tostring(s.helpOldestMin) .. IKST.text("IGUI_IKST_Dashboard_Stat_HelpSubMin", "m ago")
         end
         return tostring(pending), sub
     end

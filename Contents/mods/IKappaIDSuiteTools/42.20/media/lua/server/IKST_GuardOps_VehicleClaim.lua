@@ -48,15 +48,17 @@ function IKST_GuardOps.enrichNearbyRow(row, viewer)
     if row.claimKey and row.claimKey ~= "" then
         entry = IKST_VehicleClaim.get(row.claimKey)
     end
-    if (not entry) and row.id ~= nil and IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
+    if not entry and row.id ~= nil and IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function" then
         local live = IKST_VehicleUtil.getVehicle(row.id)
         if live then
-            entry = IKST_VehicleClaim.getForVehicle(live)
+            entry = select(1, IKST_VehicleClaim.getForVehicle(live))
         end
+    end
+    if not entry then
+        entry = IKST_VehicleClaim.get(row.id)
     end
     if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
         local claimRow = IKST_GuardOps.claimRowForViewer(entry, viewer)
-        row.claimKey = claimRow.claimKey or tostring(entry.id)
         row.claimed = true
         row.ownerLabel = claimRow.ownerLabel
         row.isMine = claimRow.isMine
@@ -65,6 +67,7 @@ function IKST_GuardOps.enrichNearbyRow(row, viewer)
         row.canEdit = claimRow.canEdit
         row.hoursRemainingText = claimRow.hoursRemainingText
         row.displayLabel = claimRow.displayLabel
+        row.claimKey = claimRow.claimKey
         if entry.label and entry.label ~= "" then
             row.claimNote = entry.label
         end
@@ -222,7 +225,6 @@ function IKST_GuardOps.resolveClaimVehicle(actor, rawId)
     return vehicle, nil
 end
 
--- Registry key for release/edit. Never use a live session getId() as the store key.
 function IKST_GuardOps.claimStoreKey(actor, args)
     args = args or {}
     local listed = args.claimKey
@@ -258,36 +260,4 @@ function IKST_GuardOps.canManageVehicleClaim(actor, entry, vehicleId)
         return true
     end
     return IKST_VehicleClaim.playerMayRelease(entry, actor, vehicleId)
-end
-
-local function onVehicleSpawn(vehicle)
-    if not vehicle then
-        return
-    end
-    if type(isClient) == "function" and isClient()
-        and type(isServer) == "function" and not isServer() then
-        return
-    end
-    if IKST_VehicleClaim and type(IKST_VehicleClaim.bindLoadedVehicle) == "function" then
-        IKST_VehicleClaim.bindLoadedVehicle(vehicle)
-    end
-end
-
-function IKST_GuardOps.bindLoadedVehicleClaims()
-    if not IKST_VehicleUtil or type(IKST_VehicleUtil.getVehiclesFromCell) ~= "function" then
-        return
-    end
-    local vehicles = IKST_VehicleUtil.getVehiclesFromCell()
-    if not vehicles or type(IKST_VehicleUtil.forEachVehicle) ~= "function" then
-        return
-    end
-    IKST_VehicleUtil.forEachVehicle(vehicles, function(vehicle)
-        if IKST_VehicleClaim and type(IKST_VehicleClaim.bindLoadedVehicle) == "function" then
-            IKST_VehicleClaim.bindLoadedVehicle(vehicle)
-        end
-    end)
-end
-
-if Events and Events.OnSpawnVehicleStart and Events.OnSpawnVehicleStart.Add then
-    Events.OnSpawnVehicleStart.Add(onVehicleSpawn)
 end

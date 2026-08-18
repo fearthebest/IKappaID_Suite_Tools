@@ -4,8 +4,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Grid"
-require "IKST_Chrome"
-require "ISUI/ISPanel"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_PreviewOverlay = IKST_PreviewOverlay or {}
 IKST_PreviewOverlay.batchSquares = {}
@@ -30,17 +29,17 @@ local PREVIEW_COLORS = {
 
 local function previewRGBA(colorKey, alpha)
     local name = PREVIEW_COLORS[colorKey] or "accent"
-    local c = IKST_Chrome.colors[name] or IKST_Chrome.colors.accent
+    local c = IKUI_Chrome.colors[name] or IKUI_Chrome.colors.accent
     return c.r, c.g, c.b, alpha or 0.55
 end
 
 local function squareColor()
-    local c = IKST_Chrome.colors.accent
+    local c = IKUI_Chrome.colors.accent
     return c.r, c.g, c.b, 0.55
 end
 
 local function objectColor()
-    local c = IKST_Chrome.colors.danger
+    local c = IKUI_Chrome.colors.danger
     return c.r, c.g, c.b, 0.90
 end
 
@@ -601,57 +600,13 @@ local function refreshHighlights()
     reapplyHighlightList(IKST_PreviewOverlay._jobHighlightedObjects, jr, jg, jb, 0.85)
 end
 
-local function ensureCrosshairPanel()
-    if IKST_PreviewOverlay._crosshairPanel then
-        return IKST_PreviewOverlay._crosshairPanel
-    end
-    local p = ISPanel:new(0, 0, 16, 16)
-    p:initialise()
-    p:instantiate()
-    p.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
-    p.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    p.render = function(self)
-        local r, g, b, a = previewRGBA("accent", 0.95)
-        self:drawRect(0, 7, 16, 2, a, r, g, b)
-        self:drawRect(7, 0, 2, 16, a, r, g, b)
-    end
-    p:addToUIManager()
-    p:setVisible(false)
-    IKST_PreviewOverlay._crosshairPanel = p
-    return p
-end
-
-local function updateArmedCrosshair()
-    local player = getPlayer and getPlayer() or nil
-    local armed = false
-    if player and IKST and IKST.getPlayerState then
-        local state = IKST.getPlayerState(player)
-        armed = state and state.armed == true
-    end
-    local panel = ensureCrosshairPanel()
-    if not armed then
-        panel:setVisible(false)
-        return false
-    end
-    local mx = getMouseXScaled and getMouseXScaled() or (getMouseX and getMouseX() or 0)
-    local my = getMouseYScaled and getMouseYScaled() or (getMouseY and getMouseY() or 0)
-    panel:setX(mx - 8)
-    panel:setY(my - 8)
-    panel:setVisible(true)
-    return true
-end
-
 local function onRenderTick()
-    local armed = updateArmedCrosshair()
     if #IKST_PreviewOverlay._batchHighlightedSquares == 0
         and #IKST_PreviewOverlay._batchHighlightedObjects == 0
         and #IKST_PreviewOverlay._hoverHighlightedSquares == 0
         and #IKST_PreviewOverlay._hoverHighlightedObjects == 0
         and #IKST_PreviewOverlay._jobHighlightedSquares == 0
         and #IKST_PreviewOverlay._jobHighlightedObjects == 0 then
-        if not armed then
-            return
-        end
         return
     end
     IKST_PreviewOverlay._hlFrame = (IKST_PreviewOverlay._hlFrame or 0) + 1

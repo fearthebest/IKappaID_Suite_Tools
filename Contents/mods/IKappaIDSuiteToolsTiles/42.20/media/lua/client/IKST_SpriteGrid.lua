@@ -2,7 +2,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_Shared"
 
 IKST_SpriteGrid = ISPanel:derive("IKST_SpriteGrid")
@@ -18,8 +18,8 @@ function IKST_SpriteGrid:new(x, y, w, h, sprites, onPick)
     o.gap = 4
     o.perPage = 48
     o.page = 1
-    o.backgroundColor = IKST_Chrome.colors.bgCard
-    o.borderColor = IKST_Chrome.colors.accentDim
+    o.backgroundColor = IKUI_Chrome.colors.bgCard
+    o.borderColor = IKUI_Chrome.colors.accentDim
     return o
 end
 
@@ -76,7 +76,7 @@ end
 function IKST_SpriteGrid:render()
     ISPanel.render(self)
     local pageSprites = self:getPageSprites()
-    local cc = IKST_Chrome.colors
+    local cc = IKUI_Chrome.colors
     for i, entry in ipairs(pageSprites) do
         local spriteName = tostring(entry.sprite or entry)
         local col = (i - 1) % self.cols

@@ -13,7 +13,7 @@ require "IKST_Economy"
 require "IKST_EconomyBridge"
 require "IKST_Identity"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ScrollArea"
 require "IKST_EconomyIcons"
 
@@ -192,7 +192,7 @@ function IKST_EconomyUI.addJobIconLabel(panel, x, y, itemType, text, font, tall,
     local labelFont = font or UIFont.Small
     label.render = function(p)
         ISPanel.render(p)
-        local cc = IKST_Chrome.colors
+        local cc = IKUI_Chrome.colors
         local tr, tg, tb = cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b
         if muted then
             tr, tg, tb = cc.textMuted.r, cc.textMuted.g, cc.textMuted.b
@@ -229,9 +229,9 @@ function IKST_EconomyUI.addJobIconButton(panel, x, y, w, h, itemType, label, onC
     local btn = ISButton:new(x, y, w, h, "", panel, onClick)
     btn:initialise()
     if primary then
-        IKST_Chrome.stylePrimaryButton(btn)
+        IKUI_Chrome.stylePrimaryButton(btn)
     else
-        IKST_Chrome.styleSecondaryButton(btn)
+        IKUI_Chrome.styleSecondaryButton(btn)
     end
     IKST_EconomyUI.applyIconButton(btn, itemType, label)
     return panel:addJobWidget(btn)
@@ -241,8 +241,8 @@ IKST_EconomyNote = ISPanel:derive("IKST_EconomyNote")
 
 function IKST_EconomyNote:new(x, y, w, h, itemType)
     local o = ISPanel.new(self, x, y, w, h)
-    o.backgroundColor = IKST_Chrome.colors.bgCard
-    o.borderColor = IKST_Chrome.colors.accentDim
+    o.backgroundColor = IKUI_Chrome.colors.bgCard
+    o.borderColor = IKUI_Chrome.colors.accentDim
     o.itemType = itemType
     o.noteText = ""
     o.muted = false
@@ -259,7 +259,7 @@ end
 
 function IKST_EconomyNote:render()
     ISPanel.render(self)
-    local cc = IKST_Chrome.colors
+    local cc = IKUI_Chrome.colors
     local tr, tg, tb = cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b
     if self.muted then
         tr, tg, tb = cc.textMuted.r, cc.textMuted.g, cc.textMuted.b
@@ -384,7 +384,7 @@ function IKST_EconomyPanel:new(x, y, w, h)
     o.player = nil
     o.atmX, o.atmY, o.atmZ = 0, 0, 0
     o.statusText = ""
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     return o
 end
 
@@ -502,15 +502,15 @@ function IKST_EconomyPanel:buildUI()
     local y = 34
 
     self.balancePanel = ISPanel:new(12, y, self.width - 24, 58)
-    self.balancePanel.backgroundColor = IKST_Chrome.colors.bgCard
-    self.balancePanel.borderColor = IKST_Chrome.colors.accentDim
+    self.balancePanel.backgroundColor = IKUI_Chrome.colors.bgCard
+    self.balancePanel.borderColor = IKUI_Chrome.colors.accentDim
     self.balancePanel:initialise()
     local owner = self
     self.balancePanel.render = function(p)
         ISPanel.render(p)
         local player = owner.player
         local cash, bank, pending = IKST_EconomyUI.getBalances(player)
-        local cc = IKST_Chrome.colors
+        local cc = IKUI_Chrome.colors
         local cashLine = IKST.text("IGUI_IKST_Economy_Cash", "Cash") .. ": " .. IKST_Economy.formatAmount(cash)
         local bankLine = IKST.text("IGUI_IKST_Economy_Bank", "Bank") .. ": " .. IKST_Economy.formatAmount(bank)
         IKST_EconomyUI.drawIconText(p, 8, 6, IKST_EconomyUI.cashItemType(), cashLine, UIFont.Medium, cc.accent.r, cc.accent.g, cc.accent.b, 1, 22)
@@ -525,7 +525,7 @@ function IKST_EconomyPanel:buildUI()
 
     self.btnRefresh = ISButton:new(self.width - 92, y, 80, 22, IKST.text("IGUI_IKST_Economy_Refresh", "Refresh"), self, IKST_EconomyPanel.onRefresh)
     self.btnRefresh:initialise()
-    IKST_Chrome.styleSecondaryButton(self.btnRefresh)
+    IKUI_Chrome.styleSecondaryButton(self.btnRefresh)
     self:addChild(self.btnRefresh)
 
     self.atmNote = IKST_EconomyNote:new(12, y, self.width - 112, 24, IKST_EconomyUI.atmItemType())
@@ -550,13 +550,13 @@ function IKST_EconomyPanel:buildUI()
 
     self.btnDeposit = ISButton:new(100, y, 88, 22, "", self, IKST_EconomyPanel.onDeposit)
     self.btnDeposit:initialise()
-    IKST_Chrome.styleSecondaryButton(self.btnDeposit)
+    IKUI_Chrome.styleSecondaryButton(self.btnDeposit)
     IKST_EconomyUI.applyIconButton(self.btnDeposit, IKST_EconomyUI.bankItemType(), IKST.text("IGUI_IKST_Economy_Deposit", "Deposit"))
     self:addChild(self.btnDeposit)
 
     self.btnWithdraw = ISButton:new(194, y, 88, 22, "", self, IKST_EconomyPanel.onWithdraw)
     self.btnWithdraw:initialise()
-    IKST_Chrome.styleSecondaryButton(self.btnWithdraw)
+    IKUI_Chrome.styleSecondaryButton(self.btnWithdraw)
     IKST_EconomyUI.applyIconButton(self.btnWithdraw, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_Withdraw", "Withdraw"))
     self:addChild(self.btnWithdraw)
     y = y + 30
@@ -575,7 +575,7 @@ function IKST_EconomyPanel:buildUI()
 
     self.btnWire = ISButton:new(self.width - 92, y, 80, 22, "", self, IKST_EconomyPanel.onWire)
     self.btnWire:initialise()
-    IKST_Chrome.stylePrimaryButton(self.btnWire)
+    IKUI_Chrome.stylePrimaryButton(self.btnWire)
     IKST_EconomyUI.applyIconButton(self.btnWire, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_WireBtn", "Wire"))
     self:addChild(self.btnWire)
     y = y + 34
@@ -598,31 +598,31 @@ function IKST_EconomyPanel:buildUI()
     self.valList.itemheight = ROW_H
     self.valList.font = UIFont.Small
     self.valList.drawBorder = true
-    self.valList.backgroundColor = IKST_Chrome.colors.bgCard
-    self.valList.borderColor = IKST_Chrome.colors.accentDim
+    self.valList.backgroundColor = IKUI_Chrome.colors.bgCard
+    self.valList.borderColor = IKUI_Chrome.colors.accentDim
     self.valScroll:addScrollChild(self.valList)
 
     self.btnSell = ISButton:new(MARGIN, y, 100, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onExchange)
     self.btnSell:initialise()
-    IKST_Chrome.styleSecondaryButton(self.btnSell)
+    IKUI_Chrome.styleSecondaryButton(self.btnSell)
     IKST_EconomyUI.applyIconButton(self.btnSell, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_Exchange", "Sell 1"))
     self:addChild(self.btnSell)
 
     self.btnSellAll = ISButton:new(MARGIN + 106, y, 120, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onExchangeAll)
     self.btnSellAll:initialise()
-    IKST_Chrome.stylePrimaryButton(self.btnSellAll)
+    IKUI_Chrome.stylePrimaryButton(self.btnSellAll)
     IKST_EconomyUI.applyIconButton(self.btnSellAll, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_SellAll", "Sell all"))
     self:addChild(self.btnSellAll)
 
     self.btnReplaceId = ISButton:new(MARGIN + 232, y, 130, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onReplaceIdCard)
     self.btnReplaceId:initialise()
-    IKST_Chrome.styleSecondaryButton(self.btnReplaceId)
+    IKUI_Chrome.styleSecondaryButton(self.btnReplaceId)
     IKST_EconomyUI.applyIconButton(self.btnReplaceId, "Base.IDcard", IKST.text("IGUI_IKST_Economy_ReplaceId", "Replace bank ID"))
     self:addChild(self.btnReplaceId)
 
     self.statusPanel = ISPanel:new(MARGIN, y, self.width - MARGIN * 2, FOOTER_STATUS_H)
-    self.statusPanel.backgroundColor = IKST_Chrome.colors.bgCard
-    self.statusPanel.borderColor = IKST_Chrome.colors.accentDim
+    self.statusPanel.backgroundColor = IKUI_Chrome.colors.bgCard
+    self.statusPanel.borderColor = IKUI_Chrome.colors.accentDim
     self.statusPanel:initialise()
     local statusOwner = self
     self.statusPanel.render = function(p)
@@ -631,7 +631,7 @@ function IKST_EconomyPanel:buildUI()
         if msg == "" then
             return
         end
-        local cc = IKST_Chrome.colors
+        local cc = IKUI_Chrome.colors
         p:drawText(msg, 6, 4, cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small)
     end
     self:addChild(self.statusPanel)
@@ -686,8 +686,8 @@ function IKST_EconomyPanel:refreshAtmNote()
             if remain and remain > 0 then
                 local hours = math.ceil(remain / 3600000)
                 self.btnReplaceId.enable = false
-                self:setStatus(IKST.text("IGUI_IKST_Economy_ReplaceIdCooldown",
-                    "Replace bank ID available in %1 hours."):gsub("%%1", tostring(hours)))
+                self:setStatus(IKST.format("IGUI_IKST_Economy_ReplaceIdCooldown",
+                    "Replace bank ID available in {1} hours.", tostring(hours)))
             else
                 self.btnReplaceId.enable = true
             end
@@ -886,7 +886,7 @@ function IKST_VendShop:new(x, y, w, h)
     o.listScrollY = 0
     o.statusText = ""
     o.statusOk = true
-    IKST_Chrome.applyPanelColors(o)
+    IKUI_Chrome.applyPanelColors(o)
     return o
 end
 
@@ -905,19 +905,19 @@ function IKST_VendShop:initialise()
         self.btnSetPrice = ISButton:new(100, self.height - 72, 140, 22,
             IKST.text("IGUI_IKST_Economy_SetPriceAll", "Set price (all)"), self, IKST_VendShop.onSetPrice)
         self.btnSetPrice:initialise()
-        IKST_Chrome.styleSecondaryButton(self.btnSetPrice)
+        IKUI_Chrome.styleSecondaryButton(self.btnSetPrice)
         self:addChild(self.btnSetPrice)
         self.btnClearPrice = ISButton:new(248, self.height - 72, 80, 22,
             IKST.text("IGUI_IKST_Economy_ClearPrice", "Clear"), self, IKST_VendShop.onClearPrice)
         self.btnClearPrice:initialise()
-        IKST_Chrome.styleSecondaryButton(self.btnClearPrice)
+        IKUI_Chrome.styleSecondaryButton(self.btnClearPrice)
         self:addChild(self.btnClearPrice)
     end
     local btnLabel = self.manageMode and IKST.text("IGUI_IKST_RefreshList", "Refresh") or IKST.text("IGUI_IKST_Economy_BuyOne", "Buy 1")
     local btnFn = self.manageMode and IKST_VendShop.requestList or IKST_VendShop.onBuy
     self.btnBuy = ISButton:new(12, self.height - 40, self.width - 24, 28, btnLabel, self, btnFn)
     self.btnBuy:initialise()
-    IKST_Chrome.stylePrimaryButton(self.btnBuy)
+    IKUI_Chrome.stylePrimaryButton(self.btnBuy)
     self:addChild(self.btnBuy)
     self:setStatus(IKST.text("IGUI_IKST_Economy_ShopPickRow", "Select a row, then buy or set price."), true)
     self:requestList()
@@ -994,7 +994,7 @@ end
 
 function IKST_VendShop:render()
     ISCollapsableWindow.render(self)
-    local cc = IKST_Chrome.colors
+    local cc = IKUI_Chrome.colors
     local y = 32
     self:drawText(IKST.text("IGUI_IKST_Economy_ShopOwner", "Owner") .. ": " .. tostring(
         (IKST_Identity and IKST_Identity.labelForKey and IKST_Identity.labelForKey(self.owner)) or self.owner or "?"),

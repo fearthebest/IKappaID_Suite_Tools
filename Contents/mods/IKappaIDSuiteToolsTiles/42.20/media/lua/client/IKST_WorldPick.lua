@@ -6,7 +6,6 @@ end
 require "IKST_Shared"
 require "IKST_Lifecycle"
 require "IKST_Access"
-require "IKST_JobLayout"
 require "IKST_Grid"
 require "IKST_PreviewOverlay"
 require "IKST_HubNav"
@@ -232,77 +231,34 @@ function IKST_WorldPick.isArmed(player)
     return state and state.armed
 end
 
-function IKST_WorldPick.isMouseOverPanel()
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if not panel or not panel.getIsVisible or not panel:getIsVisible() then
+-- Same check as vanilla ISBuildingObject: UI under cursor vs world.
+function IKST_WorldPick.isMouseOverUI()
+    if not UIManager or type(UIManager.getUI) ~= "function" then
         return false
     end
-    if not getMouseX or not getMouseY then
+    local uis = UIManager.getUI()
+    if not uis or type(uis.size) ~= "function" or type(uis.get) ~= "function" then
         return false
     end
-    local mx = getMouseX()
-    local my = getMouseY()
-    local px = panel:getX()
-    local py = panel:getY()
-
-    local titleH = panel:titleBarHeight()
-    if mx >= px and mx <= px + panel.width and my >= py and my <= py + titleH then
-        return true
-    end
-    if panel.homeNavBtn and panel.homeNavBtn:getIsVisible() then
-        local btn = panel.homeNavBtn
-        local bx = px + btn:getX()
-        local by = py + btn:getY()
-        if mx >= bx and mx <= bx + btn.width and my >= by and my <= by + btn.height then
-            return true
-        end
-    end
-    if not panel.jobLayer or not panel.jobLayer:getIsVisible() then
-        return false
-    end
-
-    local layerX = px + panel.jobLayer:getX()
-    local layerY = py + panel.jobLayer:getY()
-    local function inLayerRect(rx, ry, rw, rh)
-        if not rw or rw <= 0 or not rh or rh <= 0 then
-            return false
-        end
-        return mx >= layerX + rx and mx <= layerX + rx + rw
-            and my >= layerY + ry and my <= layerY + ry + rh
-    end
-
-    if IKST_JobLayout then
-        local x1, y1, w1, h1 = IKST_JobLayout.q1Rect(panel)
-        if inLayerRect(x1, y1, w1, h1) then
-            return true
-        end
-        local x2, y2, w2, h2 = IKST_JobLayout.q2Rect(panel)
-        if inLayerRect(x2, y2, w2, h2) then
-            return true
-        end
-        local x3, y3, w3, h3 = IKST_JobLayout.q3Rect(panel)
-        if inLayerRect(x3, y3, w3, h3) then
-            return true
-        end
-        local x4, y4, w4, h4 = IKST_JobLayout.q4Rect(panel)
-        if inLayerRect(x4, y4, w4, h4) then
-            return true
-        end
-        local hintY = IKST_JobLayout.hintStripY(panel) - panel.jobLayer:getY()
-        local hintH = IKST_JobLayout.HINT_HEIGHT or 28
-        if inLayerRect(0, hintY, panel.jobLayer:getWidth(), hintH) then
+    for i = 1, uis:size() do
+        local ui = uis:get(i - 1)
+        if ui and type(ui.isMouseOver) == "function" and ui:isMouseOver() then
             return true
         end
     end
     return false
 end
 
+function IKST_WorldPick.isMouseOverPanel()
+    return IKST_WorldPick.isMouseOverUI()
+end
+
 function IKST_WorldPick.clickBlockReason(player)
     if not IKST_WorldPick.isWorldArmed(player) then
         return "not_armed"
     end
-    if IKST_WorldPick.isMouseOverPanel() then
-        return "over_panel"
+    if IKST_WorldPick.isMouseOverUI() then
+        return "over_ui"
     end
     if IKST_WorldPick.isPickCooldownActive() then
         return "cooldown"
@@ -314,11 +270,13 @@ function IKST_WorldPick.notifyClickBlock(player, reason)
     if not player or not reason or IKST_WorldPick.isBlockNotifyCooldownActive() then
         return
     end
+    -- Over UI: silent so panel / inventory clicks keep working.
+    if reason == "over_ui" then
+        return
+    end
     IKST_WorldPick._blockNotifyUntil = IKST_WorldPick.nowMs() + IKST_WorldPick.BLOCK_NOTIFY_COOLDOWN_MS
     if reason == "not_armed" then
         IKST.notify(player, IKST.text("IGUI_IKST_WorldPick_NotArmed", "Arm a world tool first"), false)
-    elseif reason == "over_panel" then
-        IKST.notify(player, IKST.text("IGUI_IKST_Loot_OverPanel", "Click outside the Suite Tools window"), false)
     elseif reason == "cooldown" then
         IKST.notify(player, IKST.text("IGUI_IKST_Loot_Cooldown", "Wait a moment before clicking again"), false)
     end
@@ -353,12 +311,8 @@ function IKST_WorldPick.getMouseScreenXY()
     if IKST_Grid and IKST_Grid.getMouseScreenXY then
         return IKST_Grid.getMouseScreenXY()
     end
-    -- Same as DiggingUtil / screenToIso: unscaled mouse for world + UI alignment.
     if type(getMouseX) == "function" and type(getMouseY) == "function" then
         return getMouseX(), getMouseY()
-    end
-    if type(getMouseXScaled) == "function" and type(getMouseYScaled) == "function" then
-        return getMouseXScaled(), getMouseYScaled()
     end
     return nil, nil
 end
@@ -461,13 +415,19 @@ function IKST_WorldPick.onMouseDown(x, y)
     if not IKST_WorldPick.isWorldArmed(IKST_WorldPick.activePlayer) then
         return
     end
+    if IKST_WorldPick.isMouseOverUI() then
+        return
+    end
     IKST_WorldPick._pendingScreenClick = { x = x, y = y }
 end
 
 function IKST_WorldPick.onObjectLeftMouseDown(obj, x, y)
+    local player = IKST_WorldPick.activePlayer
+    if not IKST_WorldPick.isWorldArmed(player) then
+        return
+    end
     IKST_WorldPick._objectClickConsumed = true
     IKST_WorldPick._pendingScreenClick = nil
-    local player = IKST_WorldPick.activePlayer
     local block = IKST_WorldPick.clickBlockReason(player)
     if block then
         IKST_WorldPick.notifyClickBlock(player, block)
@@ -484,7 +444,7 @@ function IKST_WorldPick.onObjectLeftMouseDown(obj, x, y)
 end
 
 function IKST_WorldPick.updateHoverSquare(player)
-    if IKST_WorldPick.isMouseOverPanel() then
+    if IKST_WorldPick.isMouseOverUI() then
         IKST_WorldPick.clearHover()
         return
     end

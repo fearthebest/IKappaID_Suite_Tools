@@ -394,9 +394,9 @@ function IKST_ClaimPolicy.limitsSummary()
     local dText = days > 0
         and (tostring(days) .. " " .. IKST.text("IGUI_IKST_Claim_Days", "days"))
         or IKST.text("IGUI_IKST_Claim_NoExpiry", "no expiry")
-    local fmt = IKST.text("IGUI_IKST_Claim_LimitsFmt", "Vehicles: %1  Safehouses: %2  Duration: %3")
-    fmt = string.gsub(fmt, "%%1", vText)
-    fmt = string.gsub(fmt, "%%2", sText)
-    fmt = string.gsub(fmt, "%%3", dText)
+    local fmt = IKST.text("IGUI_IKST_Claim_LimitsFmt", "Vehicles: {1}  Safehouses: {2}  Duration: {3}")
+    fmt = string.gsub(fmt, "{1}", vText)
+    fmt = string.gsub(fmt, "{2}", sText)
+    fmt = string.gsub(fmt, "{3}", dText)
     return fmt
 end

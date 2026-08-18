@@ -7,7 +7,7 @@ require "ISUI/ISLabel"
 require "ISUI/ISPanel"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_JobLayout"
 require "IKST_ActionLog"
@@ -18,7 +18,7 @@ require "IKST_LootOps"
 IKST_JobLoot = IKST_JobLoot or {}
 
 function IKST_JobLoot.invalidatePreview()
-    if IKST_LootOps and IKST_LootOps.invalidatePreviewCache then
+    if IKST_LootOps and type(IKST_LootOps.invalidatePreviewCache) == "function" then
         IKST_LootOps.invalidatePreviewCache()
     end
 end
@@ -141,7 +141,7 @@ function IKST_JobLoot.syncArm(panel)
     if state.armed and state.armedJob == IKST.VIEW.loot then
         IKST_JobLoot.armPick(panel, true)
     end
-    if IKST_Preview and IKST_Preview.syncForPanel then
+    if IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
         IKST_Preview.syncForPanel(panel)
     end
 end
@@ -289,7 +289,7 @@ function IKST_JobLoot.tryDispatchZone(player, x, y, z, scope, radius)
     if not player then
         return false
     end
-    if IKST_LootOps and IKST_LootOps.ensureLootPickerReady then
+    if IKST_LootOps and type(IKST_LootOps.ensureLootPickerReady) == "function" then
         IKST_LootOps.ensureLootPickerReady()
     end
     x = math.floor(tonumber(x) or 0)
@@ -300,11 +300,10 @@ function IKST_JobLoot.tryDispatchZone(player, x, y, z, scope, radius)
     local state = IKST.getPlayerState(player)
     local filters = IKST_JobLoot.filterArgs(state)
 
-    -- Preview is advisory only.
     local preview = nil
-    if IKST_LootOps and IKST_LootOps.previewZone then
+    if IKST_LootOps and type(IKST_LootOps.previewZone) == "function" then
         preview = IKST_LootOps.previewZone(x, y, z, scope, { radius = radius })
-        if preview and preview.count == 0 and IKST_LootOps.squaresForScope then
+        if preview and preview.count == 0 and type(IKST_LootOps.squaresForScope) == "function" then
             local squares = IKST_LootOps.squaresForScope(x, y, z, scope, { radius = radius })
             local loose = IKST_LootOps.collectContainersFromSquares(squares, {}, {}, false)
             local candidateCount = 0
@@ -320,7 +319,7 @@ function IKST_JobLoot.tryDispatchZone(player, x, y, z, scope, radius)
         IKST_JobLoot.notifyPreview(player, preview, preview and preview.count and preview.count > 0)
     end
 
-    if IKST_WorldPick and IKST_WorldPick.setPickCooldown then
+    if IKST_WorldPick and type(IKST_WorldPick.setPickCooldown) == "function" then
         IKST_WorldPick.setPickCooldown()
     end
     if IKST.pushLog then
@@ -358,84 +357,12 @@ function IKST_JobLoot.onServerResult(panel, args)
     if msg and msg ~= "" then
         IKST.notify(player, msg, args.success == true)
     end
-    if args.success == true and IKST_LootOps and IKST_LootOps.invalidatePreviewCache then
+    if args.success == true and IKST_LootOps and type(IKST_LootOps.invalidatePreviewCache) == "function" then
         IKST_LootOps.invalidatePreviewCache()
     end
-    if args.success == true and IKST_Preview and IKST_Preview.syncForPanel then
+    if args.success == true and IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
         IKST_Preview.syncForPanel(panel)
     end
-end
-
--- Loot landing (mockup: ikst-page-loot.png). Scopes, tables, filters, preview, refill.
-
-local function lootBtn(parent, panel, x, y, w, h, label, kind, onClick)
-    local btn = IKST_Chrome.newActionButton(x, y, w, h, label, panel, function()
-        if onClick then
-            onClick()
-        end
-    end, kind or "chip")
-    parent:addChild(btn)
-    return btn
-end
-
-local function lootFlowLayout(items, cardW, gap)
-    local padX = IKST_UI_Layout.s(14)
-    local usableW = math.max(40, cardW - (padX * 2))
-    local rows = {}
-    local curRow = {}
-    local curX = 0
-    for _, item in ipairs(items) do
-        local w = IKST_UI_Layout.buttonWidth(item.label, UIFont.Small, 96)
-        if curX > 0 and curX + gap + w > usableW then
-            rows[#rows + 1] = curRow
-            curRow = {}
-            curX = 0
-        end
-        if curX > 0 then
-            curX = curX + gap
-        end
-        curRow[#curRow + 1] = { item = item, x = padX + curX, w = w }
-        curX = curX + w
-    end
-    if #curRow > 0 then
-        rows[#rows + 1] = curRow
-    end
-    return rows
-end
-
-local function lootPillSection(panel, x, y, w, icon, titleKey, titleFallback, items)
-    local rowH = math.max(26, IKST_UI_Layout.s(30))
-    local gap = IKST_UI_Layout.s(8)
-    local rows = lootFlowLayout(items, w, gap)
-    local headerH = IKST_Chrome.sectionHeaderH()
-    local bottomPad = IKST_UI_Layout.s(14)
-    local contentH = (#rows * rowH) + (math.max(0, #rows - 1) * gap)
-    if #rows == 0 then
-        contentH = rowH
-    end
-    local cardH = headerH + contentH + bottomPad
-    local card, contentY = IKST_Chrome.newSectionCardPanel(x, y, w, cardH, icon, IKST.text(titleKey, titleFallback))
-    panel:addJobWidget(card)
-    local cy = contentY
-    for _, row in ipairs(rows) do
-        for _, cell in ipairs(row) do
-            local item = cell.item
-            local kind = "chip"
-            if item.primary or item.on then
-                kind = "primary"
-            elseif item.outline then
-                kind = "outline"
-            end
-            lootBtn(card, panel, cell.x, cy, cell.w, rowH, item.label, kind, function()
-                if item.onClick then
-                    item.onClick()
-                end
-                panel:refreshJobUI()
-            end)
-        end
-        cy = cy + rowH + gap
-    end
-    return y + cardH + (IKST_JobLayout.GAP or gap)
 end
 
 function IKST_JobLoot.build(panel)
@@ -447,229 +374,234 @@ function IKST_JobLoot.build(panel)
     if IKST.ensureLootPlayerState then
         IKST.ensureLootPlayerState(state)
     end
+    if panel.lootDryMode == nil then
+        panel.lootDryMode = true
+    end
 
-    local x = panel.contentX or IKST_JobLayout.MARGIN
-    local w = math.max(220, panel.contentW or (panel.width - 24))
-    local y = 8
-    local gap = IKST_JobLayout.GAP or IKST_UI_Layout.s(12)
-    local padX = IKST_UI_Layout.s(14)
-    local headerBtnH = math.max(24, IKST_UI_Layout.s(28))
-    local cc = IKST_Chrome.colors
     local scope = IKST.getLootScope(state)
-
-    local title = IKST.text("IGUI_IKST_WS_Loot", "Loot")
-    local titleLabel = ISLabel:new(x, y, 26, title, 1, 1, 1, 1, UIFont.Large, true)
-    titleLabel:initialise()
-    panel:addJobWidget(titleLabel)
-
-    local refillLabel = IKST.text("IGUI_IKST_LootTile_RefillNow", "Refill now")
-    local refillW = IKST_UI_Layout.buttonWidth(refillLabel, UIFont.Small, 100)
-    local dryLabel = IKST.text("IGUI_IKST_LootTile_DryRun", "Dry run")
-    local dryW = IKST_UI_Layout.buttonWidth(dryLabel, UIFont.Small, 80)
-    local rightEdge = x + w
-    local refillX = rightEdge - refillW
-    local dryX = refillX - IKST_UI_Layout.s(8) - dryW
-
-    local dryBtn = IKST_Chrome.newActionButton(dryX, y, dryW, headerBtnH, dryLabel, panel, function()
-        local preview = IKST_JobLoot.previewAtPlayer(panel)
-        IKST_JobLoot.notifyPreview(p, preview, preview and preview.count and preview.count > 0)
-        panel:refreshJobUI()
-    end, "primary")
-    panel:addJobWidget(dryBtn)
-
-    local refillBtn = IKST_Chrome.newActionButton(refillX, y, refillW, headerBtnH, refillLabel, panel, function()
-        IKST_JobLoot.repopulateHere(panel)
-        panel:refreshJobUI()
-    end, "outline")
-    panel:addJobWidget(refillBtn)
-
-    y = y + math.max(26, headerBtnH) + gap
-
-    -- SCOPE (LOOT_SCOPE_LIST + radius presets)
-    local scopeItems = {}
-    for _, s in ipairs(IKST.LOOT_SCOPE_LIST or {}) do
-        local label = IKST.lootScopeLabel(s, state)
-        if s == IKST.CLEANUP_SCOPES.single then
-            label = IKST.text("IGUI_IKST_LootTile_ScopeSingle", "Single container")
-        elseif s == IKST.CLEANUP_SCOPES.building then
-            label = IKST.text("IGUI_IKST_LootTile_ScopeBuilding", "This building")
-        elseif s == IKST.CLEANUP_SCOPES.room then
-            label = IKST.text("IGUI_IKST_LootTile_ScopeRoom", "This room")
-        elseif s == IKST.CLEANUP_SCOPES.radius then
-            label = IKST.text("IGUI_IKST_LootTile_ScopeRadius", "Radius")
-                .. " " .. tostring(state.cleanupRadius or IKST.RADIUS_PRESETS.M)
-        elseif s == IKST.CLEANUP_SCOPES.cell then
-            label = IKST.text("IGUI_IKST_LootTile_WholeCell", "Whole cell")
-        end
-        scopeItems[#scopeItems + 1] = {
-            label = label,
-            on = scope == s,
-            onClick = function()
-                IKST_JobLoot.selectScope(panel, s)
-            end,
-        }
-    end
-    if scope == IKST.CLEANUP_SCOPES.radius then
-        local order = { "S", "M", "L" }
-        for _, key in ipairs(order) do
-            local radius = IKST.RADIUS_PRESETS[key]
-            if radius then
-                scopeItems[#scopeItems + 1] = {
-                    label = key .. " (" .. tostring(radius) .. ")",
-                    on = state.cleanupRadius == radius,
-                    onClick = function()
-                        IKST_JobLoot.selectRadius(panel, radius)
-                    end,
-                }
-            end
-        end
-    end
-    local lootRadii = IKST.LOOT_RADIUS_PRESETS or {}
-    scopeItems[#scopeItems + 1] = {
-        label = IKST.text("IGUI_IKST_LootTile_Radius50", "Radius 50"),
-        on = scope == IKST.CLEANUP_SCOPES.radius and state.cleanupRadius == lootRadii.XL,
-        onClick = function()
-            IKST_JobLoot.selectRadius(panel, lootRadii.XL)
-        end,
-    }
-    scopeItems[#scopeItems + 1] = {
-        label = IKST.text("IGUI_IKST_LootTile_Radius200", "Radius 200"),
-        on = scope == IKST.CLEANUP_SCOPES.radius and state.cleanupRadius == lootRadii.XXL,
-        onClick = function()
-            IKST_JobLoot.selectRadius(panel, lootRadii.XXL)
-        end,
-    }
-    y = lootPillSection(panel, x, y, w, "media/ui/ikst/ws_loot.png",
-        "IGUI_IKST_LootTile_SectionScope", "Scope", scopeItems)
-
     local lootTable = IKST.readLootTableId(state.lootTable)
-    local tableItems = {
-        {
-            label = IKST.text("IGUI_IKST_LootTile_TableResidential", "Vanilla residential"),
-            on = lootTable == "residential",
-            onClick = function()
-                IKST_JobLoot.selectLootTable(panel, "residential")
-                IKST.notify(p, IKST.text("IGUI_IKST_LootTile_TableHint", "Uses vanilla loot for this room/container type."), true)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_TableGrocery", "Vanilla grocery"),
-            on = lootTable == "grocery",
-            onClick = function()
-                IKST_JobLoot.selectLootTable(panel, "grocery")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_TableMedical", "Vanilla medical"),
-            on = lootTable == "medical",
-            onClick = function()
-                IKST_JobLoot.selectLootTable(panel, "medical")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_TableEvent", "Custom: event stash"),
-            on = lootTable == "event",
-            onClick = function()
-                IKST_JobLoot.selectLootTable(panel, "event")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_TableMilitary", "Custom: military"),
-            on = lootTable == "military",
-            onClick = function()
-                IKST_JobLoot.selectLootTable(panel, "military")
-            end,
-        },
-    }
-    y = lootPillSection(panel, x, y, w, "media/ui/ikst/tool_items.png",
-        "IGUI_IKST_LootTile_SectionTable", "Loot table", tableItems)
+    local radius = tonumber(state.cleanupRadius) or IKST.RADIUS_PRESETS.M
 
-    local filterItems = {
-        {
-            label = IKST.text("IGUI_IKST_LootTile_SkipLocked", "Skip locked"),
-            on = state.lootSkipLocked == true,
-            onClick = function()
-                IKST_JobLoot.toggleFilter(panel, "lootSkipLocked")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_OnlyEmpty", "Only empty"),
-            on = state.lootOnlyEmpty == true,
-            onClick = function()
-                IKST_JobLoot.toggleFilter(panel, "lootOnlyEmpty")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_SkipClaimed", "Skip claimed"),
-            on = state.lootSkipClaimed == true,
-            onClick = function()
-                IKST_JobLoot.toggleFilter(panel, "lootSkipClaimed")
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_LootTile_Preserve", "Preserve existing"),
-            on = state.lootPreserveExisting == true,
-            onClick = function()
-                IKST_JobLoot.toggleFilter(panel, "lootPreserveExisting")
-            end,
-        },
-    }
-    y = lootPillSection(panel, x, y, w, "media/ui/ikst/tool_protect.png",
-        "IGUI_IKST_LootTile_SectionFilters", "Filters", filterItems)
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 5, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
 
-    -- PREVIEW (live)
-    local preview = IKST_JobLoot.previewForPanel(panel)
-    local previewLine = ""
-    if IKST_LootOps and IKST_LootOps.previewSummary then
-        previewLine = IKST_LootOps.previewSummary(preview)
-    end
-    if previewLine == "" then
-        previewLine = IKST.text("IGUI_IKST_Loot_Preview_None", "No containers in scope")
-    end
-    local prevH = IKST_Chrome.sectionHeaderH() + IKST_UI_Layout.s(36) + IKST_UI_Layout.s(14)
-    local prevCard, prevY = IKST_Chrome.newSectionCardPanel(x, y, w, prevH,
-        "media/ui/ikst/tool_servertools.png",
-        IKST.text("IGUI_IKST_LootTile_SectionPreview", "Preview"))
-    panel:addJobWidget(prevCard)
-    local countText = IKST.text("IGUI_IKST_LootTile_EstContainers", "Estimated containers")
-        .. ": " .. tostring((preview and preview.count) or 0)
-    local countLbl = ISLabel:new(padX, prevY + 4, 16, countText,
-        cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, UIFont.Small, true)
-    countLbl:initialise()
-    prevCard:addChild(countLbl)
-    local sumLbl = ISLabel:new(padX, prevY + 20, 14, previewLine,
-        cc.textMuted.r, cc.textMuted.g, cc.textMuted.b, 1, UIFont.Small, true)
-    sumLbl:initialise()
-    prevCard:addChild(sumLbl)
-    y = y + prevH + gap
-
-    local pickArmed = state.armed and state.armedJob == IKST.VIEW.loot
-        and IKST_WorldPick and IKST_WorldPick.isCommandPickArmed
-        and IKST_WorldPick.isCommandPickArmed(p)
-
-    if pickArmed then
-        local stopLabel = IKST.text("IGUI_IKST_Disarm", "STOP")
-        local stopBtn = IKST_Chrome.newActionButton(x, y, w, headerBtnH, stopLabel, panel, function()
-            if panel.stopArmedMode then
-                panel:stopArmedMode()
-            elseif IKST_WorldPick and IKST_WorldPick.disarm then
-                IKST_WorldPick.disarm(p)
-                panel:refreshJobUI()
-            end
-        end, "danger")
-        panel:addJobWidget(stopBtn)
-        y = y + headerBtnH + gap
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
     end
 
-    local armLabel = IKST.text("IGUI_IKST_Loot_Arm", "Click ground to repopulate")
-    local armBtn = IKST_Chrome.newActionButton(x, y, w, headerBtnH, armLabel, panel, function()
-        IKST_JobLoot.armPick(panel, false)
-        panel:refreshJobUI()
-    end, pickArmed and "primary" or "chip")
-    panel:addJobWidget(armBtn)
-    y = y + headerBtnH + gap
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_LootTile_Mode", "Mode"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_LootTile_DryRun", "Dry run"),
+                primary = panel.lootDryMode == true,
+                onClick = function()
+                    panel.lootDryMode = true
+                    local preview = IKST_JobLoot.previewAtPlayer(panel)
+                    IKST_JobLoot.notifyPreview(p, preview, preview and preview.count and preview.count > 0)
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_RefillNow", "Refill"),
+                primary = panel.lootDryMode ~= true,
+                onClick = function()
+                    panel.lootDryMode = false
+                    IKST_JobLoot.repopulateHere(panel)
+                    panel:refreshJobUI()
+                end,
+            },
+        })
+    end
 
-    return y
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_LootTile_SectionScope", "Scope"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_LootTile_ScopeSingle", "Single"),
+                primary = scope == IKST.CLEANUP_SCOPES.single,
+                onClick = function()
+                    IKST_JobLoot.selectScope(panel, IKST.CLEANUP_SCOPES.single)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_ScopeBuilding", "This building"),
+                primary = scope == IKST.CLEANUP_SCOPES.building,
+                onClick = function()
+                    IKST_JobLoot.selectScope(panel, IKST.CLEANUP_SCOPES.building)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_ScopeRadius", "Radius"),
+                primary = scope == IKST.CLEANUP_SCOPES.radius
+                    and radius ~= 5 and radius ~= 10 and radius ~= 20,
+                onClick = function()
+                    IKST_JobLoot.selectScope(panel, IKST.CLEANUP_SCOPES.radius)
+                end,
+            },
+            {
+                label = "R 5",
+                primary = scope == IKST.CLEANUP_SCOPES.radius and radius == 5,
+                onClick = function()
+                    IKST_JobLoot.selectRadius(panel, 5)
+                end,
+            },
+            {
+                label = "R 10",
+                primary = scope == IKST.CLEANUP_SCOPES.radius and radius == 10,
+                onClick = function()
+                    IKST_JobLoot.selectRadius(panel, 10)
+                end,
+            },
+            {
+                label = "R 20",
+                primary = scope == IKST.CLEANUP_SCOPES.radius and radius == 20,
+                onClick = function()
+                    IKST_JobLoot.selectRadius(panel, 20)
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_LootTile_SectionTable", "Loot table"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_LootTile_TableResidential", "Vanilla residential"),
+                primary = lootTable == "residential",
+                onClick = function()
+                    IKST_JobLoot.selectLootTable(panel, "residential")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_TableMedical", "Vanilla medical"),
+                primary = lootTable == "medical",
+                onClick = function()
+                    IKST_JobLoot.selectLootTable(panel, "medical")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_TableGrocery", "Vanilla grocery"),
+                primary = lootTable == "grocery",
+                onClick = function()
+                    IKST_JobLoot.selectLootTable(panel, "grocery")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_TableMilitary", "Custom: military"),
+                primary = lootTable == "military",
+                onClick = function()
+                    IKST_JobLoot.selectLootTable(panel, "military")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_TableEvent", "Custom: event stash"),
+                primary = lootTable == "event",
+                onClick = function()
+                    IKST_JobLoot.selectLootTable(panel, "event")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_LootTile_SectionFilters", "Filters"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_LootTile_OnlyEmpty", "Only empty"),
+                primary = state.lootOnlyEmpty == true,
+                onClick = function()
+                    IKST_JobLoot.toggleFilter(panel, "lootOnlyEmpty")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_SkipLocked", "Skip locked"),
+                primary = state.lootSkipLocked == true,
+                onClick = function()
+                    IKST_JobLoot.toggleFilter(panel, "lootSkipLocked")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_SkipClaimed", "Skip claimed"),
+                primary = state.lootSkipClaimed == true,
+                onClick = function()
+                    IKST_JobLoot.toggleFilter(panel, "lootSkipClaimed")
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_LootTile_Preserve", "Preserve"),
+                primary = state.lootPreserveExisting == true,
+                onClick = function()
+                    IKST_JobLoot.toggleFilter(panel, "lootPreserveExisting")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[5], IKST.text("IGUI_IKST_LootTile_SectionPreview", "Preview & arm"))
+        local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, 1)
+        local preview = IKST_JobLoot.previewForPanel(panel)
+        local previewLine = ""
+        if IKST_LootOps and type(IKST_LootOps.previewSummary) == "function" then
+            previewLine = IKST_LootOps.previewSummary(preview)
+        end
+        if previewLine == "" then
+            previewLine = IKST.text("IGUI_IKST_Loot_Preview_None", "No containers in scope")
+        end
+        local countText = IKST.text("IGUI_IKST_LootTile_EstContainers", "Estimated containers")
+            .. ": " .. tostring((preview and preview.count) or 0)
+        local countLbl = ISLabel:new(ax, ay, 16, countText, 1, 1, 1, 1, UIFont.Small, true)
+        countLbl:initialise()
+        card:addChild(countLbl)
+        local sumLbl = ISLabel:new(ax, ay + 18, 14, previewLine, 1, 1, 1, 1, UIFont.Small, true)
+        sumLbl:initialise()
+        card:addChild(sumLbl)
+
+        local pickArmed = state.armed and state.armedJob == IKST.VIEW.loot
+            and IKST_WorldPick and type(IKST_WorldPick.isCommandPickArmed) == "function"
+            and IKST_WorldPick.isCommandPickArmed(p)
+        local actionY = ay + listH + gapLP
+        local actionH = math.max(btnH, pillH)
+        IKST_JobLayout.placePillGroup(panel, card, ax, actionY, aw, actionH, {
+            {
+                label = IKST.text("IGUI_IKST_Loot_Arm", "Arm"),
+                primary = true,
+                onClick = function()
+                    if panel.lootDryMode == true then
+                        local preview2 = IKST_JobLoot.previewAtPlayer(panel)
+                        IKST_JobLoot.notifyPreview(p, preview2, preview2 and preview2.count and preview2.count > 0)
+                    end
+                    IKST_JobLoot.armPick(panel, false)
+                    panel:refreshJobUI()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Disarm", "STOP"),
+                primary = pickArmed == true,
+                onClick = function()
+                    if panel.stopArmedMode then
+                        panel:stopArmedMode()
+                    elseif IKST_WorldPick and type(IKST_WorldPick.disarm) == "function" then
+                        IKST_WorldPick.disarm(p)
+                        panel:refreshJobUI()
+                    end
+                end,
+            },
+        })
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobLoot.enter(panel)
@@ -682,9 +614,8 @@ function IKST_JobLoot.enter(panel)
             state.lootScope = IKST.CLEANUP_SCOPES.single
         end
     end
-    -- Do not mark armed unless world-pick actually attached (was fake-READY with no clicks).
     IKST_JobLoot.armPick(panel, true)
-    if IKST_Preview and IKST_Preview.syncForPanel then
+    if IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
         IKST_Preview.syncForPanel(panel)
     end
 end

@@ -14,7 +14,6 @@ require "IKST_ClaimSocial"
 require "IKST_Identity"
 require "IKST_WorldOps"
 require "IKST_StaffOps"
-require "IKST_VehicleIdentity"
 require "IKST_VehicleClaim"
 require "IKST_VehicleUtil"
 require "IKST_SafehouseClaim"
@@ -158,48 +157,24 @@ function IKST_GuardOps.dumpPlayers(admin)
     return out
 end
 
-function IKST_GuardOps.pageSlice(list, offset, limit)
-    local maxCap = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
-    offset = math.max(0, math.floor(tonumber(offset) or 0))
-    if limit == nil then
-        limit = maxCap
-    else
-        limit = math.floor(tonumber(limit) or 50)
-        if limit < 1 then
-            limit = 50
+function IKST_GuardOps.sendClaimList(player, list)
+    local max = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
+    if #list > max then
+        local trimmed = {}
+        for i = 1, max do
+            trimmed[i] = list[i]
         end
-        if limit > maxCap then
-            limit = maxCap
-        end
+        list = trimmed
     end
-    list = list or {}
-    local total = #list
-    local sliced = {}
-    local last = math.min(total, offset + limit)
-    for i = offset + 1, last do
-        sliced[#sliced + 1] = list[i]
-    end
-    local hasMore = (offset + #sliced) < total
-    return sliced, total, hasMore, offset, limit
-end
-
-function IKST_GuardOps.sendClaimList(player, list, offset, limit)
-    local sliced, total, hasMore, off, lim = IKST_GuardOps.pageSlice(list, offset, limit)
     local rows = {}
-    for _, item in ipairs(sliced) do
+    for _, item in ipairs(list) do
         if item and item.canRelease ~= nil then
             rows[#rows + 1] = item
         elseif item then
             rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(item, player)
         end
     end
-    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, {
-        claims = rows,
-        total = total,
-        offset = off,
-        limit = lim,
-        hasMore = hasMore,
-    })
+    IKST.deliverClientCommand(player, IKST.CMD.vehicleClaimListResult, { claims = rows })
 end
 
 function IKST_GuardOps.sendNearbyVehicles(player, list)
@@ -283,7 +258,7 @@ function IKST_GuardOps.handle(command, admin, args)
         if not IKST_GuardOps.actorIsAdmin(admin) then
             list = IKST_GuardOps.filterSafehousesForPlayer(list, admin)
         end
-        IKST_GuardOps.sendSafehouseList(admin, list, args.offset, args.limit)
+        IKST_GuardOps.sendSafehouseList(admin, list)
         return true, #list .. " safehouse(s)"
     end
 
@@ -357,7 +332,7 @@ function IKST_GuardOps.handle(command, admin, args)
             claimVehicle = IKST_GuardOps.resolveClaimVehicle(admin, args.vehicleId)
         end
         if not claimVehicle then
-            return false, "no vehicle nearby — pick one in the list"
+            return false, "no vehicle nearby - pick one in the list"
         end
         if not IKST_GuardOps.actorIsAdmin(admin) then
             if not IKST_ClaimPolicy.playerClaimsEnabled() then
@@ -401,7 +376,6 @@ function IKST_GuardOps.handle(command, admin, args)
         meta.x = x
         meta.y = y
         meta.z = z
-        meta.sqlId = IKST_VehicleIdentity.sqlId(claimVehicle)
         local ok, msg = IKST_VehicleClaim.claim(key, ownerKey, meta)
         return IKST_GuardOps.finishVehicleClaimCommand(admin, ok, msg, key, ok and "set" or nil)
     end
@@ -530,7 +504,7 @@ function IKST_GuardOps.handle(command, admin, args)
         for _, entry in ipairs(list) do
             rows[#rows + 1] = IKST_GuardOps.claimRowForViewer(entry, admin)
         end
-        IKST_GuardOps.sendClaimList(admin, rows, args.offset, args.limit)
+        IKST_GuardOps.sendClaimList(admin, rows)
         return true, #rows .. " claim(s)"
     end
 
@@ -545,13 +519,6 @@ function IKST_GuardOps.handle(command, admin, args)
             az = admin:getZ() or 0
         end
         local list = IKST_VehicleUtil.listNearby(ax, ay, az, radius)
-        for _, row in ipairs(list) do
-            local v = row.id ~= nil and IKST_VehicleUtil.getVehicle(row.id) or nil
-            if v and IKST_VehicleClaim and type(IKST_VehicleClaim.bindLoadedVehicle) == "function" then
-                IKST_VehicleClaim.bindLoadedVehicle(v)
-                row.claimKey = IKST_VehicleIdentity.readKey(v) or row.claimKey
-            end
-        end
         IKST_GuardOps.sendNearbyVehicles(admin, list)
         return true, #list .. " vehicle(s)"
     end
@@ -569,8 +536,5 @@ if Events and Events.OnGameStart and Events.OnGameStart.Add then
                 IKST_SafehouseClaim.syncFromVanilla(sh)
             end
         end)
-        if IKST_GuardOps.bindLoadedVehicleClaims then
-            IKST_GuardOps.bindLoadedVehicleClaims()
-        end
     end)
 end

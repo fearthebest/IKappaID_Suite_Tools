@@ -2,7 +2,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 
 require "ISUI/ISModalDialog"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 IKST_Confirm = IKST_Confirm or {}
 
@@ -24,7 +24,7 @@ function IKST_Confirm.show(text, onYes, onNo, destructive)
     modal:initialise()
     modal:addToUIManager()
     if destructive and modal.yes then
-        modal.yes.backgroundColor = IKST_Chrome.colors.danger
+        modal.yes.backgroundColor = IKUI_Chrome.colors.danger
     end
     return modal
 end

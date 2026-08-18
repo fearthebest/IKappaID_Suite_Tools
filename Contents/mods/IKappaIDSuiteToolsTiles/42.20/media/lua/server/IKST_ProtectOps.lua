@@ -7,9 +7,6 @@ end
 require "IKST_Shared"
 require "IKST_TileProtect"
 require "IKST_ModDataSync"
-require "IKST_VehicleUtil"
-require "IKST_VehicleIdentity"
-require "IKST_VehicleClaim"
 
 IKST_ProtectOps = IKST_ProtectOps or {}
 
@@ -64,34 +61,15 @@ function IKST_ProtectOps.handle(command, player, args)
     end
 
     if command == IKST.CMD.protectVehicle then
-        local vehicle = IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function"
-            and IKST_VehicleUtil.getVehicle(args.vehicleId) or nil
-        if not vehicle then
-            return false, "vehicle not found"
-        end
-        local key = IKST_VehicleClaim and type(IKST_VehicleClaim.ensureKey) == "function"
-            and IKST_VehicleClaim.ensureKey(vehicle) or nil
-        if not key then
-            return false, "vehicle identity missing"
-        end
-        if IKST_TileProtect.protectVehicle(key) then
+        if IKST_TileProtect.protectVehicle(args.vehicleId) then
             commitProtect()
-            return true, "vehicle protected"
+            return true, "vehicle #" .. tostring(args.vehicleId) .. " protected"
         end
         return false, "invalid vehicle"
     end
 
     if command == IKST.CMD.unprotectVehicle then
-        local vehicle = IKST_VehicleUtil and type(IKST_VehicleUtil.getVehicle) == "function"
-            and IKST_VehicleUtil.getVehicle(args.vehicleId) or nil
-        local key = nil
-        if vehicle and IKST_VehicleIdentity and type(IKST_VehicleIdentity.readKey) == "function" then
-            key = IKST_VehicleIdentity.readKey(vehicle)
-        end
-        if not key then
-            key = args.vehicleId
-        end
-        if IKST_TileProtect.unprotectVehicle(key) then
+        if IKST_TileProtect.unprotectVehicle(args.vehicleId) then
             commitProtect()
             return true, "vehicle unprotected"
         end

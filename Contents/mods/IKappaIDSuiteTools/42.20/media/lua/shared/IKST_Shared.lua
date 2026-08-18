@@ -160,7 +160,7 @@ end
 
 function IKST.cleanupActionLabel(action)
     if action == IKST.CLEANUP_MODES.removeTile then
-        return IKST.text("IGUI_IKST_Mode_RemoveTile", "Remove tile")
+        return IKST.text("IGUI_IKST_Mode_RemoveTile", "Remove floor")
     end
     if action == IKST.CLEANUP_MODES.vegetation then
         return IKST.text("IGUI_IKST_Mode_Vegetation", "Remove vegetation")
@@ -222,21 +222,6 @@ function IKST.isModEnabled()
         return true
     end
     return v == true
-end
-
--- Hub dashboard requires IKappaID_UI (mod.info require=). Dedicated Mods= must include it.
-function IKST.uiFrameworkLoaded()
-    if type(IKUI_Config) == "table" then
-        return true
-    end
-    if type(getActivatedMods) ~= "function" then
-        return false
-    end
-    local mods = getActivatedMods()
-    if not mods or type(mods.contains) ~= "function" then
-        return false
-    end
-    return mods:contains("IKappaID_UI") == true or mods:contains("\\IKappaID_UI") == true
 end
 
 function IKST.getMaxCleanupRadius()

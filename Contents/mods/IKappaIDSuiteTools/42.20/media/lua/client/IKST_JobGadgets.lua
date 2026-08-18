@@ -3,7 +3,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ActionLog"
 require "IKST_QuickActions"
 require "IKST_HubNav"

@@ -4,7 +4,7 @@ end
 
 require "ISUI/ISTextEntryBox"
 require "IKST_Shared"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ActionLog"
 require "IKST_JobLayout"
 require "IKST_WorldPick"
@@ -23,7 +23,7 @@ function IKST_JobTilesGuard.requestList(player)
 end
 
 function IKST_JobTilesGuard.readEntry(entry)
-    if not entry or not entry.getText then
+    if not entry or type(entry.getText) ~= "function" then
         return ""
     end
     return entry:getText() or ""
@@ -140,164 +140,155 @@ function IKST_JobTilesGuard.dispatchRadius(panel, cmd, extra)
     IKST.dispatchCommand(p, cmd, args)
 end
 
-function IKST_JobTilesGuard.buildTiles(panel, y)
+function IKST_JobTilesGuard.buildTiles(panel, contentTop)
     local p = panel.player
     local state = IKST.getPlayerState(p)
+    if not state then
+        return 8
+    end
     if not state.guardRadius then
         state.guardRadius = IKST.RADIUS_PRESETS.M
     end
 
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Protect_Square", "Square protect"))
-    panel:makeJobButton(12, y, 100, 24, IKST.text("IGUI_IKST_RefreshList", "Refresh"), function()
-        IKST_JobTilesGuard.requestList(p)
-    end, false)
-    panel:makeJobLabel(130, y + 4, IKST.text("IGUI_IKST_Protect_Total", "Total") .. ": " .. tostring(IKST_JobTilesGuard.total)
-        .. " / " .. IKST.text("IGUI_IKST_Protect_ReadonlyTotal", "Locked") .. ": " .. tostring(IKST_JobTilesGuard.readonlyTotal), UIFont.Small)
-    y = y + 28
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Protect_OnOffHint", "On = protect click · Off = unprotect click"), UIFont.Small)
-    y = y + 18
-
-    y = IKST_JobLayout.flowRow(panel, y, {
-        {
-            label = IKST.text("IGUI_IKST_On", "On"),
-            w = 72,
-            primary = IKST_JobTilesGuard.pickActive(state, IKST.CMD.protectSquare)
-                or IKST_JobTilesGuard.onOffPrimary(panel, "protectSquare", true),
-            fn = function()
-                IKST_JobTilesGuard.setOnOffFeedback(panel, "protectSquare", true)
-                IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.protectSquare, nil, "IGUI_IKST_Guard_ClickProtect", function()
-                    IKST_JobTilesGuard.requestList(p)
-                end)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_Off", "Off"),
-            w = 72,
-            primary = IKST_JobTilesGuard.pickActive(state, IKST.CMD.unprotectSquare)
-                or IKST_JobTilesGuard.onOffPrimary(panel, "protectSquare", false),
-            fn = function()
-                IKST_JobTilesGuard.setOnOffFeedback(panel, "protectSquare", false)
-                IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.unprotectSquare, nil, "IGUI_IKST_Guard_ClickUnprotect", function()
-                    IKST_JobTilesGuard.requestList(p)
-                end)
-            end,
-        },
-    }, 6, 24)
-
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Protect_Radius", "Protect circle")
-        .. " r=" .. tostring(state.guardRadius), UIFont.Small)
-    y = y + 18
-    local presetSpecs = {}
-    for _, preset in ipairs({ IKST.RADIUS_PRESETS.S, IKST.RADIUS_PRESETS.M, IKST.RADIUS_PRESETS.L }) do
-        presetSpecs[#presetSpecs + 1] = {
-            label = tostring(preset),
-            w = 48,
-            primary = state.guardRadius == preset,
-            fn = function()
-                state.guardRadius = preset
-                panel:refreshJobUI()
-            end,
-        }
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    if contentTop and contentTop > rect.y then
+        local shrink = contentTop - rect.y
+        rect.y = contentTop
+        rect.h = math.max(80, rect.h - shrink)
     end
-    y = IKST_JobLayout.flowRow(panel, y, presetSpecs, 6, 22)
-    y = IKST_JobLayout.flowRow(panel, y, {
-        {
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Protect_Square", "Square"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Protect_ClickProtect", "Protect"),
+                primary = IKST_JobTilesGuard.pickActive(state, IKST.CMD.protectSquare)
+                    or IKST_JobTilesGuard.onOffPrimary(panel, "protectSquare", true),
+                onClick = function()
+                    IKST_JobTilesGuard.setOnOffFeedback(panel, "protectSquare", true)
+                    IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.protectSquare, nil, "IGUI_IKST_Guard_ClickProtect", function()
+                        IKST_JobTilesGuard.requestList(p)
+                    end)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Protect_ClickUnprotect", "Unprotect"),
+                primary = IKST_JobTilesGuard.pickActive(state, IKST.CMD.unprotectSquare)
+                    or IKST_JobTilesGuard.onOffPrimary(panel, "protectSquare", false),
+                onClick = function()
+                    IKST_JobTilesGuard.setOnOffFeedback(panel, "protectSquare", false)
+                    IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.unprotectSquare, nil, "IGUI_IKST_Guard_ClickUnprotect", function()
+                        IKST_JobTilesGuard.requestList(p)
+                    end)
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_SectionCircle", "Circle"))
+        local items = {}
+        for _, preset in ipairs({ IKST.RADIUS_PRESETS.S, IKST.RADIUS_PRESETS.M, IKST.RADIUS_PRESETS.L }) do
+            local val = preset
+            items[#items + 1] = {
+                label = "R " .. tostring(val),
+                primary = state.guardRadius == val,
+                onClick = function()
+                    state.guardRadius = val
+                    panel:refreshJobUI()
+                end,
+            }
+        end
+        items[#items + 1] = {
             label = IKST.text("IGUI_IKST_Protect_Radius", "Protect circle"),
-            w = 130,
-            primary = false,
-            fn = function()
+            onClick = function()
                 IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.protectRadius, nil)
                 IKST_JobTilesGuard.requestList(p)
             end,
-        },
-        {
+        }
+        items[#items + 1] = {
             label = IKST.text("IGUI_IKST_Protect_Unradius", "Unprotect circle"),
-            w = 140,
-            primary = false,
-            fn = function()
+            onClick = function()
                 IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.unprotectRadius, nil)
                 IKST_JobTilesGuard.requestList(p)
             end,
-        },
-    }, 6, 24)
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Protect_RadiusAtFeet", "Circle uses your current position."), UIFont.Small)
-    y = y + 20
+        }
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
+    end
 
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Protect_ReadonlySection", "Storage lock (readonly)"))
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Protect_ReadonlyNote", "Blocks taking items from containers on those tiles."), UIFont.Small)
-    y = y + 18
-    y = IKST_JobLayout.flowRow(panel, y, {
-        {
-            label = IKST.text("IGUI_IKST_On", "On"),
-            w = 72,
-            primary = IKST_JobTilesGuard.pickActiveReadonly(state, true)
-                or IKST_JobTilesGuard.onOffPrimary(panel, "readonly", true),
-            fn = function()
-                IKST_JobTilesGuard.setOnOffFeedback(panel, "readonly", true)
-                IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.setReadonly, { on = true }, "IGUI_IKST_Guard_ClickReadonlyOn", function()
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Protect_ReadonlySection", "Readonly & locks"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Protect_ReadonlyOn", "Lock storage"),
+                primary = IKST_JobTilesGuard.pickActiveReadonly(state, true)
+                    or IKST_JobTilesGuard.onOffPrimary(panel, "readonly", true),
+                onClick = function()
+                    IKST_JobTilesGuard.setOnOffFeedback(panel, "readonly", true)
+                    IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.setReadonly, { on = true }, "IGUI_IKST_Guard_ClickReadonlyOn", function()
+                        IKST_JobTilesGuard.requestList(p)
+                    end)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Protect_ReadonlyOff", "Unlock storage"),
+                primary = IKST_JobTilesGuard.pickActiveReadonly(state, false)
+                    or IKST_JobTilesGuard.onOffPrimary(panel, "readonly", false),
+                onClick = function()
+                    IKST_JobTilesGuard.setOnOffFeedback(panel, "readonly", false)
+                    IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.setReadonly, { on = false }, "IGUI_IKST_Guard_ClickReadonlyOff", function()
+                        IKST_JobTilesGuard.requestList(p)
+                    end)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Protect_ReadonlyRadiusOn", "Lock circle"),
+                onClick = function()
+                    IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.setReadonlyRadius, { on = true })
                     IKST_JobTilesGuard.requestList(p)
-                end)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_Off", "Off"),
-            w = 72,
-            primary = IKST_JobTilesGuard.pickActiveReadonly(state, false)
-                or IKST_JobTilesGuard.onOffPrimary(panel, "readonly", false),
-            fn = function()
-                IKST_JobTilesGuard.setOnOffFeedback(panel, "readonly", false)
-                IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.setReadonly, { on = false }, "IGUI_IKST_Guard_ClickReadonlyOff", function()
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Protect_ReadonlyRadiusOff", "Unlock circle"),
+                onClick = function()
+                    IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.setReadonlyRadius, { on = false })
                     IKST_JobTilesGuard.requestList(p)
-                end)
-            end,
-        },
-    }, 6, 24)
-    y = IKST_JobLayout.flowRow(panel, y, {
-        {
-            label = IKST.text("IGUI_IKST_Protect_ReadonlyRadiusOn", "Lock circle ON"),
-            w = 130,
-            primary = false,
-            fn = function()
-                IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.setReadonlyRadius, { on = true })
-                IKST_JobTilesGuard.requestList(p)
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_Protect_ReadonlyRadiusOff", "Lock circle OFF"),
-            w = 140,
-            primary = false,
-            fn = function()
-                IKST_JobTilesGuard.dispatchRadius(panel, IKST.CMD.setReadonlyRadius, { on = false })
-                IKST_JobTilesGuard.requestList(p)
-            end,
-        },
-    }, 6, 24)
+                end,
+            },
+        })
+    end
 
-    y = panel:makeJobHeader(12, y, IKST.text("IGUI_IKST_Protect_WorldRules", "World rules"))
-    y = IKST_JobLayout.flowRow(panel, y, {
-        {
-            label = IKST.text("IGUI_IKST_Guard_NoDestroy", "Global no-destroy"),
-            w = 150,
-            fn = function()
-                IKST.dispatchCommand(p, IKST.CMD.setWorldRule, { rule = "disableDestroy", on = true })
-            end,
-        },
-        {
-            label = IKST.text("IGUI_IKST_Guard_AllowDestroy", "Allow destroy"),
-            w = 130,
-            fn = function()
-                IKST.dispatchCommand(p, IKST.CMD.setWorldRule, { rule = "disableDestroy", on = false })
-            end,
-        },
-    }, 6, 24)
-    panel.guardSpriteEntry = ISTextEntryBox:new(panel:draftEntryText("guardSpriteEntry", ""), 12, y, 160, 22)
-    panel.guardSpriteEntry:initialise()
-    panel.guardSpriteEntry:instantiate()
-    panel:addJobWidget(panel.guardSpriteEntry)
-    panel:makeJobButton(180, y, 100, 22, IKST.text("IGUI_IKST_Guard_Blacklist", "Blacklist"), function()
-        IKST.dispatchCommand(p, IKST.CMD.addSpriteBlacklist, { sprite = IKST_JobTilesGuard.readEntry(panel.guardSpriteEntry) })
-    end, false)
-    return y + 30
+    do
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Guard_Blacklist", "Sprite blacklist"))
+        local draft = ""
+        if type(panel.draftEntryText) == "function" then
+            draft = panel:draftEntryText("guardSpriteEntry", "")
+        end
+        IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
+            { text = draft, fieldName = "guardSpriteEntry" },
+        }, IKST.text("IGUI_IKST_Guard_Blacklist", "Add rule"), function()
+            IKST.dispatchCommand(p, IKST.CMD.addSpriteBlacklist, {
+                sprite = IKST_JobTilesGuard.readEntry(panel.guardSpriteEntry),
+            })
+        end)
+    end
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobTilesGuard.buildContainers(panel, y)
@@ -358,68 +349,142 @@ function IKST_JobTilesGuard.buildFarming(panel, y)
     return y + 34
 end
 
-function IKST_JobTilesGuard.buildBlueprints(panel, y)
+function IKST_JobTilesGuard.buildBlueprints(panel, contentTop)
     local p = panel.player
     local state = IKST.getPlayerState(p)
     local half = 5
-    panel:makeJobButton(12, y, 160, 24, IKST.text("IGUI_IKST_Guard_BpCopy", "Copy 11x11 at click"), function()
-        IKST_JobTilesGuard.armSquarePick(panel, nil, nil, "IGUI_IKST_Guard_ClickBlueprintCopy", nil, function(player, square)
-            local x = square:getX()
-            local y0 = square:getY()
-            local z = square:getZ()
-            IKST.dispatchCommand(player, IKST.CMD.blueprintCopy, {
-                x1 = x - half, y1 = y0 - half, x2 = x + half, y2 = y0 + half, z = z,
-            })
+
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    if contentTop and contentTop > rect.y then
+        local shrink = contentTop - rect.y
+        rect.y = contentTop
+        rect.h = math.max(80, rect.h - shrink)
+    end
+    local gap = 6
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+
+    local function openBand(band, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local areaX = inner
+        local areaW = math.max(40, rect.w - inner * 2)
+        local areaY = contentY + padY
+        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        return card, areaX, areaY, areaW, areaH
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Guard_BpCopy", "Cursor"))
+        local copyArmed = state and state.worldPickOnClick ~= nil
+            and (state.armedJob == IKST.VIEW.guard or state.armedJob == IKST.VIEW.tiles)
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Guard_BpCopy", "Copy"),
+                primary = copyArmed == true,
+                onClick = function()
+                    IKST_JobTilesGuard.armSquarePick(panel, nil, nil, "IGUI_IKST_Guard_ClickBlueprintCopy", nil, function(player, square)
+                        local x = square:getX()
+                        local y0 = square:getY()
+                        local z = square:getZ()
+                        IKST.dispatchCommand(player, IKST.CMD.blueprintCopy, {
+                            x1 = x - half, y1 = y0 - half, x2 = x + half, y2 = y0 + half, z = z,
+                        })
+                    end)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Guard_BpPaste", "Paste"),
+                primary = IKST_JobTilesGuard.pickActive(state, IKST.CMD.blueprintPaste),
+                onClick = function()
+                    IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.blueprintPaste, nil, "IGUI_IKST_Guard_ClickBlueprintPaste")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Guard_BpLibrary", "Library"))
+        IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
+            { text = panel.bpLibraryName or "Pad", fieldName = "bpNameEntry" },
+        }, IKST.text("IGUI_IKST_WaypointSave", "Save"), function()
+            local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
+            panel.bpLibraryName = name
+            IKST.dispatchCommand(p, IKST.CMD.blueprintSave, { name = name })
         end)
-    end, state and state.worldPickOnClick ~= nil and state.armedJob == IKST.VIEW.guard)
-    panel:makeJobButton(178, y, 140, 24, IKST.text("IGUI_IKST_Guard_BpPaste", "Paste at click"), function()
-        IKST_JobTilesGuard.armSquarePick(panel, IKST.CMD.blueprintPaste, nil, "IGUI_IKST_Guard_ClickBlueprintPaste")
-    end, IKST_JobTilesGuard.pickActive(state, IKST.CMD.blueprintPaste))
-    y = y + 34
-    panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Guard_BpLibrary", "Server blueprint library"), UIFont.Small)
-    y = y + 18
-    panel.bpNameEntry = ISTextEntryBox:new(panel.bpLibraryName or "Pad", 12, y, 140, 22)
-    panel.bpNameEntry:initialise()
-    panel.bpNameEntry:instantiate()
-    panel:addJobWidget(panel.bpNameEntry)
-    panel:makeJobButton(160, y, 55, 22, IKST.text("IGUI_IKST_WaypointSave", "Save"), function()
-        local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
-        panel.bpLibraryName = name
-        IKST.dispatchCommand(p, IKST.CMD.blueprintSave, { name = name })
-    end, false)
-    panel:makeJobButton(220, y, 55, 22, IKST.text("IGUI_IKST_Guard_BpLoad", "Load"), function()
-        local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
-        panel.bpLibraryName = name
-        IKST.dispatchCommand(p, IKST.CMD.blueprintLoad, { name = name })
-    end, false)
-    panel:makeJobButton(280, y, 55, 22, IKST.text("IGUI_IKST_WaypointDel", "Delete"), function()
-        local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
-        IKST.dispatchCommand(p, IKST.CMD.blueprintDelete, { name = name })
-        IKST.dispatchCommand(p, IKST.CMD.blueprintList, {})
-    end, false)
-    y = y + 28
-    panel:makeJobButton(12, y, 100, 22, IKST.text("IGUI_IKST_RefreshList", "Refresh"), function()
-        IKST.dispatchCommand(p, IKST.CMD.blueprintList, {})
-    end, false)
-    y = y + 26
-    local list = IKST_JobTilesGuard.blueprints or {}
-    if #list == 0 then
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Guard_BpEmpty", "No named blueprints yet."), UIFont.Small)
-        y = y + 20
-    else
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Guard_BpLibrary", "Named"))
+        local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, 1)
+        local pillY = ay + listH + gapLP
+        local pillAreaH = math.max(btnH, pillH)
+        local list = IKST_JobTilesGuard.blueprints or {}
+        local rows = {}
         for i, row in ipairs(list) do
-            if i > 8 then
+            if i > 24 then
                 break
             end
-            local label = tostring(row.name) .. " (" .. tostring(row.tiles or 0) .. ")"
-            panel:makeJobButton(12, y, panel.contentW or (panel.width - 24), 22, label, function()
-                panel.bpLibraryName = row.name
-                IKST.dispatchCommand(p, IKST.CMD.blueprintLoad, { name = row.name })
-            end, panel.bpLibraryName == row.name)
-            y = y + 24
+            rows[#rows + 1] = {
+                id = tostring(row.name),
+                label = tostring(row.name) .. " (" .. tostring(row.tiles or 0) .. ")",
+                data = row,
+            }
         end
+        if #rows == 0 then
+            rows[1] = {
+                id = "_empty",
+                label = IKST.text("IGUI_IKST_Guard_BpEmpty", "No named blueprints yet."),
+                data = nil,
+            }
+        end
+        IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, listH, rows, {
+            selectedId = panel.bpLibraryName,
+            onSelect = function(row)
+                if row and row.data and row.data.name then
+                    panel.bpLibraryName = row.data.name
+                    if panel.bpNameEntry and type(panel.bpNameEntry.setText) == "function" then
+                        panel.bpNameEntry:setText(tostring(row.data.name))
+                    end
+                end
+            end,
+        })
+        IKST_JobLayout.placePillGroup(panel, card, ax, pillY, aw, pillAreaH, {
+            {
+                label = IKST.text("IGUI_IKST_Guard_BpLoad", "Load"),
+                primary = true,
+                onClick = function()
+                    local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
+                    if name == "" then
+                        name = panel.bpLibraryName
+                    end
+                    panel.bpLibraryName = name
+                    IKST.dispatchCommand(p, IKST.CMD.blueprintLoad, { name = name })
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_WaypointDel", "Delete"),
+                onClick = function()
+                    local name = IKST_JobTilesGuard.readEntry(panel.bpNameEntry)
+                    if name == "" then
+                        name = panel.bpLibraryName
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.blueprintDelete, { name = name })
+                    IKST.dispatchCommand(p, IKST.CMD.blueprintList, {})
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.blueprintList, {})
+                end,
+            },
+        })
     end
-    return y
+
+    panel._ikstToolFit = true
+    return rect.y + rect.h
 end
 
 function IKST_JobTilesGuard.onBlueprintListResult(args)
@@ -443,31 +508,33 @@ end
 function IKST_JobTilesGuard.buildProtect(panel, y)
     local state = IKST.getPlayerState(panel.player)
     if not state then
-        return y
+        return y or 8
     end
     local modes = { "tiles", "containers", "farming" }
     if not state.guardMode or state.guardMode == "safehouses" or state.guardMode == "vehicles" or state.guardMode == "tools" then
         state.guardMode = "tiles"
     end
-    local x = 12
+    y = y or 8
+    local modeSpecs = {}
     for _, mode in ipairs(modes) do
-        local label = IKST.text("IGUI_IKST_Guard_" .. mode, mode)
-        local w = getTextManager():MeasureStringX(UIFont.Small, label) + 16
-        if w < 72 then
-            w = 72
-        end
-        panel:makeJobButton(x, y, w, 22, label, function()
-            state.guardMode = mode
-            if mode == "tiles" then
-                IKST_JobTilesGuard.requestList(panel.player)
-            end
-            panel:refreshJobUI()
-        end, state.guardMode == mode)
-        x = x + w + 6
+        local id = mode
+        modeSpecs[#modeSpecs + 1] = {
+            label = IKST.text("IGUI_IKST_Guard_" .. id, id),
+            w = 88,
+            primary = state.guardMode == id,
+            fn = function()
+                state.guardMode = id
+                if id == "tiles" then
+                    IKST_JobTilesGuard.requestList(panel.player)
+                end
+                panel:refreshJobUI()
+            end,
+        }
     end
-    y = y + 30
+    y = IKST_JobLayout.flowRow(panel, y, modeSpecs, 6, 24)
+
     if state.guardMode == "tiles" then
-        y = IKST_JobTilesGuard.buildTiles(panel, y)
+        return IKST_JobTilesGuard.buildTiles(panel, y)
     elseif state.guardMode == "containers" then
         y = IKST_JobTilesGuard.buildContainers(panel, y)
     elseif state.guardMode == "farming" then
@@ -476,7 +543,7 @@ function IKST_JobTilesGuard.buildProtect(panel, y)
     if state.armed and (state.armedJob == IKST.VIEW.guard or state.armedJob == IKST.VIEW.tiles
         or IKST_JobTilesGuard.pickActive(state)) then
         panel:makeJobButton(12, y, 100, 24, IKST.text("IGUI_IKST_Disarm", "STOP"), function()
-            if IKST_WorldPick and IKST_WorldPick.disarm then
+            if IKST_WorldPick and type(IKST_WorldPick.disarm) == "function" then
                 IKST_WorldPick.disarm(panel.player)
             end
             panel:refreshJobUI()

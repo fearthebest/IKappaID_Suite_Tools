@@ -7,7 +7,7 @@ require "IKST_Plugins"
 require "IKST_Access"
 require "IKST_JobLayout"
 require "IKST_ClaimIcons"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_Dashboard"
 require "IKST_DashboardQuick"
@@ -23,15 +23,14 @@ IKST_HubNav.WORKSPACES = {
         title = "Utilities",
         descKey = "IGUI_IKST_WS_Utilities_Desc",
         desc = "Server tools: self, items, players, zombies, world, teleport",
-        icon = "media/ui/ikst/ws_utilities.png",
         adminOnly = true,
         tools = {
-            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", icon = "media/ui/ikst/tool_self.png", order = 10 },
-            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", icon = "media/ui/ikst/tool_items.png", order = 20 },
-            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", icon = "media/ui/ikst/tool_players.png", order = 30 },
-            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", icon = "media/ui/ikst/tool_zombies.png", order = 40 },
-            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "Server tools", icon = "media/ui/ikst/tool_servertools.png", order = 50 },
-            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", icon = "media/ui/ikst/tool_teleport.png", order = 60 },
+            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", order = 10 },
+            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", order = 20 },
+            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", order = 30 },
+            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", order = 40 },
+            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "Server tools", order = 50 },
+            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", order = 60 },
         },
     },
     {
@@ -40,7 +39,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Admin",
         descKey = "IGUI_IKST_WS_Admin_Desc",
         desc = "Spectator, kick, and ban — vanilla server commands",
-        icon = "media/ui/ikst/tool_players.png",
         pluginId = "admin",
         adminOnly = true,
         tools = nil,
@@ -51,12 +49,11 @@ IKST_HubNav.WORKSPACES = {
         title = "Claim",
         descKey = "IGUI_IKST_WS_Claim_Desc",
         desc = "Claim a safehouse or vehicle",
-        icon = "media/ui/ikst/ws_claim.png",
         tools = {
-            { id = "overview", titleKey = "IGUI_IKST_Claim_Overview", title = "Overview", icon = "media/ui/ikst/ws_claim.png", order = 5 },
-            { id = "safehouses", titleKey = "IGUI_IKST_Claim_Safehouse", title = "Claim safehouse", icon = "media/ui/ikst/safehouse_claim.png", order = 10 },
-            { id = "vehicleclaim", titleKey = "IGUI_IKST_Claim_Vehicle", title = "Claim vehicle", icon = "media/ui/ikst/vehicle_claim.png", order = 20 },
-            { id = "catch", titleKey = "IGUI_IKST_Guard_Catch", title = "Catch", icon = "media/ui/ikst/tool_catch.png", order = 40, adminOnly = true },
+            { id = "overview", titleKey = "IGUI_IKST_Claim_Overview", title = "Overview", order = 5 },
+            { id = "safehouses", titleKey = "IGUI_IKST_Claim_Safehouse", title = "Claim safehouse", order = 10 },
+            { id = "vehicleclaim", titleKey = "IGUI_IKST_Claim_Vehicle", title = "Claim vehicle", order = 20 },
+            { id = "catch", titleKey = "IGUI_IKST_Guard_Catch", title = "Freeze player", order = 40, adminOnly = true },
         },
     },
     {
@@ -65,7 +62,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Tiles",
         descKey = "IGUI_IKST_WS_World_Desc",
         desc = "Remove, paint, inspect, blueprints, protection",
-        icon = "media/ui/ikst/ws_world.png",
         pluginId = "tiles",
         adminOnly = true,
         tools = nil,
@@ -76,7 +72,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Vehicles",
         descKey = "IGUI_IKST_WS_Vehicles_Desc",
         desc = "Spawn, repair, prune — admin vehicle tools",
-        icon = "media/ui/ikst/ws_vehicles.png",
         pluginId = "vehicles",
         adminOnly = true,
         tools = nil,
@@ -87,7 +82,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Everyone",
         descKey = "IGUI_IKST_WS_Everyone_Desc",
         desc = "Useful info and claim lists for everyday play",
-        icon = "media/ui/ikst/ws_everyone.png",
         tools = nil,
     },
     {
@@ -96,7 +90,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Economy",
         descKey = "IGUI_IKST_WS_Economy_Desc",
         desc = "Balances, vending, and transfers",
-        icon = "media/ui/ikst/ws_economy.png",
         pluginId = "economy",
         tools = nil,
     },
@@ -106,7 +99,6 @@ IKST_HubNav.WORKSPACES = {
         title = "Loot",
         descKey = "IGUI_IKST_WS_Loot_Desc",
         desc = "Repopulate containers with vanilla loot",
-        icon = "media/ui/ikst/ws_loot.png",
         pluginId = "loot",
         adminOnly = true,
         tools = nil,
@@ -596,10 +588,7 @@ function IKST_HubNav.buildSidebar(panel)
             panel:enterNav(panel.view, tool.id)
         end)
         btn:initialise()
-        if tool.icon and IKST_ClaimIcons and IKST_ClaimIcons.applyButtonIcon then
-            IKST_ClaimIcons.applyButtonIcon(btn, tool.icon)
-        end
-        IKST_Chrome.styleNavPill(btn, activeTool == tool.id)
+        IKUI_Chrome.styleNavPill(btn, activeTool == tool.id)
         if IKST_DashboardQuick and type(IKST_DashboardQuick.decorateToolButton) == "function" then
             local entryId = IKST_DashboardQuick.entryIdForNav(panel.view, tool.id)
             IKST_DashboardQuick.decorateToolButton(panel, btn, entryId)

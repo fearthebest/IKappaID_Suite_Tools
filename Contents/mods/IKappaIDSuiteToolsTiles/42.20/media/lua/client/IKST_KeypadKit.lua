@@ -6,7 +6,7 @@ require "ISUI/ISTextEntryBox"
 require "ISUI/ISPanel"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_Locks"
 require "IKST_Grid"
 require "IKST_Clearance"
@@ -98,7 +98,7 @@ function IKST_KeypadKit.promptPassword(player, item, x, y, z, onSubmit, clearHig
     end
     local w, h = 280, 120
     local panel = ISPanel:new((getCore():getScreenWidth() - w) / 2, (getCore():getScreenHeight() - h) / 2, w, h)
-    IKST_Chrome.applyPanelColors(panel)
+    IKUI_Chrome.applyPanelColors(panel)
     panel:initialise()
     panel:addToUIManager()
 
@@ -122,7 +122,7 @@ function IKST_KeypadKit.promptPassword(player, item, x, y, z, onSubmit, clearHig
     entry:instantiate()
     panel:addChild(entry)
 
-    local ok = IKST_Chrome.newActionButton(12, 68, 100, 22, IKST.text("IGUI_IKST_Keypad_Install", "Install"), panel, function()
+    local ok = IKUI_Chrome.newActionButton(12, 68, 100, 22, IKST.text("IGUI_IKST_Keypad_Install", "Install"), panel, function()
         local pw = entry:getText() or ""
         if pw == "" then
             IKST.notify(player, IKST.text("IGUI_IKST_Keypad_PasswordRequired", "Enter a password."), false)
@@ -136,7 +136,7 @@ function IKST_KeypadKit.promptPassword(player, item, x, y, z, onSubmit, clearHig
     end, "primary")
     panel:addChild(ok)
 
-    local cancel = IKST_Chrome.newActionButton(120, 68, 80, 22, IKST.text("IGUI_IKST_Cancel", "Cancel"), panel, function()
+    local cancel = IKUI_Chrome.newActionButton(120, 68, 80, 22, IKST.text("IGUI_IKST_Cancel", "Cancel"), panel, function()
         closeDialog(nil)
     end, "outline")
     panel:addChild(cancel)

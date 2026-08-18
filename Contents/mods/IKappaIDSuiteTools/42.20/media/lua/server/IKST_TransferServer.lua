@@ -166,7 +166,7 @@ function IKST_TransferServer.containerNeedsGuard(container)
         and type(IKST_VehicleClaim.get) == "function" then
         local vehicle = IKST_VehicleClaim.vehicleFromContainer(container)
         if vehicle and type(vehicle.getId) == "function" then
-            local entry = IKST_VehicleClaim.get(vehicle:getId())
+            local entry = select(1, IKST_VehicleClaim.getForVehicle(vehicle))
             if entry then
                 return true
             end

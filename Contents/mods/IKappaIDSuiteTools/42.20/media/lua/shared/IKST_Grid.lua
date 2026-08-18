@@ -153,74 +153,33 @@ function IKST_Grid.getMouseScreenXY()
     if type(getMouseX) == "function" and type(getMouseY) == "function" then
         return getMouseX(), getMouseY()
     end
-    if type(getMouseXScaled) == "function" and type(getMouseYScaled) == "function" then
-        return getMouseXScaled(), getMouseYScaled()
-    end
     return nil, nil
 end
 
+-- DiggingUtil / ISPlace3DItemCursor: unscaled mouse + screenToIso*.
 function IKST_Grid.worldXYFromScreen(screenX, screenY, player, z)
     player = IKST.resolvePlayer(player)
     if not player then
         return nil, nil
     end
     z = z or math.floor(player:getZ())
-
+    local mx, my = screenX, screenY
+    if mx == nil or my == nil then
+        mx, my = IKST_Grid.getMouseScreenXY()
+    end
+    if mx == nil or my == nil then
+        return nil, nil
+    end
+    if type(screenToIsoX) ~= "function" or type(screenToIsoY) ~= "function" then
+        return nil, nil
+    end
     local playerNum = 0
     if type(player.getIndex) == "function" then
         playerNum = player:getIndex() or 0
     elseif type(player.getPlayerNum) == "function" then
         playerNum = player:getPlayerNum() or 0
     end
-
-    -- Vanilla DiggingUtil / place-cursor path: unscaled mouse + screenToIso*.
-    if type(screenToIsoX) == "function" and type(screenToIsoY) == "function" then
-        local mx, my = screenX, screenY
-        if mx == nil or my == nil then
-            if type(getMouseX) == "function" and type(getMouseY) == "function" then
-                mx = getMouseX()
-                my = getMouseY()
-            end
-        end
-        if mx ~= nil and my ~= nil then
-            local wx = screenToIsoX(playerNum, mx, my, z)
-            local wy = screenToIsoY(playerNum, mx, my, z)
-            if wx ~= nil and wy ~= nil then
-                return wx, wy
-            end
-        end
-    end
-
-    -- Fallback: scaled mouse + ISCoordConversion (debug brush tools).
-    local mx, my = screenX, screenY
-    if mx == nil or my == nil then
-        if type(getMouseXScaled) == "function" and type(getMouseYScaled) == "function" then
-            mx = getMouseXScaled()
-            my = getMouseYScaled()
-        end
-    end
-    if mx == nil or my == nil then
-        return nil, nil
-    end
-
-    local zoom = 1
-    if getCore and getCore() and type(getCore().getZoom) == "function" then
-        local zv = getCore():getZoom(playerNum)
-        if zv and zv > 0 then
-            zoom = zv
-        end
-    end
-
-    local wx, wy = nil, nil
-    if ISCoordConversion and type(ISCoordConversion.ToWorld) == "function" then
-        wx, wy = ISCoordConversion.ToWorld(mx, my, z)
-    end
-
-    if (wx == nil or wy == nil) and IsoUtils and type(IsoUtils.XToIso) == "function" and type(IsoUtils.YToIso) == "function" then
-        wx = IsoUtils.XToIso(mx * zoom, my * zoom, z)
-        wy = IsoUtils.YToIso(mx * zoom, my * zoom, z)
-    end
-    return wx, wy
+    return screenToIsoX(playerNum, mx, my, z), screenToIsoY(playerNum, mx, my, z)
 end
 
 function IKST_Grid.bestSquareAtWorldXY(wx, wy, player)
@@ -251,37 +210,6 @@ function IKST_Grid.bestSquareAtWorldXY(wx, wy, player)
     return IKST_Grid.getSquare(ix, iy, playerZ)
 end
 
-function IKST_Grid.pickSquareFromScreenAtZ(mx, my, player, z)
-    local wx, wy = IKST_Grid.worldXYFromScreen(mx, my, player, z)
-    if wx == nil or wy == nil then
-        return nil
-    end
-    return IKST_Grid.getSquare(math.floor(wx + 0.5), math.floor(wy + 0.5), z)
-end
-
--- Engine tile pick when exposed (B42 UIManager); nil-safe if unavailable.
-function IKST_Grid.squareFromUIManager(mx, my, player)
-    if not UIManager or type(UIManager.getTileFromMouse) ~= "function" then
-        return nil
-    end
-    player = IKST.resolvePlayer(player)
-    if not player or mx == nil or my == nil then
-        return nil
-    end
-    local z = math.floor(player:getZ())
-    local tile = UIManager.getTileFromMouse(mx, my, z)
-    if tile and type(tile.getX) == "function" and type(tile.getY) == "function" then
-        local tx = math.floor(tile:getX() + 0.5)
-        local ty = math.floor(tile:getY() + 0.5)
-        local tz = z
-        if type(tile.getZ) == "function" then
-            tz = math.floor(tile:getZ() + 0.5)
-        end
-        return IKST_Grid.getSquare(tx, ty, tz)
-    end
-    return nil
-end
-
 function IKST_Grid.squareFromScreen(screenX, screenY, player)
     player = IKST.resolvePlayer(player)
     if not player then
@@ -294,58 +222,16 @@ function IKST_Grid.squareFromScreen(screenX, screenY, player)
     if mx == nil or my == nil then
         return nil
     end
-
     local playerZ = math.floor(player:getZ())
-
-    -- Primary: vanilla screenToIso at the player's floor (tracks the cursor).
-    local primary = IKST_Grid.pickSquareFromScreenAtZ(mx, my, player, playerZ)
-    if primary then
-        return primary
-    end
-
-    local umSq = IKST_Grid.squareFromUIManager(mx, my, player)
-    if umSq then
-        return umSq
-    end
-
-    -- Other Z levels when nothing on the player floor.
-    local zList = {}
-    local seen = { [playerZ] = true }
-    local function addZ(z)
-        if z == nil or seen[z] then
-            return
-        end
-        seen[z] = true
-        zList[#zList + 1] = z
-    end
-    for dz = 1, 7 do
-        addZ(playerZ + dz)
-        addZ(playerZ - dz)
-    end
-    addZ(0)
-
-    local best, bestScore = nil, -1
-    for i = 1, #zList do
-        local sq = IKST_Grid.pickSquareFromScreenAtZ(mx, my, player, zList[i])
-        if sq then
-            local score = IKST_Grid.scoreSquareForPick(sq, playerZ)
-            if score > bestScore then
-                bestScore = score
-                best = sq
-            end
-        end
-    end
-    if best then
-        return best
-    end
     local wx, wy = IKST_Grid.worldXYFromScreen(mx, my, player, playerZ)
-    if wx ~= nil and wy ~= nil then
-        best = IKST_Grid.bestSquareAtWorldXY(wx, wy, player)
-        if best then
-            return best
-        end
+    if wx == nil or wy == nil then
+        return nil
     end
-    return IKST_Grid.pickSquareFromScreenAtZ(mx, my, player, playerZ)
+    local sq = IKST_Grid.getSquare(math.floor(wx + 0.5), math.floor(wy + 0.5), playerZ)
+    if sq then
+        return sq
+    end
+    return IKST_Grid.bestSquareAtWorldXY(wx, wy, player)
 end
 
 -- Loaded squares in the 300-tile map cell (same grid as vehicleDeleteCell).

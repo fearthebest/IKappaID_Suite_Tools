@@ -5,7 +5,7 @@ end
 
 require "IKappaID_UI/IKUI_Config"
 require "IKappaID_UI/IKUI_Chrome"
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ClaimIcons"
 require "IKST_DashboardQuick"
 
@@ -167,7 +167,7 @@ function IKST_DashboardUI.buildHeader(panel, sec)
     local btnY = sec.headerY + math.floor((sec.headerH - btnH) / 2)
     local refreshX = m.infoX + m.infoW - refreshW - 4
 
-    local refreshBtn = IKST_Chrome.newActionButton(refreshX, btnY, refreshW, btnH, refreshLabel, panel, function()
+    local refreshBtn = IKUI_Chrome.newActionButton(refreshX, btnY, refreshW, btnH, refreshLabel, panel, function()
         if IKST_Dashboard and type(IKST_Dashboard.request) == "function" then
             IKST_Dashboard.request(panel.player)
         elseif type(panel.refreshJobUI) == "function" then
@@ -187,13 +187,10 @@ function IKST_DashboardUI.buildFunctionGrid(panel, sec)
             local ws = workspaces[idx]
             if ws then
                 local cx, cy, cw, ch = IKST_DashboardUI.funcCellAt(sec, col, row)
-                local btn = IKST_Chrome.newActionButton(cx + inner, cy + inner, cw - (inner * 2), ch - (inner * 2),
+                local btn = IKUI_Chrome.newActionButton(cx + inner, cy + inner, cw - (inner * 2), ch - (inner * 2),
                     IKST_HubNav.modeLabel(ws), panel, IKST_DashboardUI.workspaceClickFn(panel, ws), "chip")
                 if ws._missingPlugin then
                     btn.enable = false
-                end
-                if ws.icon and IKST_ClaimIcons and IKST_ClaimIcons.applyButtonIcon then
-                    IKST_ClaimIcons.applyButtonIcon(btn, ws.icon)
                 end
                 panel:addHomeWidget(btn)
             end
@@ -210,7 +207,7 @@ function IKST_DashboardUI.buildQuickRow(panel, sec)
             local cx, cy, cw, ch = IKST_DashboardUI.quickCellAt(sec, col, row)
             local entryId = slots[slotIndex]
             local label = IKST_DashboardQuick.labelFor(entryId)
-            local btn = IKST_Chrome.newActionButton(cx + inner, cy + inner, cw - (inner * 2), ch - (inner * 2),
+            local btn = IKUI_Chrome.newActionButton(cx + inner, cy + inner, cw - (inner * 2), ch - (inner * 2),
                 label, panel, function()
                     IKST_DashboardQuick.run(panel, slotIndex)
                 end, (entryId and entryId ~= "") and "primary" or "outline")
@@ -275,22 +272,10 @@ function IKST_DashboardUI.draw(panel, _bodyY)
     local title = IKST.text("IGUI_IKST_Nav_Dashboard", "Dashboard")
     local font = UIFont.Large
     local tw, th = IKUI_Config.textSize(title, font)
-    local iconSz = math.max(22, math.min(sec.headerH - 4, IKUI_Config.s(28)))
-    local gap = IKUI_Config.s(10)
-    local iconPath = IKST_ClaimIcons and IKST_ClaimIcons.DASHBOARD
-    local hasIcon = iconPath and IKST_ClaimIcons.texture and IKST_ClaimIcons.texture(iconPath) ~= nil
-    local groupW = tw + (hasIcon and (iconSz + gap) or 0)
-    local groupX = m.infoX + math.floor((m.infoW - groupW) / 2)
+    local groupX = m.infoX + math.floor((m.infoW - tw) / 2)
     local textY = sec.headerY + math.floor((sec.headerH - th) / 2)
-    if hasIcon and IKST_ClaimIcons.drawIcon then
-        local iconY = sec.headerY + math.floor((sec.headerH - iconSz) / 2)
-        IKST_ClaimIcons.drawIcon(panel, iconPath, groupX, iconY, iconSz, 1)
-        panel:drawText(title, groupX + iconSz + gap, textY,
-            cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, font)
-    else
-        panel:drawText(title, groupX, textY,
-            cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, font)
-    end
+    panel:drawText(title, groupX, textY,
+        cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, font)
 
     local statsH = m.midY - sec.statsY
     IKST_DashboardUI.drawGridLines(panel, m.infoX, sec.statsY, m.infoW, statsH,

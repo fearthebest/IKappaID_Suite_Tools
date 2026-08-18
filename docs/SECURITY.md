@@ -41,7 +41,7 @@ A modified client must not keep any IKST-protected change: claims, protect, shop
 - Java `ItemTransaction` and vanilla destroy cannot be aborted from Lua. Reverse is the authority path.
 - Loot `trimDuplicateContainers` clears extra contents; it cannot always remove the extra IsoObject.
 - `SafeHouse.allowSafeHouse` is skipped if the method is missing on that JVM.
-- Dual UI kits are frozen: hub = IKappaID_UI; jobs = `IKST_Chrome`.
+- All client UI chrome uses **IKappaID_UI** (`IKUI_Chrome`, `IKUI_Widgets`, `IKUI_Config`).
 
 ## Fault line (1.0)
 

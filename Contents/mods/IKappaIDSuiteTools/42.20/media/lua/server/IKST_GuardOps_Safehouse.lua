@@ -677,23 +677,24 @@ function IKST_GuardOps.restoreSafehouses(actor)
     return true, "restored " .. restored
 end
 
-function IKST_GuardOps.sendSafehouseList(player, list, offset, limit)
-    local sliced, total, hasMore, off, lim = IKST_GuardOps.pageSlice(list, offset, limit)
+function IKST_GuardOps.sendSafehouseList(player, list)
+    local max = IKST_Access and IKST_Access.claimListMaxSize and IKST_Access.claimListMaxSize() or 200
+    if #list > max then
+        local trimmed = {}
+        for i = 1, max do
+            trimmed[i] = list[i]
+        end
+        list = trimmed
+    end
     local rows = {}
-    for _, item in ipairs(sliced) do
+    for _, item in ipairs(list) do
         if item and item.canRelease ~= nil then
             rows[#rows + 1] = item
         elseif item then
             rows[#rows + 1] = IKST_GuardOps.safehouseRowForViewer(item, player)
         end
     end
-    IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, {
-        safehouses = rows,
-        total = total,
-        offset = off,
-        limit = lim,
-        hasMore = hasMore,
-    })
+    IKST.deliverClientCommand(player, IKST.CMD.safehouseListResult, { safehouses = rows })
 end
 
 function IKST_GuardOps.broadcastSafehouseChange(actor, syncInfo)

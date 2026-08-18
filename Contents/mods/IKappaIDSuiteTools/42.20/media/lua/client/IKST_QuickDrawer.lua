@@ -12,7 +12,7 @@ require "IKST_Utility"
 
 require "IKST_QuickActions"
 
-require "IKST_Chrome"
+require "IKappaID_UI/IKUI_Chrome"
 
 require "IKST_HubNav"
 
@@ -180,7 +180,7 @@ function IKST_QuickDrawer.drawButtonRow(panel, y, buttons, primaryIds)
 
         end
 
-        IKST_Chrome.drawTextButton(panel, x, y, w, 22, cmd.label, active)
+        IKUI_Chrome.drawTextButton(panel, x, y, w, 22, cmd.label, active)
 
         IKST_QuickDrawer.addHit(panel, x, y, w, 22, cmd.run)
 
@@ -200,7 +200,7 @@ function IKST_QuickDrawer.drawHubStrip(panel, bodyY)
 
     panel.quickHits = {}
 
-    local cc = IKST_Chrome.colors
+    local cc = IKUI_Chrome.colors
 
     local y = bodyY
 
@@ -224,7 +224,7 @@ function IKST_QuickDrawer.drawHubStrip(panel, bodyY)
 
         end
 
-        IKST_Chrome.drawTextButton(panel, 12, y, rw, 24, resumeLabel, true)
+        IKUI_Chrome.drawTextButton(panel, 12, y, rw, 24, resumeLabel, true)
 
         IKST_QuickDrawer.addHit(panel, 12, y, rw, 24, function()
 
@@ -250,7 +250,7 @@ function IKST_QuickDrawer.drawHubStrip(panel, bodyY)
 
         end
 
-        IKST_Chrome.drawTextButton(panel, 12, y, rw, 24, resumeLabel, true)
+        IKUI_Chrome.drawTextButton(panel, 12, y, rw, 24, resumeLabel, true)
 
         IKST_QuickDrawer.addHit(panel, 12, y, rw, 24, function()
 
@@ -294,7 +294,7 @@ function IKST_QuickDrawer.drawHubStrip(panel, bodyY)
 
             end
 
-            IKST_Chrome.drawTextButton(panel, x, y, w, 22, label, false)
+            IKUI_Chrome.drawTextButton(panel, x, y, w, 22, label, false)
 
             IKST_QuickDrawer.addHit(panel, x, y, w, 22, function()
 
