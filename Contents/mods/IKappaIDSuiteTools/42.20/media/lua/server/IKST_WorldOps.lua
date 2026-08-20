@@ -78,8 +78,10 @@ function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
     end
     if ok and IKST_Debug and IKST_Debug.logEffect then
         local detail = tostring(message or "")
-        if x ~= nil and y ~= nil then
-            detail = detail .. string.format(" @ %s,%s,%s", tostring(x), tostring(y), tostring(z or 0))
+        local px = tonumber(x)
+        local py = tonumber(y)
+        if px ~= nil and py ~= nil then
+            detail = detail .. string.format(" @ %s,%s,%s", tostring(px), tostring(py), tostring(tonumber(z) or 0))
         end
         IKST_Debug.logEffect("world", tostring(mode or "result"), detail, player)
     end
@@ -101,9 +103,13 @@ function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
         return
     end
     if payload.success and payload.message then
-        local line = tostring(payload.mode or "action") .. " @ "
-            .. tostring(payload.x) .. "," .. tostring(payload.y) .. "," .. tostring(payload.z)
-            .. " — " .. tostring(payload.message)
+        local line = tostring(payload.mode or "action")
+        local px = tonumber(payload.x)
+        local py = tonumber(payload.y)
+        if px ~= nil and py ~= nil then
+            line = line .. " @ " .. tostring(px) .. "," .. tostring(py) .. "," .. tostring(tonumber(payload.z) or 0)
+        end
+        line = line .. " — " .. tostring(payload.message)
         IKST.pushLog(player, line)
     end
     if IKST_JobsPanel and IKST_JobsPanel.instance then

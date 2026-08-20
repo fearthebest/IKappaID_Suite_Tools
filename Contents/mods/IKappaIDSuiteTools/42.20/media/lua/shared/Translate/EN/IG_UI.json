@@ -824,6 +824,8 @@
     "IGUI_IKST_Clearance_Issued": "Clearance tag issued.",
     "IGUI_IKST_Clearance_Revoked": "Clearance tags revoked.",
     "IGUI_IKST_Close": "Close",
+    "IGUI_IKST_Minimize": "Minimize to edge",
+    "IGUI_IKST_Expand": "Expand",
     "IGUI_IKST_Cancel": "Cancel",
     "IGUI_IKST_Briefing_Title": "Server Briefing",
     "IGUI_IKST_Briefing_Menu": "Server Briefing",

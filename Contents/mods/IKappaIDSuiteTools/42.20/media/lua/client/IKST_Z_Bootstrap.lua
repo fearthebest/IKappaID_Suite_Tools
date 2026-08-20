@@ -18,6 +18,7 @@ require "IKST_DashboardQuick"
 require "IKST_DashboardUI"
 require "IKST_ActionLog"
 require "IKST_DragHandle"
+require "IKST_EdgeDock"
 require "IKST_ActionLogWindow"
 require "IKST_JobsPanel"
 require "IKST_JobThreat"
@@ -32,6 +33,8 @@ require "IKST_Enforcement"
 require "IKST_QuickActions"
 require "IKST_QuickDrawer"
 require "IKST_HudChip"
+require "IKST_SidebarIcon"
+require "IKST_Joypad"
 require "IKST_ClaimPermissionsUI"
 require "IKST_VehicleClaimUI"
 require "IKST_VehicleContext"
@@ -131,19 +134,30 @@ local function onServerCommand(module, command, args)
             IKST_Debug.logResult(args and args.mode or command, player, args and args.success, args and args.message, args)
         end
         if args and args.message then
-            local line = tostring(args.mode or "action")
-            if args.code then
-                line = line .. " [" .. tostring(args.code) .. "]"
-            end
-            line = line .. " @ " .. tostring(args.x) .. "," .. tostring(args.y) .. "," .. tostring(args.z)
-                .. " — " .. tostring(args.message)
-            if args.success then
-                IKST.pushLog(player, line, "success")
-            else
-                IKST.pushLog(player, "DENIED: " .. line, "deny")
-                if IKST.notify then
-                    IKST.notify(player, tostring(args.message), false)
+            local mode = args.mode
+            local skipLog = mode == IKST.CMD.safehouseList or mode == IKST.CMD.vehicleClaimList
+            if not skipLog then
+                local line = tostring(mode or "action")
+                if args.code then
+                    line = line .. " [" .. tostring(args.code) .. "]"
                 end
+                local x = tonumber(args.x)
+                local y = tonumber(args.y)
+                if x ~= nil and y ~= nil then
+                    local z = tonumber(args.z) or 0
+                    line = line .. " @ " .. tostring(x) .. "," .. tostring(y) .. "," .. tostring(z)
+                end
+                line = line .. " — " .. tostring(args.message)
+                if args.success then
+                    IKST.pushLog(player, line, "success")
+                else
+                    IKST.pushLog(player, "DENIED: " .. line, "deny")
+                    if IKST.notify then
+                        IKST.notify(player, tostring(args.message), false)
+                    end
+                end
+            elseif args.success ~= true and IKST.notify then
+                IKST.notify(player, tostring(args.message), false)
             end
         end
         if IKST_EconomyUI and IKST_EconomyUI.onServerResult then
@@ -495,6 +509,13 @@ if Events then
     end
     if Events.OnKeyPressed then
         Events.OnKeyPressed.Add(onKeyPressed)
+    end
+    if Events.OnGameStart then
+        Events.OnGameStart.Add(function()
+            if IKST_SidebarIcon and IKST_SidebarIcon.sync then
+                IKST_SidebarIcon.sync()
+            end
+        end)
     end
     if Events.OnServerCommand then
         Events.OnServerCommand.Add(onServerCommand)

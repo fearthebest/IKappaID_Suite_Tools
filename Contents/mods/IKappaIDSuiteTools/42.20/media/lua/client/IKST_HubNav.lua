@@ -21,6 +21,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.utilities,
         titleKey = "IGUI_IKST_WS_Utilities",
         title = "Utilities",
+        icon = "media/ui/ikst/ws_utilities.png",
         descKey = "IGUI_IKST_WS_Utilities_Desc",
         desc = "Server tools: self, items, players, zombies, world, teleport",
         adminOnly = true,
@@ -37,6 +38,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.admin,
         titleKey = "IGUI_IKST_WS_Admin",
         title = "Admin",
+        icon = "media/ui/ikst/ws_admin.png",
         descKey = "IGUI_IKST_WS_Admin_Desc",
         desc = "Spectator, kick, and ban — vanilla server commands",
         pluginId = "admin",
@@ -47,6 +49,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.claim,
         titleKey = "IGUI_IKST_WS_Claim",
         title = "Claim",
+        icon = "media/ui/ikst/ws_claim.png",
         descKey = "IGUI_IKST_WS_Claim_Desc",
         desc = "Claim a safehouse or vehicle",
         tools = {
@@ -60,6 +63,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.tiles,
         titleKey = "IGUI_IKST_WS_World",
         title = "Tiles",
+        icon = "media/ui/ikst/ws_world.png",
         descKey = "IGUI_IKST_WS_World_Desc",
         desc = "Remove, paint, inspect, blueprints, protection",
         pluginId = "tiles",
@@ -70,6 +74,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.vehicles,
         titleKey = "IGUI_IKST_WS_Vehicles",
         title = "Vehicles",
+        icon = "media/ui/ikst/ws_vehicles.png",
         descKey = "IGUI_IKST_WS_Vehicles_Desc",
         desc = "Spawn, repair, prune — admin vehicle tools",
         pluginId = "vehicles",
@@ -80,6 +85,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.everyone,
         titleKey = "IGUI_IKST_WS_Everyone",
         title = "Everyone",
+        icon = "media/ui/ikst/ws_everyone.png",
         descKey = "IGUI_IKST_WS_Everyone_Desc",
         desc = "Useful info and claim lists for everyday play",
         tools = nil,
@@ -88,6 +94,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.economy,
         titleKey = "IGUI_IKST_WS_Economy",
         title = "Economy",
+        icon = "media/ui/ikst/ws_economy.png",
         descKey = "IGUI_IKST_WS_Economy_Desc",
         desc = "Balances, vending, and transfers",
         pluginId = "economy",
@@ -97,6 +104,7 @@ IKST_HubNav.WORKSPACES = {
         id = IKST.VIEW.loot,
         titleKey = "IGUI_IKST_WS_Loot",
         title = "Loot",
+        icon = "media/ui/ikst/ws_loot.png",
         descKey = "IGUI_IKST_WS_Loot_Desc",
         desc = "Repopulate containers with vanilla loot",
         pluginId = "loot",
@@ -589,6 +597,24 @@ function IKST_HubNav.buildSidebar(panel)
         end)
         btn:initialise()
         IKUI_Chrome.styleNavPill(btn, activeTool == tool.id)
+        local tip = label
+        if tool.descKey or tool.desc then
+            tip = label .. " <LINE> " .. IKST.text(tool.descKey, tool.desc or "")
+        end
+        if IKUI_Chrome.setTooltip then
+            IKUI_Chrome.setTooltip(btn, tip)
+        else
+            btn.tooltip = tip
+        end
+        if IKST_ClaimIcons and type(IKST_ClaimIcons.applyButtonIcon) == "function" then
+            local iconPath = tool.icon
+            if not iconPath and type(IKST_ClaimIcons.pathForTool) == "function" then
+                iconPath = IKST_ClaimIcons.pathForTool(panel.view, tool.id)
+            end
+            if iconPath then
+                IKST_ClaimIcons.applyButtonIcon(btn, iconPath)
+            end
+        end
         if IKST_DashboardQuick and type(IKST_DashboardQuick.decorateToolButton) == "function" then
             local entryId = IKST_DashboardQuick.entryIdForNav(panel.view, tool.id)
             IKST_DashboardQuick.decorateToolButton(panel, btn, entryId)

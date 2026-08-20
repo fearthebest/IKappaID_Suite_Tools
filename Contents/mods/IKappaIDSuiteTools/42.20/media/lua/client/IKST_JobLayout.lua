@@ -144,8 +144,9 @@ end
 function IKST_JobLayout.actionLogWindowSize()
     local core = getCore()
     local sw = core and type(core.getScreenWidth) == "function" and core:getScreenWidth() or 1920
-    local pad = 10
-    local headerH = math.max(18, IKST_UI_Layout.s(20))
+    local pad = math.max(8, IKST_UI_Layout.s(10))
+    local btn = IKST_UI_Layout.s(22)
+    local headerH = math.max(math.max(18, IKST_UI_Layout.s(20)), btn + IKST_UI_Layout.s(6))
     local lineH = 14
     if getTextManager and type(getTextManager) == "function" then
         local tm = getTextManager()
@@ -660,7 +661,7 @@ function IKST_JobLayout.flowRow(panel, y, specs, gap, rowH)
         local w = math.max(36, math.floor((spec.w or 100) * scale))
         w = IKST_JobLayout.clampWidth(panel, x, w)
         local btn = panel:makeJobButton(x, y, w, rowH, spec.label, spec.fn, spec.primary == true)
-        if spec.icon and IKST_ClaimIcons then
+        if spec.icon and IKST_ClaimIcons and type(IKST_ClaimIcons.applyButtonIcon) == "function" then
             IKST_ClaimIcons.applyButtonIcon(btn, spec.icon)
         end
         x = x + w + gap

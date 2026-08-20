@@ -12,6 +12,7 @@ require "IKappaID_UI/IKUI_Config"
 require "IKST_UI_Layout"
 require "IKST_UIPrefs"
 require "IKST_DragHandle"
+require "IKST_EdgeDock"
 require "IKST_JobLayout"
 require "IKST_HubNav"
 require "IKST_ScrollArea"
@@ -122,9 +123,44 @@ function IKST_JobsPanel:createChildren()
         IKST.text("IGUI_IKST_BackHome", "Home"), self, IKST_JobsPanel.onHomeNavClick, "outline")
     self:addChild(self.homeNavBtn)
     self.homeNavBtn:setVisible(false)
-    if IKST_DragHandle and type(IKST_DragHandle.ensureTab) == "function" then
-        IKST_DragHandle.ensureTab(self)
+    IKUI_Chrome.suppressVanillaWindowButtons(self)
+    IKUI_Chrome.attachWindowChrome(self, {
+        onMinimize = IKST_JobsPanel.onChromeMinimize,
+        onClose = IKST_JobsPanel.onChromeClose,
+    })
+    if IKUI_Chrome.setTooltip then
+        IKUI_Chrome.setTooltip(self.ikuiMinBtn, IKST.text("IGUI_IKST_Minimize", "Minimize to edge"))
+        IKUI_Chrome.setTooltip(self.ikuiCloseBtn, IKST.text("IGUI_IKST_Close", "Close"))
     end
+end
+
+function IKST_JobsPanel:titleBarHeight()
+    local sz = IKUI_Config.s(22)
+    local vPad = math.max(IKUI_Config.s(4), math.max(2, IKUI_Config.s(2)) + 1)
+    local need = sz + (vPad * 2)
+    local base = 16
+    if ISCollapsableWindow.titleBarHeight then
+        base = ISCollapsableWindow.titleBarHeight(self) or base
+    end
+    if need < base then
+        return base
+    end
+    return need
+end
+
+function IKST_JobsPanel.onChromeMinimize(_panel)
+    if IKST_EdgeDock and type(IKST_EdgeDock.minimizeHub) == "function" then
+        IKST_EdgeDock.minimizeHub()
+    end
+end
+
+function IKST_JobsPanel.onChromeClose(panel)
+    if panel and type(panel.close) == "function" then
+        panel:close()
+    end
+end
+
+function IKST_JobsPanel:collapse()
 end
 
 function IKST_JobsPanel.onHomeNavClick(_btn)
@@ -160,24 +196,65 @@ function IKST_JobsPanel:draftEntryText(key, fallback)
 end
 
 function IKST_JobsPanel:clearJobLayer()
+    local function detach(widget)
+        if not widget then
+            return
+        end
+        if IKUI_Chrome and type(IKUI_Chrome.hideTooltip) == "function" then
+            IKUI_Chrome.hideTooltip(widget)
+        end
+        if type(widget.setVisible) == "function" then
+            widget:setVisible(false)
+        end
+        local parent = widget.parent
+        if parent and type(parent.removeChild) == "function" then
+            parent:removeChild(widget)
+        elseif type(self.removeChild) == "function" then
+            self:removeChild(widget)
+        end
+        if not widget.parent and type(widget.removeFromUIManager) == "function" then
+            widget:removeFromUIManager()
+        end
+        widget.tooltip = nil
+        widget._ikuiTooltip = nil
+        if type(widget.setTooltip) == "function" then
+            widget:setTooltip(nil)
+        end
+    end
+
+    if IKUI_Chrome and type(IKUI_Chrome.hideAllOwnedTooltips) == "function" then
+        IKUI_Chrome.hideAllOwnedTooltips()
+    end
+
     local list = self.jobWidgets or {}
     for i = #list, 1, -1 do
-        local widget = list[i]
-        if widget and widget.parent and widget.parent.removeChild then
-            widget.parent:removeChild(widget)
-        end
+        detach(list[i])
         list[i] = nil
     end
     self.jobWidgets = {}
+
     local chrome = self.chromeWidgets or {}
     for i = #chrome, 1, -1 do
-        local widget = chrome[i]
-        if widget and widget.parent and widget.parent.removeChild then
-            widget.parent:removeChild(widget)
-        end
+        detach(chrome[i])
         chrome[i] = nil
     end
     self.chromeWidgets = {}
+
+    -- Orphans: home chips attached to the panel can lose bookkeeping if parent
+    -- was already nil; sweep children so they cannot cover tool views.
+    local kids = self.children
+    if type(kids) == "table" then
+        local doomed = {}
+        for _, child in pairs(kids) do
+            if type(child) == "table" and child._ikstHomeWidget == true then
+                doomed[#doomed + 1] = child
+            end
+        end
+        for i = 1, #doomed do
+            detach(doomed[i])
+        end
+    end
+
     self._ikstSelectLists = {}
     self.economyAmount = nil
     self.logPanel = nil
@@ -221,6 +298,7 @@ function IKST_JobsPanel:addHomeWidget(widget)
     if not widget then
         return widget
     end
+    widget._ikstHomeWidget = true
     table.insert(self.chromeWidgets, widget)
     self:addChild(widget)
     return widget
@@ -749,6 +827,36 @@ function IKST_JobsPanel:statusStripTexts()
     return leftText, rightText, rightAccent, textX
 end
 
+function IKST_JobsPanel:onJoypadDown(button, joypadData)
+    if IKST_Joypad and type(IKST_Joypad.onHubDown) == "function" then
+        return IKST_Joypad.onHubDown(self, button, joypadData)
+    end
+end
+
+function IKST_JobsPanel:onJoypadDirUp(_joypadData)
+    if IKST_Joypad and type(IKST_Joypad.onHubDir) == "function" then
+        return IKST_Joypad.onHubDir(self, 0, -1)
+    end
+end
+
+function IKST_JobsPanel:onJoypadDirDown(_joypadData)
+    if IKST_Joypad and type(IKST_Joypad.onHubDir) == "function" then
+        return IKST_Joypad.onHubDir(self, 0, 1)
+    end
+end
+
+function IKST_JobsPanel:onJoypadDirLeft(_joypadData)
+    if IKST_Joypad and type(IKST_Joypad.onHubDir) == "function" then
+        return IKST_Joypad.onHubDir(self, -1, 0)
+    end
+end
+
+function IKST_JobsPanel:onJoypadDirRight(_joypadData)
+    if IKST_Joypad and type(IKST_Joypad.onHubDir) == "function" then
+        return IKST_Joypad.onHubDir(self, 1, 0)
+    end
+end
+
 function IKST_JobsPanel:prerender()
     if self._pendingRefresh then
         self._pendingRefresh = false
@@ -759,7 +867,13 @@ function IKST_JobsPanel:prerender()
         self._flushRefresh = false
     end
     IKUI_Chrome.drawDockedShell(self)
+    local title = self.title
+    self.title = ""
     ISCollapsableWindow.prerender(self)
+    self.title = title
+    IKUI_Chrome.suppressVanillaWindowButtons(self)
+    IKUI_Chrome.layoutWindowChrome(self)
+    IKUI_Chrome.drawWindowTitle(self, title)
     if IKST_JobTilesGuard and IKST_JobTilesGuard.pruneOnOffFlash then
         IKST_JobTilesGuard.pruneOnOffFlash(self)
     end
@@ -792,8 +906,16 @@ function IKST_JobsPanel:prerender()
         stripH = IKST_JobLayout.HINT_HEIGHT,
         gripReserve = IKST_JobLayout.RESIZE_GRIP,
     })
-    if IKST_DragHandle and type(IKST_DragHandle.syncTab) == "function" then
-        IKST_DragHandle.syncTab(self)
+    if IKST_DragHandle then
+        if self._ikstDragTab and self._ikstDragTab.javaObject == nil then
+            self._ikstDragTab = nil
+        end
+        if not self._ikstDragTab and type(IKST_DragHandle.ensureTab) == "function" then
+            IKST_DragHandle.ensureTab(self)
+        end
+        if type(IKST_DragHandle.syncTab) == "function" then
+            IKST_DragHandle.syncTab(self)
+        end
     end
 end
 
@@ -819,6 +941,9 @@ function IKST_JobsPanel:onMouseMoveOutside(dx, dy)
 end
 
 function IKST_JobsPanel:onMouseDown(x, y)
+    if IKST_DragHandle and type(IKST_DragHandle.raiseTab) == "function" then
+        IKST_DragHandle.raiseTab(self)
+    end
     if IKST_JobLayout.isResizeGrip(self, x, y) then
         return ISCollapsableWindow.onMouseDown(self, x, y)
     end
@@ -918,6 +1043,9 @@ function IKST_JobsPanel:close()
     if IKST_ActionLogWindow and type(IKST_ActionLogWindow.close) == "function" then
         IKST_ActionLogWindow.close()
     end
+    if IKST_EdgeDock and type(IKST_EdgeDock.hide) == "function" then
+        IKST_EdgeDock.hide()
+    end
 end
 
 function IKST_JobsPanel.ensure()
@@ -993,6 +1121,9 @@ function IKST_JobsPanel.open(player)
         return
     end
     IKST_JobsPanel.prepareOpen(player)
+    if IKST_EdgeDock and type(IKST_EdgeDock.hide) == "function" then
+        IKST_EdgeDock.hide()
+    end
     local panel = IKST_JobsPanel.ensure()
     panel.player = player
     if IKST_JobLayout and type(IKST_JobLayout.restorePanelPosition) == "function" then
@@ -1040,6 +1171,9 @@ function IKST_JobsPanel.toggle(player)
         return
     end
     IKST_JobsPanel.prepareOpen(player)
+    if IKST_EdgeDock and type(IKST_EdgeDock.hide) == "function" then
+        IKST_EdgeDock.hide()
+    end
     panel.player = player
     if IKST_JobLayout and type(IKST_JobLayout.restorePanelPosition) == "function" then
         IKST_JobLayout.restorePanelPosition(panel)

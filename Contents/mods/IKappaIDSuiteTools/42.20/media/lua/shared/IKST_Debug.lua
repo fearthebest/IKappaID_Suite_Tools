@@ -159,8 +159,10 @@ function IKST_Debug.logResult(command, player, ok, msg, extra)
         tostring(msg or "")
     )
     if extra and type(extra) == "table" then
-        if extra.x ~= nil and extra.y ~= nil then
-            line = line .. string.format(" @ %s,%s,%s", tostring(extra.x), tostring(extra.y), tostring(extra.z or 0))
+        local ex = tonumber(extra.x)
+        local ey = tonumber(extra.y)
+        if ex ~= nil and ey ~= nil then
+            line = line .. string.format(" @ %s,%s,%s", tostring(ex), tostring(ey), tostring(tonumber(extra.z) or 0))
         end
         if extra.plugin then
             line = line .. " plugin=" .. tostring(extra.plugin)

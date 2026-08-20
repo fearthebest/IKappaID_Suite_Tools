@@ -241,8 +241,16 @@ function IKST_ActionLogWindow:prerender()
         end
     end
 
-    if IKST_DragHandle and type(IKST_DragHandle.syncTab) == "function" then
-        IKST_DragHandle.syncTab(self)
+    if IKST_DragHandle then
+        if self._ikstDragTab and self._ikstDragTab.javaObject == nil then
+            self._ikstDragTab = nil
+        end
+        if not self._ikstDragTab and type(IKST_DragHandle.ensureTab) == "function" then
+            IKST_DragHandle.ensureTab(self)
+        end
+        if type(IKST_DragHandle.syncTab) == "function" then
+            IKST_DragHandle.syncTab(self)
+        end
     end
 end
 
@@ -259,6 +267,9 @@ function IKST_ActionLogWindow.purgeOrphans()
 end
 
 function IKST_ActionLogWindow:onMouseDown(x, y)
+    if IKST_DragHandle and type(IKST_DragHandle.raiseTab) == "function" then
+        IKST_DragHandle.raiseTab(self)
+    end
     return ISPanel.onMouseDown(self, x, y)
 end
 

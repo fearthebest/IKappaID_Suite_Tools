@@ -192,6 +192,16 @@ function IKST_DashboardUI.buildFunctionGrid(panel, sec)
                 if ws._missingPlugin then
                     btn.enable = false
                 end
+                local tip = IKST_HubNav.modeLabel(ws)
+                if ws.descKey or ws.desc then
+                    tip = tip .. " <LINE> " .. IKST.text(ws.descKey, ws.desc or "")
+                end
+                if IKUI_Chrome.setTooltip then
+                    IKUI_Chrome.setTooltip(btn, tip)
+                end
+                if IKST_ClaimIcons and type(IKST_ClaimIcons.applyButtonIcon) == "function" and ws.icon then
+                    IKST_ClaimIcons.applyButtonIcon(btn, ws.icon)
+                end
                 panel:addHomeWidget(btn)
             end
         end
@@ -211,6 +221,9 @@ function IKST_DashboardUI.buildQuickRow(panel, sec)
                 label, panel, function()
                     IKST_DashboardQuick.run(panel, slotIndex)
                 end, (entryId and entryId ~= "") and "primary" or "outline")
+            if IKUI_Chrome.setTooltip then
+                IKUI_Chrome.setTooltip(btn, label)
+            end
             btn._ikstQuickSlot = slotIndex
             btn.onMouseDown = function(b, mx, my)
                 return IKST_DashboardQuick.onSlotMouseDown(panel, b._ikstQuickSlot, mx, my)
