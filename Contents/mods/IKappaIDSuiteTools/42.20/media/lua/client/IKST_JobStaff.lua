@@ -4,6 +4,7 @@ end
 
 require "ISUI/ISTextEntryBox"
 require "ISUI/ISScrollingListBox"
+require "ISUI/ISTextBox"
 require "IKST_Shared"
 require "IKappaID_UI/IKUI_Chrome"
 require "IKST_Catalog"
@@ -17,10 +18,247 @@ IKST_JobStaff.onlinePlayers = {}
 IKST_JobStaff.waypoints = {}
 IKST_JobStaff.itemCatalog = nil
 IKST_JobStaff.helpPending = {}
+IKST_JobStaff.claimPending = {}
+IKST_JobStaff.selectedClaimRequestId = nil
+IKST_JobStaff.selectedHelpRequestId = nil
 IKST_JobStaff.historyEntries = {}
 
 function IKST_JobStaff.requestWaypoints(player)
     IKST.dispatchCommand(player, IKST.CMD.listWaypoints, {})
+end
+
+function IKST_JobStaff.requestClaimRequests(player)
+    IKST.dispatchCommand(player, IKST.CMD.claimRequestList, {})
+end
+
+function IKST_JobStaff.requestHelpList(player)
+    IKST.dispatchCommand(player, IKST.CMD.helpList, {})
+end
+
+function IKST_JobStaff.selectedHelpRequest()
+    local selected = IKST_JobStaff.selectedHelpRequestId
+    if not selected or selected == "_empty" then
+        return nil
+    end
+    local pending = IKST_JobStaff.helpPending or {}
+    for _, row in ipairs(pending) do
+        if row and row.id == selected then
+            return row
+        end
+    end
+    return nil
+end
+
+function IKST_JobStaff.placeHelpQueue(panel, card, ax, ay, aw, ah, player)
+    local p = player or panel.player
+    if not p or not card then
+        return
+    end
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+    local pillH = btnH + 6
+    IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, btnH, {
+        {
+            label = IKST.text("IGUI_IKST_HelpResolve", "Resolve"),
+            primary = true,
+            onClick = function()
+                local row = IKST_JobStaff.selectedHelpRequest()
+                if not row or not row.id then
+                    IKST.notify(p, IKST.text("IGUI_IKST_HelpEmpty", "No open help requests."), false)
+                    return
+                end
+                IKST.dispatchCommand(p, IKST.CMD.helpResolve, { id = row.id })
+                IKST_JobStaff.requestHelpList(p)
+            end,
+        },
+        {
+            label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
+            onClick = function()
+                IKST_JobStaff.requestHelpList(p)
+            end,
+        },
+    })
+    local listY = ay + pillH
+    local listH = math.max(40, ah - pillH)
+    IKST_JobLayout.makeSelectList(panel, card, ax, listY, aw, listH, IKST_JobStaff.helpRequestRows(), {
+        selectedId = IKST_JobStaff.selectedHelpRequestId,
+        onSelect = function(row)
+            if row and row.data and row.id and row.id ~= "_empty" then
+                IKST_JobStaff.selectedHelpRequestId = row.id
+            end
+        end,
+    })
+end
+
+function IKST_JobStaff.selectedClaimRequest()
+    local id = IKST_JobStaff.selectedClaimRequestId
+    if not id or id == "_empty" then
+        return nil
+    end
+    for _, row in ipairs(IKST_JobStaff.claimPending or {}) do
+        if row and row.id == id then
+            return row
+        end
+    end
+    return nil
+end
+
+function IKST_JobStaff.claimRequestRows()
+    local rows = {}
+    for i, row in ipairs(IKST_JobStaff.claimPending or {}) do
+        if i > 40 then
+            break
+        end
+        if row then
+            local rid = row.id
+            if not rid or rid == "" then
+                if row.t and row.user then
+                    rid = tostring(row.t) .. ":" .. tostring(row.user)
+                else
+                    rid = tostring(row.user or "?") .. "@" .. tostring(row.x) .. "," .. tostring(row.y)
+                end
+            end
+            local line = tostring(row.user) .. "  "
+            local kind = row.kind or "safehouse"
+            if kind == "vehicle" then
+                line = line .. IKST.text("IGUI_IKST_ClaimReq_TypeVehicle", "[Vehicle] ")
+                    .. tostring(row.script or "vehicle")
+                    .. " @ " .. tostring(row.x) .. "," .. tostring(row.y)
+            else
+                line = line .. IKST.text("IGUI_IKST_ClaimReq_TypeHouse", "[House] ")
+                    .. tostring(row.w) .. "x" .. tostring(row.h)
+                    .. " @ " .. tostring(row.x) .. "," .. tostring(row.y)
+            end
+            rows[#rows + 1] = {
+                id = (row.id and row.id ~= "") and row.id or rid,
+                label = line,
+                data = row,
+            }
+        end
+    end
+    if #rows == 0 then
+        rows[1] = {
+            id = "_empty",
+            label = IKST.text("IGUI_IKST_ClaimRequestEmpty", "No open claim requests."),
+            data = nil,
+        }
+    end
+    return rows
+end
+
+function IKST_JobStaff.helpRequestRows()
+    local rows = {}
+    for i, row in ipairs(IKST_JobStaff.helpPending or {}) do
+        if i > 40 then
+            break
+        end
+        if row and row.id then
+            local line = tostring(row.user or "?") .. "  " .. tostring(row.message or "")
+            if row.x and row.y then
+                line = line .. "  @" .. tostring(row.x) .. "," .. tostring(row.y)
+            end
+            rows[#rows + 1] = {
+                id = row.id,
+                label = line,
+                data = row,
+            }
+        end
+    end
+    if #rows == 0 then
+        rows[1] = {
+            id = "_empty",
+            label = IKST.text("IGUI_IKST_HelpEmpty", "No open help requests."),
+            data = nil,
+        }
+    end
+    return rows
+end
+
+-- Shared claim-request list (Claim > Requests).
+function IKST_JobStaff.placeClaimRequestQueue(panel, card, ax, ay, aw, ah, player)
+    local p = player or panel.player
+    if not p or not card then
+        return
+    end
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+    local pillH = btnH + 6
+    IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, btnH, {
+        {
+            label = IKST.text("IGUI_IKST_ClaimRequestApprove", "Approve"),
+            primary = true,
+            onClick = function()
+                local row = IKST_JobStaff.selectedClaimRequest()
+                if not row or not row.id then
+                    IKST.notify(p, IKST.text("IGUI_IKST_ClaimRequestPick", "Select a claim request first."), false)
+                    return
+                end
+                IKST.dispatchCommand(p, IKST.CMD.claimRequestApprove, { id = row.id })
+            end,
+        },
+        {
+            label = IKST.text("IGUI_IKST_ClaimRequestDeny", "Deny"),
+            onClick = function()
+                local row = IKST_JobStaff.selectedClaimRequest()
+                if not row or not row.id then
+                    IKST.notify(p, IKST.text("IGUI_IKST_ClaimRequestPick", "Select a claim request first."), false)
+                    return
+                end
+                if not ISTextBox or type(ISTextBox.new) ~= "function" then
+                    IKST.dispatchCommand(p, IKST.CMD.claimRequestDeny, { id = row.id, reason = "" })
+                    return
+                end
+                local playerNum = 0
+                if type(p.getPlayerNum) == "function" then
+                    playerNum = p:getPlayerNum()
+                end
+                local prompt = IKST.text("IGUI_IKST_ClaimRequestDenyPrompt",
+                    "Optional reason shown to the player:")
+                local modal = ISTextBox:new(0, 0, 320, 160, prompt, "", nil, function(_, button)
+                    if not button or button.internal ~= "OK" then
+                        return
+                    end
+                    local parent = button.parent
+                    local entry = parent and parent.entry
+                    local reason = ""
+                    if entry and type(entry.getText) == "function" then
+                        reason = tostring(entry:getText() or "")
+                        reason = string.gsub(reason, "^%s*(.-)%s*$", "%1")
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.claimRequestDeny, { id = row.id, reason = reason })
+                end, playerNum)
+                modal:initialise()
+                modal:addToUIManager()
+            end,
+        },
+        {
+            label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
+            onClick = function()
+                IKST_JobStaff.requestClaimRequests(p)
+            end,
+        },
+    })
+    local listY = ay + pillH
+    local listH = math.max(40, ah - pillH)
+    IKST_JobLayout.makeSelectList(panel, card, ax, listY, aw, listH, IKST_JobStaff.claimRequestRows(), {
+        selectedId = IKST_JobStaff.selectedClaimRequestId,
+        onSelect = function(row)
+            if not row or not row.data or row.id == "_empty" then
+                return
+            end
+            local claim = row.data
+            local actualId = claim.id or row.id
+            if not actualId or actualId == "" or actualId == "_empty" then
+                return
+            end
+            IKST_JobStaff.selectedClaimRequestId = actualId
+            if claim.x and claim.y then
+                local cx = math.floor(claim.x + (tonumber(claim.w) or 1) / 2)
+                local cy = math.floor(claim.y + (tonumber(claim.h) or 1) / 2)
+                IKST.dispatchCommand(p, IKST.CMD.tpCoords, {
+                    x = cx, y = cy, z = claim.z or 0,
+                })
+            end
+        end,
+    })
 end
 
 function IKST_JobStaff.readEntry(entry)
@@ -89,17 +327,41 @@ function IKST_JobStaff.loadItemCatalog()
     return IKST_JobStaff.itemCatalog
 end
 
+function IKST_JobStaff.catalogEntryFromListItem(listItem)
+    if not listItem then
+        return nil
+    end
+    local wrapped = listItem.item
+    if wrapped and wrapped.data then
+        return wrapped.data
+    end
+    return wrapped
+end
+
+function IKST_JobStaff.itemCatalogRows(panel, filter)
+    local state = IKST.getPlayerState(panel.player)
+    local categoryId = state and state.staffItemCategory or IKST_Catalog.CATEGORY_ALL
+    local entries, total = IKST_Catalog.filterEntries(
+        IKST_JobStaff.loadItemCatalog(), categoryId, filter)
+    local rows = {}
+    for _, entry in ipairs(entries) do
+        if entry and entry.full then
+            rows[#rows + 1] = {
+                id = entry.full,
+                label = entry.label or entry.full or "?",
+                data = entry,
+            }
+        end
+    end
+    return rows, total
+end
+
 function IKST_JobStaff.refreshItemList(panel, filter)
     if not panel.staffItemList then
         return
     end
-    panel.staffItemList:clear()
-    local state = IKST.getPlayerState(panel.player)
-    local categoryId = state and state.staffItemCategory or IKST_Catalog.CATEGORY_ALL
-    local rows, total = IKST_Catalog.filterEntries(IKST_JobStaff.loadItemCatalog(), categoryId, filter)
-    for _, entry in ipairs(rows) do
-        panel.staffItemList:addItem(entry.label or entry.full or "?", entry)
-    end
+    local rows, total = IKST_JobStaff.itemCatalogRows(panel, filter)
+    IKST_JobLayout.refillSelectList(panel.staffItemList, rows, panel.staffItemTypeText)
     panel.staffItemListTotal = total
     panel.staffItemListShown = #rows
 end
@@ -146,7 +408,7 @@ function IKST_JobStaff.drawItemListItem(self, y, item, alt)
     elseif alt and c then
         self:drawRect(0, y, self:getWidth(), h, 0.10, c.bgCard.r, c.bgCard.g, c.bgCard.b)
     end
-    local entry = item.item
+    local entry = IKST_JobStaff.catalogEntryFromListItem(item)
     local full = entry and entry.full or nil
     local label = (entry and entry.label) or item.text or ""
     local iconSize = math.min(28, h - 4)
@@ -170,7 +432,7 @@ end
 function IKST_JobStaff.getSelectedItemType(panel)
     local listBox = panel.staffItemList
     if listBox and listBox.selected and listBox.items[listBox.selected] then
-        local entry = listBox.items[listBox.selected].item
+        local entry = IKST_JobStaff.catalogEntryFromListItem(listBox.items[listBox.selected])
         if entry and entry.full then
             return entry.full
         end
@@ -184,17 +446,46 @@ function IKST_JobStaff.getSelectedItemType(panel)
     return "Base.Axe"
 end
 
-function IKST_JobStaff.onItemListSelect(panel)
-    local listBox = panel.staffItemList
-    if listBox and listBox.selected and listBox.items[listBox.selected] then
-        local entry = listBox.items[listBox.selected].item
-        if entry and entry.full then
-            panel.staffItemTypeText = entry.full
-            if panel.staffItemType and type(panel.staffItemType.setText) == "function" then
-                panel.staffItemType:setText(entry.full)
-            end
+function IKST_JobStaff.onItemListSelect(panel, row)
+    local entry = nil
+    if row and row.data then
+        entry = row.data
+    else
+        local listBox = panel.staffItemList
+        if listBox and listBox.selected and listBox.items[listBox.selected] then
+            entry = IKST_JobStaff.catalogEntryFromListItem(listBox.items[listBox.selected])
         end
     end
+    if entry and entry.full then
+        panel.staffItemTypeText = entry.full
+        if panel.staffItemType and type(panel.staffItemType.setText) == "function" then
+            panel.staffItemType:setText(entry.full)
+        end
+    end
+end
+
+function IKST_JobStaff.waypointRows()
+    local rows = {}
+    for i, wp in ipairs(IKST_JobStaff.waypoints or {}) do
+        if i > 40 then
+            break
+        end
+        if wp and wp.name then
+            rows[#rows + 1] = {
+                id = wp.name,
+                label = wp.name .. " (" .. math.floor(wp.x) .. "," .. math.floor(wp.y) .. ")",
+                data = wp,
+            }
+        end
+    end
+    if #rows == 0 then
+        rows[1] = {
+            id = "_empty",
+            label = IKST.text("IGUI_IKST_WaypointEmpty", "No waypoints saved."),
+            data = nil,
+        }
+    end
+    return rows
 end
 
 function IKST_JobStaff.requestPlayers(player)
@@ -343,33 +634,21 @@ function IKST_JobStaff.buildItemsHand(panel, contentTop)
             rect.x, rect.y, rect.w, listOuterH,
             IKST.text("IGUI_IKST_Catalog_All", "Items")
         )
-        panel.staffItemList = ISScrollingListBox:new(ax, ay, aw, ah)
-        panel.staffItemList:initialise()
-        panel.staffItemList:instantiate()
-        panel.staffItemList.itemheight = 32
-        panel.staffItemList.font = UIFont.Small
-        panel.staffItemList.drawBorder = true
-        panel.staffItemList.doDrawItem = IKST_JobStaff.drawItemListItem
-        if IKUI_Chrome and type(IKUI_Chrome.styleListBox) == "function" then
-            IKUI_Chrome.styleListBox(panel.staffItemList)
-        end
-        IKST_JobLayout.attachToolWidget(panel, card, panel.staffItemList)
-        panel.staffItemList.onmousedown = function(target, mx, my)
-            if target and target.onMouseDown then
-                target:onMouseDown(mx, my)
-            end
-            IKST_JobStaff.onItemListSelect(panel)
-        end
-        if type(panel.staffItemList.setOnMouseDownFunction) == "function" then
-            panel.staffItemList:setOnMouseDownFunction(panel, function(_target, _row)
-                IKST_JobStaff.onItemListSelect(panel)
-            end)
-        end
         local q = ""
         if panel.staffItemFilterText and panel.staffItemFilterText ~= "" then
             q = panel.staffItemFilterText
         end
-        IKST_JobStaff.refreshItemList(panel, q)
+        local itemRows, itemTotal = IKST_JobStaff.itemCatalogRows(panel, q)
+        panel.staffItemList = IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, ah, itemRows, {
+            selectedId = panel.staffItemTypeText,
+            itemHeight = 32,
+            doDrawItem = IKST_JobStaff.drawItemListItem,
+            onSelect = function(row)
+                IKST_JobStaff.onItemListSelect(panel, row)
+            end,
+        })
+        panel.staffItemListTotal = itemTotal
+        panel.staffItemListShown = #itemRows
     end
 
     -- 2) Selected ID + amount + Give
@@ -382,7 +661,8 @@ function IKST_JobStaff.buildItemsHand(panel, contentTop)
         local selectedFull = "Base.Axe"
         if panel.staffItemList and panel.staffItemList.selected
             and panel.staffItemList.items and panel.staffItemList.items[panel.staffItemList.selected] then
-            local entry = panel.staffItemList.items[panel.staffItemList.selected].item
+            local entry = IKST_JobStaff.catalogEntryFromListItem(
+                panel.staffItemList.items[panel.staffItemList.selected])
             if entry and entry.full then
                 selectedFull = entry.full
             end
@@ -447,7 +727,7 @@ function IKST_JobStaff.buildPlayersHand(panel, contentTop)
         rect.h = math.max(80, rect.h - shrink)
     end
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -476,6 +756,13 @@ function IKST_JobStaff.buildPlayersHand(panel, contentTop)
                 label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
                 onClick = function()
                     IKST_JobStaff.requestPlayers(panel.player)
+                    IKST_JobStaff.requestHelpList(panel.player)
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Guard_DumpPlayers", "List players"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.dumpPlayers, {})
                 end,
             },
         })
@@ -512,7 +799,7 @@ function IKST_JobStaff.buildPlayersHand(panel, contentTop)
                     onClick = function()
                         local itemType = IKST_JobStaff.getSelectedItemType(panel)
                         if not IKST_Catalog.itemExists(itemType) then
-                            IKST.notify(p, IKST.text("IGUI_IKST_InvalidItem", "Unknown item — pick one on Items first."), false)
+                            IKST.notify(p, IKST.text("IGUI_IKST_InvalidItem", "Unknown item - pick one on Items first."), false)
                             return
                         end
                         IKST.dispatchCommand(p, IKST.CMD.giveTarget, {
@@ -550,7 +837,12 @@ function IKST_JobStaff.buildPlayersHand(panel, contentTop)
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Clearance_Header", "Clearance"))
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_HelpQueue", "Help requests"))
+        IKST_JobStaff.placeHelpQueue(panel, card, ax, ay, aw, ah, p)
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Clearance_Header", "Clearance"))
         local target = IKST_JobStaff.getSelectedTarget(panel)
         IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
             { text = "armory", fieldName = "staffTargetClearanceZone" },
@@ -598,7 +890,7 @@ function IKST_JobStaff.buildWaypointsHand(panel, contentTop)
         rect.h = math.max(80, rect.h - shrink)
     end
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -624,34 +916,17 @@ function IKST_JobStaff.buildWaypointsHand(panel, contentTop)
     do
         local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_WaypointSave", "Library"))
         local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, 1)
-        local list = ISScrollingListBox:new(ax, ay, aw, listH)
-        list:initialise()
-        list:instantiate()
-        list.itemheight = 20
-        list.font = UIFont.Small
-        list.drawBorder = true
-        IKST_JobLayout.attachToolWidget(panel, card, list)
-        panel.staffWpList = list
-        local wps = IKST_JobStaff.waypoints or {}
-        for i, wp in ipairs(wps) do
-            if i > 40 then
-                break
-            end
-            local label = wp.name .. " (" .. math.floor(wp.x) .. "," .. math.floor(wp.y) .. ")"
-            list:addItem(label, wp)
-        end
-        list.onmousedown = function(target, mx, my)
-            if target and target.onMouseDown then
-                target:onMouseDown(mx, my)
-            end
-            local sel = target and target.items and target.selected and target.items[target.selected]
-            if sel and sel.item and sel.item.name then
-                panel.staffWaypointName = sel.item.name
-                if panel.staffWpName and type(panel.staffWpName.setText) == "function" then
-                    panel.staffWpName:setText(sel.item.name)
+        panel.staffWpList = IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, listH, IKST_JobStaff.waypointRows(), {
+            selectedId = panel.staffWaypointName,
+            onSelect = function(row)
+                if row and row.data and row.data.name then
+                    panel.staffWaypointName = row.data.name
+                    if panel.staffWpName and type(panel.staffWpName.setText) == "function" then
+                        panel.staffWpName:setText(row.data.name)
+                    end
                 end
-            end
-        end
+            end,
+        })
         local pillY = ay + listH + gapLP
         local pillAreaH = math.max(btnH, pillH)
         IKST_JobLayout.placePillGroup(panel, card, ax, pillY, aw, pillAreaH, {
@@ -671,8 +946,6 @@ function IKST_JobStaff.buildWaypointsHand(panel, contentTop)
                 label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
                 onClick = function()
                     IKST_JobStaff.requestWaypoints(panel.player)
-                    IKST.dispatchCommand(panel.player, IKST.CMD.helpList, {})
-                    IKST.dispatchCommand(panel.player, IKST.CMD.staffHistoryList, { count = 30 })
                 end,
             },
         })
@@ -695,52 +968,6 @@ function IKST_JobStaff.buildWaypointsHand(panel, contentTop)
                 end,
             },
         })
-    end
-
-    do
-        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_HelpQueue", "Help queue"))
-        local ticketH = 0
-        if IKST_TicketsUI and type(IKST_TicketsUI.openInbox) == "function" then
-            ticketH = btnH + 6
-            IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, btnH, {
-                {
-                    label = IKST.text("IGUI_IKST_SeeTickets", "See tickets"),
-                    primary = true,
-                    onClick = function()
-                        IKST_TicketsUI.openInbox(p)
-                    end,
-                },
-            })
-        end
-        local listY = ay + ticketH
-        local listH = math.max(40, ah - ticketH)
-        local list = ISScrollingListBox:new(ax, listY, aw, listH)
-        list:initialise()
-        list:instantiate()
-        list.itemheight = 22
-        list.font = UIFont.Small
-        list.drawBorder = true
-        IKST_JobLayout.attachToolWidget(panel, card, list)
-        local pending = IKST_JobStaff.helpPending or {}
-        for i, row in ipairs(pending) do
-            if i > 40 then
-                break
-            end
-            local line = tostring(row.user) .. ": " .. tostring(row.message or "")
-            list:addItem(line, row)
-        end
-        list.onmousedown = function(target, mx, my)
-            if target and target.onMouseDown then
-                target:onMouseDown(mx, my)
-            end
-            local sel = target and target.items and target.selected and target.items[target.selected]
-            local row = sel and sel.item
-            if row and row.x then
-                IKST.dispatchCommand(p, IKST.CMD.tpCoords, {
-                    x = row.x, y = row.y, z = row.z or 0,
-                })
-            end
-        end
     end
 
     panel._ikstToolFit = true
@@ -1133,6 +1360,9 @@ function IKST_JobStaff.build(panel)
                     state.staffMode = mode
                     if mode == "players" or mode == "moderate" then
                         IKST_JobStaff.requestPlayers(panel.player)
+                        if mode == "players" then
+                            IKST_JobStaff.requestHelpList(panel.player)
+                        end
                     elseif mode == "waypoints" then
                         IKST_JobStaff.requestWaypoints(panel.player)
                     end
@@ -1187,6 +1417,39 @@ end
 
 function IKST_JobStaff.onHelpListResult(args)
     IKST_JobStaff.helpPending = (args and args.pending) or {}
+    local selected = IKST_JobStaff.selectedHelpRequestId
+    if selected then
+        local found = false
+        for _, row in ipairs(IKST_JobStaff.helpPending) do
+            if row and row.id == selected then
+                found = true
+                break
+            end
+        end
+        if not found then
+            IKST_JobStaff.selectedHelpRequestId = nil
+        end
+    end
+    if IKST_JobsPanel and IKST_JobsPanel.instance then
+        IKST_JobsPanel.instance:refreshJobUI()
+    end
+end
+
+function IKST_JobStaff.onClaimRequestListResult(args)
+    IKST_JobStaff.claimPending = (args and args.pending) or {}
+    local selected = IKST_JobStaff.selectedClaimRequestId
+    if selected then
+        local found = false
+        for _, row in ipairs(IKST_JobStaff.claimPending) do
+            if row and row.id == selected then
+                found = true
+                break
+            end
+        end
+        if not found then
+            IKST_JobStaff.selectedClaimRequestId = nil
+        end
+    end
     if IKST_JobsPanel and IKST_JobsPanel.instance then
         IKST_JobsPanel.instance:refreshJobUI()
     end

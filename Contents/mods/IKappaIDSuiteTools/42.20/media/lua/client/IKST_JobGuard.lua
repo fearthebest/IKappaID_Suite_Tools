@@ -9,6 +9,7 @@ require "ISUI/ISTextBox"
 require "IKST_Confirm"
 require "IKST_Shared"
 require "IKST_Claim"
+require "IKST_ClaimRequestDraw"
 require "IKST_VehicleClaim"
 require "IKST_VehicleClaimClient"
 require "IKST_VehicleClaimUI"
@@ -61,6 +62,13 @@ function IKST_JobGuard.resolveVehicleId(panel)
     if cache[1] then
         return cache[1].id
     end
+    local p = panel and panel.player
+    if p and type(p.getVehicle) == "function" then
+        local v = p:getVehicle()
+        if v and type(v.getId) == "function" and v:getId() ~= nil then
+            return v:getId()
+        end
+    end
     return nil
 end
 
@@ -103,7 +111,7 @@ function IKST_JobGuard.vehicleLabel(entry)
         label = label .. " [" .. tostring(entry.claimNote) .. "]"
     end
     if entry.hoursRemainingText and entry.hoursRemainingText ~= "" then
-        label = label .. " · " .. entry.hoursRemainingText
+        label = label .. " - " .. entry.hoursRemainingText
     end
     return label
 end
@@ -114,7 +122,7 @@ function IKST_JobGuard.claimLineText(claim, isAdmin)
     end
     local line = "#" .. tostring(claim.id) .. " " .. tostring(claim.displayLabel or claim.script or "?")
     if claim.hoursRemainingText and claim.hoursRemainingText ~= "" then
-        line = line .. " · " .. claim.hoursRemainingText
+        line = line .. " - " .. claim.hoursRemainingText
     end
     if claim.x and claim.y then
         line = line .. " @ " .. claim.x .. "," .. claim.y
@@ -216,7 +224,7 @@ function IKST_JobGuard.claimLabelForId(vehicleId, player)
         s = s .. ": " .. row.displayLabel
     end
     if row.hoursRemainingText and row.hoursRemainingText ~= "" then
-        s = s .. " · " .. row.hoursRemainingText
+        s = s .. " - " .. row.hoursRemainingText
     end
     return s .. "]"
 end
@@ -226,7 +234,12 @@ function IKST_JobGuard.targetUiState(panel)
     if not vid or not IKST_VehicleClaimClient then
         return nil, vid
     end
-    return IKST_VehicleClaimClient.uiState(vid, panel.player), vid
+    local vehicle = nil
+    local p = panel.player
+    if p and type(p.getVehicle) == "function" then
+        vehicle = p:getVehicle()
+    end
+    return IKST_VehicleClaimClient.uiState(vid, p, vehicle), vid
 end
 
 function IKST_JobGuard.readEntry(entry)
@@ -312,55 +325,56 @@ function IKST_JobGuard.buildTools(panel, contentTop)
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Guard_Catch", "Catch"))
-        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Util_Players", "Online players"))
+        if not IKST_JobStaff then
+            require "IKST_JobStaff"
+        end
+        if IKST_JobStaff and type(IKST_JobStaff.requestPlayers) == "function" and not panel._catchPlayersRequested then
+            panel._catchPlayersRequested = true
+            IKST_JobStaff.requestPlayers(p)
+        end
+        local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, 1, true)
+        local rows = IKST_JobLayout.rowsForListHeight(listH)
+        local listBottom = IKST_JobStaff.buildPlayerSelectList(panel, card, ax, ay, aw, rows)
+        local pillAreaY = listBottom + gapLP
+        local pillAreaH = math.max(btnH, pillH)
+        if pillAreaY + pillAreaH > ay + ah then
+            pillAreaY = math.max(ay, ay + ah - pillAreaH)
+        end
+        IKST_JobLayout.placePillGroup(panel, card, ax, pillAreaY, aw, pillAreaH, {
             {
-                label = IKST.text("IGUI_IKST_Guard_Catch", "Catch"),
-                primary = true,
+                label = IKST.text("IGUI_IKST_RefreshList", "Refresh"),
                 onClick = function()
-                    local t = IKST_JobStaff.getSelectedTarget(panel)
-                    if t then
-                        IKST.dispatchCommand(p, IKST.CMD.catchTarget, { target = t.id })
-                    end
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_Guard_Release", "Release"),
-                onClick = function()
-                    local t = IKST_JobStaff.getSelectedTarget(panel)
-                    if t then
-                        IKST.dispatchCommand(p, IKST.CMD.releaseTarget, { target = t.id })
-                    end
+                    IKST_JobStaff.requestPlayers(p)
                 end,
             },
         })
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Guard_Creative", "Staff toggles"))
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Guard_Catch", "Catch"))
         IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
             {
-                label = IKST.text("IGUI_IKST_Guard_Creative", "Creative"),
+                label = IKST.text("IGUI_IKST_Guard_Catch", "Catch"),
+                primary = true,
                 onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.toggleCreative, {})
+                    local t = IKST_JobStaff.getSelectedTarget(panel)
+                    if not t then
+                        IKST.notify(p, IKST.text("IGUI_IKST_SelectPlayerFirst", "Select a player first."), false)
+                        return
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.catchTarget, { target = t.id })
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_Guard_UnlimAmmo", "Unlim ammo"),
+                label = IKST.text("IGUI_IKST_Guard_Release", "Release"),
                 onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.toggleUnlimitedAmmo, {})
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_Guard_Lightbulbs", "Lightbulbs"),
-                onClick = function()
-                    IKST_JobGuard.dispatchRadius(panel, IKST.CMD.lightbulbsArea, nil)
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_Guard_DumpPlayers", "Dump players"),
-                onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.dumpPlayers, {})
+                    local t = IKST_JobStaff.getSelectedTarget(panel)
+                    if not t then
+                        IKST.notify(p, IKST.text("IGUI_IKST_SelectPlayerFirst", "Select a player first."), false)
+                        return
+                    end
+                    IKST.dispatchCommand(p, IKST.CMD.releaseTarget, { target = t.id })
                 end,
             },
         })
@@ -520,7 +534,7 @@ function IKST_JobGuard.buildSafehouses(panel, contentTop)
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Guard_SH_Custom", "Custom W×H"))
+        local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Guard_SH_Custom", "Custom WxH"))
         IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
             { text = panel:draftEntryText("guardShWEntry", tostring(state.guardShW or 13)), fieldName = "guardShWEntry" },
             { text = panel:draftEntryText("guardShHEntry", tostring(state.guardShH or 13)), fieldName = "guardShHEntry" },
@@ -533,7 +547,25 @@ function IKST_JobGuard.buildSafehouses(panel, contentTop)
     do
         local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Guard_SH_Claim", "Actions"))
         local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, 1)
-        local pillY = ay + listH + gapLP
+        local tipText = ""
+        if IKST_ClaimExplain and type(IKST_ClaimExplain.summaryForRect) == "function" then
+            local here = IKST_JobGuard.coords(p)
+            local tw = tonumber(state.guardShW) or tonumber(state.guardShSize) or 13
+            local th = tonumber(state.guardShH) or tonumber(state.guardShSize) or 13
+            local cx = math.floor((here.x or 0) - tw / 2)
+            local cy = math.floor((here.y or 0) - th / 2)
+            if type(IKST_ClaimExplain.linesForRectWithRules) == "function" then
+                tipText = table.concat(IKST_ClaimExplain.linesForRectWithRules(p, cx, cy, tw, th), " | ")
+            else
+                tipText = IKST_ClaimExplain.summaryForRect(p, cx, cy, tw, th) or ""
+            end
+        end
+        local tipH = 0
+        if tipText ~= nil and tipText ~= "" then
+            tipH = 16
+            listH = math.max(36, listH - tipH - 2)
+        end
+        local pillY = ay + listH + tipH + ((tipH > 0) and 2 or 0) + gapLP
         local pillH = math.max(btnH, pillH)
         local list = IKST_JobGuard.safehouses or {}
         panel.guardSelectedSH = IKST_JobGuard.matchSafehouse(panel.guardSelectedSH, list)
@@ -556,8 +588,15 @@ function IKST_JobGuard.buildSafehouses(panel, contentTop)
         })
         panel.guardShList = shList
 
+        if tipH > 0 then
+            local tipLab = ISLabel:new(ax, ay + listH + 1, tipH, tipText, 0.85, 0.85, 0.85, 1, UIFont.Small, true)
+            tipLab:initialise()
+            tipLab:instantiate()
+            card:addChild(tipLab)
+        end
+
         local actionItems = {}
-        if IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateClaim and IKST_ClaimPolicy.mayCreateClaim(p) then
+        if IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateSafehouseClaim and IKST_ClaimPolicy.mayCreateSafehouseClaim(p) then
             actionItems[#actionItems + 1] = {
                 label = IKST.text("IGUI_IKST_Guard_SH_Claim", "Claim here"),
                 primary = true,
@@ -785,6 +824,15 @@ function IKST_JobGuard.buildVehicles(panel, contentTop)
                     IKST.dispatchCommand(p, IKST.CMD.vehicleClaim, claimArgs)
                 end,
             }
+        elseif IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowVehicleClaimRequest
+            and IKST_ClaimPolicy.mayShowVehicleClaimRequest(p) and vid then
+            vehicleActions[#vehicleActions + 1] = {
+                label = IKST.text("IGUI_IKST_ClaimTile_RequestVehicle", "Request vehicle claim"),
+                primary = true,
+                onClick = function()
+                    IKST_JobGuard.onRequestVehicleClaimClick(panel)
+                end,
+            }
         end
         if canRelease then
             vehicleActions[#vehicleActions + 1] = {
@@ -878,13 +926,64 @@ function IKST_JobGuard.buildVehicles(panel, contentTop)
 end
 
 function IKST_JobGuard.onRequestClaimClick(panel)
+    IKST_JobGuard.startHouseClaimRequest(panel.player, panel)
+end
+
+function IKST_JobGuard.startHouseClaimRequest(player, panel)
+    local p = player
+    if not p then
+        return false
+    end
+    if IKST_ClaimPolicy and not IKST_ClaimPolicy.mayRequestSafehouseClaim(p) then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_Disabled",
+            "House claim requests are disabled on this server."), false)
+        return false
+    end
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_MpOnly",
+            "Claim requests need multiplayer. Staff review them under Claim requests."), false)
+        return false
+    end
+    local state = IKST.getPlayerState(p)
+    if not state then
+        return false
+    end
+    local c = IKST_JobGuard.coords(p)
+    if not state.claimReqA then
+        if IKST_ClaimRequestDraw and IKST_ClaimRequestDraw.start then
+            IKST_ClaimRequestDraw.start(p, c)
+        else
+            state.claimReqA = { x = c.x, y = c.y, z = c.z }
+        end
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_WalkToB",
+            "Corner marked. Walk to the opposite corner - the blue zone is what staff will see - then press Ask staff to claim again."), true)
+        if panel and panel.refreshJobUI then
+            panel:refreshJobUI()
+        end
+        return true
+    end
+    if panel then
+        IKST_JobGuard.finishHouseClaimRequest(panel)
+        return true
+    end
+    IKST.notify(p, IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house")
+        .. " — open IKST Claim Overview to finish the walk-draw request.", true)
+    return true
+end
+
+function IKST_JobGuard.finishHouseClaimRequest(panel)
     local p = panel.player
     if not p then
         return
     end
+    if IKST_ClaimPolicy and not IKST_ClaimPolicy.mayRequestSafehouseClaim(p) then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_Disabled",
+            "House claim requests are disabled on this server."), false)
+        return
+    end
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_MpOnly",
-            "Claim requests need multiplayer. Staff review them in F1 See Tickets."), false)
+            "Claim requests need multiplayer. Staff review them under Claim requests."), false)
         return
     end
     local state = IKST.getPlayerState(p)
@@ -893,29 +992,35 @@ function IKST_JobGuard.onRequestClaimClick(panel)
     end
     local c = IKST_JobGuard.coords(p)
     if not state.claimReqA then
-        local b = IKST_Claim.buildingAt(c.x, c.y, c.z)
-        if not b or not IKST_Claim.isResidentialBuilding(b) then
-            IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_ResidentialOnly",
-                "Stand inside a house. Players may only request residential buildings."), false)
-            return
-        end
-        state.claimReqA = { x = c.x, y = c.y, z = c.z }
-        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_WalkToB",
-            "Start marked. Walk to another room in this house, then press Request claim again."), true)
-        if panel.refreshJobUI then
-            panel:refreshJobUI()
-        end
+        IKST_JobGuard.startHouseClaimRequest(p, panel)
         return
     end
     local a = state.claimReqA
-    local ok, err, zx, zy, zw, zh = IKST_Claim.playerResidentialRect(a.x, a.y, a.z, c.x, c.y, c.z)
+    local ok, err, zx, zy, zw, zh = IKST_Claim.walkDrawRect(a.x, a.y, a.z, c.x, c.y, c.z)
     if not ok then
-        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_ResidentialOnly",
-            "Stand inside a house. Players may only request residential buildings."), false)
+        local msg = IKST.text("IGUI_IKST_ClaimReq_BadSize", "Zone must be")
+            .. " " .. IKST_Claim.sizeRangeLabel()
+        if err == "same floor only" then
+            msg = IKST.text("IGUI_IKST_ClaimReq_SameFloor", "Both corners must be on the same floor.")
+        elseif err == "zone too large" then
+            msg = IKST.text("IGUI_IKST_ClaimReq_TooLarge", "Too large (max")
+                .. " " .. tostring(IKST_Claim.MAX_DIM) .. " "
+                .. IKST.text("IGUI_IKST_ClaimReq_PerSide", "per side")
+                .. "). "
+                .. IKST.text("IGUI_IKST_ClaimReq_NowSize", "Now")
+                .. " " .. tostring(zw) .. "x" .. tostring(zh)
+                .. " - " .. IKST.text("IGUI_IKST_ClaimReq_WalkCloser", "walk closer")
+        elseif err == "zone too small" then
+            msg = IKST.text("IGUI_IKST_ClaimReq_TooSmall", "Keep walking (min")
+                .. " " .. tostring(IKST_Claim.MIN_DIM) .. "). "
+                .. IKST.text("IGUI_IKST_ClaimReq_NowSize", "Now")
+                .. " " .. tostring(zw) .. "x" .. tostring(zh)
+        end
+        IKST.notify(p, msg, false)
         return
     end
     local confirm = IKST.text("IGUI_IKST_ClaimReq_Confirm",
-        "Send this house to staff for approval? It is not auto-approved.")
+        "Send this zone to staff for approval? Staff must accept it before it is yours.")
         .. " " .. tostring(zw) .. "x" .. tostring(zh)
         .. " @ " .. tostring(zx) .. "," .. tostring(zy)
     IKST_Confirm.show(confirm, function()
@@ -923,16 +1028,50 @@ function IKST_JobGuard.onRequestClaimClick(panel)
             x1 = a.x, y1 = a.y, z1 = a.z,
             x2 = c.x, y2 = c.y, z2 = c.z,
         })
-        state.claimReqA = nil
+        if IKST_ClaimRequestDraw and IKST_ClaimRequestDraw.clear then
+            IKST_ClaimRequestDraw.clear(p)
+        else
+            state.claimReqA = nil
+        end
         if panel.refreshJobUI then
             panel:refreshJobUI()
         end
     end, function()
-        state.claimReqA = nil
+        if IKST_ClaimRequestDraw and IKST_ClaimRequestDraw.clear then
+            IKST_ClaimRequestDraw.clear(p)
+        else
+            state.claimReqA = nil
+        end
         IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_Cancelled", "Claim request cancelled."), true)
         if panel.refreshJobUI then
             panel:refreshJobUI()
         end
+    end)
+end
+
+function IKST_JobGuard.onRequestVehicleClaimClick(panel)
+    local p = panel.player
+    if not p then
+        return
+    end
+    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_MpOnly",
+            "Claim requests need multiplayer. Staff review them under Claim requests."), false)
+        return
+    end
+    if IKST_ClaimPolicy and not IKST_ClaimPolicy.mayRequestVehicleClaim(p) then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_VehicleDisabled",
+            "Vehicle claim requests are disabled on this server."), false)
+        return
+    end
+    local claimArgs = IKST_JobGuard.vehicleClaimArgs(panel)
+    if not claimArgs or not claimArgs.vehicleId then
+        IKST.notify(p, IKST.text("IGUI_IKST_Guard_Vehicle_None", "No vehicle nearby."), false)
+        return
+    end
+    IKST_Confirm.show(IKST.text("IGUI_IKST_ClaimReq_VehicleConfirm",
+        "Send this vehicle to staff for approval?"), function()
+        IKST.dispatchCommand(p, IKST.CMD.vehicleClaimRequest, { vehicleId = claimArgs.vehicleId })
     end)
 end
 
@@ -1023,35 +1162,92 @@ function IKST_JobGuard.buildClaimOverview(panel)
     panel:addJobWidget(title)
 
     local claimState = IKST.getPlayerState(p)
-    local reqLabel = IKST.text("IGUI_IKST_ClaimTile_RequestClaim", "Request claim")
+    local reqLabel = IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house")
     local reqPrimary = false
     if claimState and claimState.claimReqA then
         reqLabel = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Mark end (B)")
         reqPrimary = true
     end
     local ox, gridW = IKST_JobLayout.packFrame(rect.x, rect.w, btnW)
-    IKST_JobLayout.placePill(panel, panel, {
-        x = ox + gridW - btnW * 2 - IKST_JobLayout.BTN_GAP,
-        y = rect.y + math.floor((headerH - btnH) / 2),
-        w = btnW,
-        h = btnH,
-    }, reqLabel, function()
-        IKST_JobGuard.onRequestClaimClick(panel)
-    end, reqPrimary)
-    IKST_JobLayout.placePill(panel, panel, {
-        x = ox + gridW - btnW,
-        y = rect.y + math.floor((headerH - btnH) / 2),
-        w = btnW,
-        h = btnH,
-    }, IKST.text("IGUI_IKST_ClaimTile_NewClaim", "+ New claim"), function()
-        if IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateClaim and IKST_ClaimPolicy.mayCreateClaim(p) then
-            if panel.enterNav then
-                panel:enterNav(IKST.VIEW.claim, "safehouses")
-            end
-        else
-            IKST_JobGuard.onRequestClaimClick(panel)
+    local headerY = rect.y + math.floor((headerH - btnH) / 2)
+    local staff = IKST_Access and type(IKST_Access.canUseStaffTools) == "function" and IKST_Access.canUseStaffTools(p)
+    if staff then
+        if not IKST_JobStaff then
+            require "IKST_JobStaff"
         end
-    end, true)
+        if not panel._claimOverviewRequestsRequested then
+            panel._claimOverviewRequestsRequested = true
+            if IKST_JobStaff and type(IKST_JobStaff.requestClaimRequests) == "function" then
+                IKST_JobStaff.requestClaimRequests(p)
+            end
+        end
+        local pendingN = #(IKST_JobStaff and IKST_JobStaff.claimPending or {})
+        local staffLabel = IKST.text("IGUI_IKST_ClaimRequestQueue", "Claim requests")
+        if pendingN > 0 then
+            staffLabel = staffLabel .. " (" .. tostring(pendingN) .. ")"
+        end
+        IKST_JobLayout.placePill(panel, panel, {
+            x = ox,
+            y = headerY,
+            w = btnW,
+            h = btnH,
+        }, staffLabel, function()
+            if panel.enterNav then
+                panel:enterNav(IKST.VIEW.claim, "requests")
+            end
+        end, pendingN > 0)
+    end
+    local pillSpecs = {}
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(p) then
+        pillSpecs[#pillSpecs + 1] = {
+            label = reqLabel,
+            primary = reqPrimary,
+            fn = function()
+                IKST_JobGuard.onRequestClaimClick(panel)
+            end,
+        }
+    end
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowVehicleClaimRequest(p) then
+        pillSpecs[#pillSpecs + 1] = {
+            label = IKST.text("IGUI_IKST_ClaimTile_RequestVehicle", "Request vehicle"),
+            fn = function()
+                IKST_JobGuard.onRequestVehicleClaimClick(panel)
+            end,
+        }
+    end
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateSafehouseClaim(p) then
+        pillSpecs[#pillSpecs + 1] = {
+            label = IKST.text("IGUI_IKST_ClaimTile_NewHouse", "+ House claim"),
+            primary = true,
+            fn = function()
+                if panel.enterNav then
+                    panel:enterNav(IKST.VIEW.claim, "safehouses")
+                end
+            end,
+        }
+    end
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateVehicleClaim(p) then
+        pillSpecs[#pillSpecs + 1] = {
+            label = IKST.text("IGUI_IKST_ClaimTile_NewVehicle", "+ Vehicle claim"),
+            primary = true,
+            fn = function()
+                if panel.enterNav then
+                    panel:enterNav(IKST.VIEW.claim, "vehicleclaim")
+                end
+            end,
+        }
+    end
+    local pillX = ox + gridW - btnW
+    for i = #pillSpecs, 1, -1 do
+        local spec = pillSpecs[i]
+        IKST_JobLayout.placePill(panel, panel, {
+            x = pillX,
+            y = headerY,
+            w = btnW,
+            h = btnH,
+        }, spec.label, spec.fn, spec.primary)
+        pillX = pillX - btnW - IKST_JobLayout.BTN_GAP
+    end
 
     local bandsY = rect.y + headerH + gap
     local bandsH = rect.h - headerH - gap
@@ -1080,7 +1276,7 @@ function IKST_JobGuard.buildClaimOverview(panel)
         for _, sh in ipairs(shList) do
             local label = tostring(sh.title or sh.owner or "?")
             if sh.x and sh.y then
-                label = label .. "  ·  " .. tostring(sh.x) .. ", " .. tostring(sh.y)
+                label = label .. "  -  " .. tostring(sh.x) .. ", " .. tostring(sh.y)
             end
             overviewShRows[#overviewShRows + 1] = {
                 id = IKST_JobGuard.safehouseId(sh),
@@ -1178,7 +1374,7 @@ function IKST_JobGuard.buildClaimOverview(panel)
         for _, claim in ipairs(vList) do
             local label = tostring(claim.displayLabel or claim.script or ("#" .. tostring(claim.id or "?")))
             if claim.x and claim.y then
-                label = label .. "  ·  " .. tostring(claim.x) .. ", " .. tostring(claim.y)
+                label = label .. "  -  " .. tostring(claim.x) .. ", " .. tostring(claim.y)
             end
             overviewVRows[#overviewVRows + 1] = { id = claim.id, label = label, data = claim }
         end
@@ -1271,7 +1467,7 @@ function IKST_JobGuard.buildClaimOverview(panel)
             onClick = function()
                 IKST_JobGuard.requestSafehouses(p)
                 IKST_JobGuard.requestClaims(p)
-                IKST.notify(p, IKST.text("IGUI_IKST_ClaimTile_ListAllDone", "Refreshing claim lists…"), true)
+                IKST.notify(p, IKST.text("IGUI_IKST_ClaimTile_ListAllDone", "Refreshing claim lists..."), true)
                 panel:refreshJobUI()
             end,
         }
@@ -1288,10 +1484,61 @@ function IKST_JobGuard.buildClaimOverview(panel)
     return rect.y + rect.h
 end
 
+function IKST_JobGuard.buildClaimRequests(panel)
+    local p = panel.player
+    if not p then
+        return 8
+    end
+    if not IKST_JobStaff then
+        require "IKST_JobStaff"
+    end
+    if not panel._claimRequestsRequested then
+        panel._claimRequestsRequested = true
+        if IKST_JobStaff and type(IKST_JobStaff.requestClaimRequests) == "function" then
+            IKST_JobStaff.requestClaimRequests(p)
+        end
+    end
+
+    local rect = IKST_JobLayout.toolContentRect(panel)
+    local inner = IKST_JobLayout.SECTION_INNER
+    local padY = IKST_JobLayout.CONTENT_PAD_Y
+    local btnH = IKST_JobLayout.STANDARD_BTN_H
+    local title = ISLabel:new(rect.x, rect.y, 28,
+        IKST.text("IGUI_IKST_ClaimRequestQueue", "Claim requests"), 1, 1, 1, 1, UIFont.Large, true)
+    title:initialise()
+    panel:addJobWidget(title)
+
+    local note = ISLabel:new(rect.x, rect.y + 28, 18,
+        IKST.text("IGUI_IKST_ClaimRequestHelp",
+            "Player walk-draw zones waiting for staff approve/deny. Not vanilla F1 tickets."),
+        0.75, 0.78, 0.82, 1, UIFont.Small, true)
+    note:initialise()
+    panel:addJobWidget(note)
+
+    local bandY = rect.y + 52
+    local bandH = math.max(120, rect.h - 52)
+    local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, bandY, rect.w, bandH, nil,
+        IKST.text("IGUI_IKST_ClaimRequestQueue", "Claim requests"))
+    local ax = inner
+    local aw = math.max(40, rect.w - inner * 2)
+    local ay = contentY + padY
+    local ah = math.max(btnH + 48, bandH - contentY - padY * 2)
+    if IKST_JobStaff and type(IKST_JobStaff.placeClaimRequestQueue) == "function" then
+        IKST_JobStaff.placeClaimRequestQueue(panel, card, ax, ay, aw, ah, p)
+    end
+    panel._ikstToolFit = true
+    return rect.y + rect.h
+end
+
 function IKST_JobGuard.build(panel)
     local state = IKST.getPlayerState(panel.player)
     if not state then
         return 8
+    end
+
+    if panel.view == IKST.VIEW.claim and state.navTool == "requests" then
+        state.guardMode = "requests"
+        return IKST_JobGuard.buildClaimRequests(panel)
     end
 
     if panel.view == IKST.VIEW.claim and (state.navTool == "overview" or not state.navTool) then

@@ -109,7 +109,7 @@ function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
         if px ~= nil and py ~= nil then
             line = line .. " @ " .. tostring(px) .. "," .. tostring(py) .. "," .. tostring(tonumber(payload.z) or 0)
         end
-        line = line .. " — " .. tostring(payload.message)
+        line = line .. " - " .. tostring(payload.message)
         IKST.pushLog(player, line)
     end
     if IKST_JobsPanel and IKST_JobsPanel.instance then

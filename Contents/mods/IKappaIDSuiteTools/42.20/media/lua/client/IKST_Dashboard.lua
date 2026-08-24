@@ -20,7 +20,7 @@ end
 local function formatUptime(seconds)
     seconds = tonumber(seconds) or 0
     if seconds < 1 then
-        return "—", ""
+        return "-", ""
     end
     local mins = math.floor(seconds / 60)
     local hrs = math.floor(mins / 60)
@@ -126,11 +126,11 @@ end
 function IKST_Dashboard.statLines(statId)
     local s = IKST_Dashboard.snapshot
     if not s then
-        return "—", IKST.text("IGUI_IKST_Dashboard_Stat_Placeholder", "Tap Refresh")
+        return "-", IKST.text("IGUI_IKST_Dashboard_Stat_Placeholder", "Tap Refresh")
     end
     if statId == "online" then
         local maxP = tonumber(s.maxPlayers) or 0
-        -- Do not put %1 in getText strings — B42 Translator formats it and throws every frame.
+        -- Do not put %1 in getText strings - B42 Translator formats it and throws every frame.
         local sub = ""
         if maxP > 0 then
             sub = IKST.text("IGUI_IKST_Dashboard_Stat_OnlineSub", "of") .. " " .. tostring(maxP) .. " "
@@ -153,13 +153,13 @@ function IKST_Dashboard.statLines(statId)
     end
     if statId == "admins" then
         if s.staffView ~= true then
-            return "—", IKST.text("IGUI_IKST_Dashboard_StaffOnly", "Staff only")
+            return "-", IKST.text("IGUI_IKST_Dashboard_StaffOnly", "Staff only")
         end
         return tostring(s.activeAdmins or 0), tostring(s.adminNames or "")
     end
     if statId == "help" then
         if s.staffView ~= true then
-            return "—", IKST.text("IGUI_IKST_Dashboard_StaffOnly", "Staff only")
+            return "-", IKST.text("IGUI_IKST_Dashboard_StaffOnly", "Staff only")
         end
         local pending = tonumber(s.pendingHelp) or 0
         local sub = ""
@@ -169,7 +169,7 @@ function IKST_Dashboard.statLines(statId)
         end
         return tostring(pending), sub
     end
-    return "—", ""
+    return "-", ""
 end
 
 function IKST_Dashboard.runFavoriteAction(panel, action)

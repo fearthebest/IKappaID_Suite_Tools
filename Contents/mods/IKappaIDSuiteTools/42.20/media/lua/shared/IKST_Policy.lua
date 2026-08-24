@@ -1,5 +1,5 @@
 -- Mod-wide gate schema: session role (SP / host / remote) + location (tile protect + claims).
--- Plugins pass an action string ("loot", "tiles", "vehicles", …) for sandbox and bypass rules.
+-- Plugins pass an action string ("loot", "tiles", "vehicles", ...) for sandbox and bypass rules.
 
 require "IKST_Shared"
 
@@ -257,7 +257,7 @@ function IKST_Policy.formatDenyMessage(code)
         return IKST.text("IGUI_IKST_ServerOnly", "Server only")
     end
     if msg == "rate_limit" then
-        return IKST.text("IGUI_IKST_Policy_RateLimit", "Too many requests — wait a moment")
+        return IKST.text("IGUI_IKST_Policy_RateLimit", "Too many requests - wait a moment")
     end
     if msg == "world_loading" then
         return IKST.text("IGUI_IKST_Policy_WorldLoading", "World is still loading")

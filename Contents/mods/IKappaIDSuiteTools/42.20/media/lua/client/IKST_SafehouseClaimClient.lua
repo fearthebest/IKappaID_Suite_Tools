@@ -124,10 +124,36 @@ function IKST_SafehouseClaimClient.spFallbackState(x, y, w, h, player, owner)
     }
 end
 
+function IKST_SafehouseClaimClient.finalizeUiState(state, player, owner)
+    if not state then
+        return nil
+    end
+    if state.claimed == true then
+        local entry = nil
+        if state.x ~= nil and state.y ~= nil and state.w and state.h then
+            entry = IKST_SafehouseClaim.get(state.x, state.y, state.w, state.h)
+        end
+        local isAdmin = IKST_Access and type(IKST_Access.canUseTools) == "function"
+            and IKST_Access.canUseTools(player)
+        if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
+            state.isMine = IKST_SafehouseClaim.isOwner(entry, player)
+            state.canRelease = IKST_SafehouseClaim.isOwner(entry, player) or isAdmin
+            state.canEdit = IKST_SafehouseClaim.playerMayEdit(entry, player) or isAdmin
+        elseif isAdmin then
+            state.canRelease = true
+            state.canEdit = true
+        end
+        return state
+    end
+    state.canRelease = false
+    state.canEdit = false
+    return state
+end
+
 function IKST_SafehouseClaimClient.uiState(x, y, w, h, player, owner)
     local row = IKST_SafehouseClaimClient.rowForBounds(x, y, w, h)
     if row then
-        return row
+        return IKST_SafehouseClaimClient.finalizeUiState(row, player, owner)
     end
     if x == nil or y == nil or not w or not h then
         return nil
@@ -135,25 +161,26 @@ function IKST_SafehouseClaimClient.uiState(x, y, w, h, player, owner)
     if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
         local entry = IKST_SafehouseClaim.get(x, y, w, h)
         if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
-            return {
+            return IKST_SafehouseClaimClient.finalizeUiState({
                 x = x, y = y, w = w, h = h,
                 owner = entry.owner or owner,
                 claimed = true,
                 canRelease = false,
                 canEdit = false,
                 stale = true,
-            }
+            }, player, owner)
         end
-        return {
+        return IKST_SafehouseClaimClient.finalizeUiState({
             x = x, y = y, w = w, h = h,
             owner = owner,
             claimed = false,
             canRelease = false,
             canEdit = false,
             stale = true,
-        }
+        }, player, owner)
     end
-    return IKST_SafehouseClaimClient.spFallbackState(x, y, w, h, player, owner)
+    return IKST_SafehouseClaimClient.finalizeUiState(
+        IKST_SafehouseClaimClient.spFallbackState(x, y, w, h, player, owner), player, owner)
 end
 
 function IKST_SafehouseClaimClient.applyMirror(args)

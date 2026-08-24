@@ -1,4 +1,4 @@
--- Design: MP item moves are Java ItemTransaction — Lua cannot cancel mid-packet.
+-- Design: MP item moves are Java ItemTransaction - Lua cannot cancel mid-packet.
 -- Enforce IKST_TransferRules on the server JVM by fingerprinting protected containers
 -- near players (shops, locks, claim loot), allowlisting server-authorized removals
 -- (vendBuy), and reversing unauthorized takes/deposits. Fail closed + audit.

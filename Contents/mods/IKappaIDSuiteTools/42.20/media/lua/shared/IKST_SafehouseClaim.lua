@@ -227,9 +227,11 @@ function IKST_SafehouseClaim.ensureOnClaim(owner, x, y, w, h)
         h = h,
         groups = IKST_SafehousePermissions.defaultGroups(),
         users = {},
-        claimedAt = meta and meta.claimedAt or IKST_ClaimPolicy.nowHours(),
-        expiresAt = meta and meta.expiresAt or IKST_ClaimPolicy.expiresAtFromNow(),
+        claimedAt = meta and meta.claimedAt or nil,
+        lastActiveAt = meta and meta.lastActiveAt or nil,
+        expiresAt = meta and meta.expiresAt or nil,
     }
+    IKST_ClaimPolicy.initClaimTimes(entry)
     IKST_SafehouseClaim.ensureEntryShape(entry)
     IKST_SafehouseClaim.store().byKey[key] = entry
     IKST_SafehouseClaim.transmit("set", key, entry)
@@ -325,7 +327,7 @@ function IKST_SafehouseClaim.isOwner(entry, playerOrKey)
     if not entry or not playerOrKey then
         return false
     end
-    if type(playerOrKey) == "table" and playerOrKey.getUsername then
+    if type(playerOrKey) == "table" and type(playerOrKey.getUsername) == "function" then
         return IKST_Identity.playerOwnsKey(playerOrKey, entry.owner)
     end
     return IKST_ClaimPolicy.usernamesEqual(entry.owner, playerOrKey)

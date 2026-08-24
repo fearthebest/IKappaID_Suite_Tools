@@ -59,14 +59,14 @@ function IKST_Debug.playerBrief(player)
         return "?"
     end
     local name = "?"
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local u = player:getUsername()
         if u and u ~= "" then
             name = u
         end
     end
     local id = "?"
-    if player.getOnlineID then
+    if type(player.getOnlineID) == "function" then
         id = tostring(player:getOnlineID())
     end
     return name .. "#" .. id
@@ -365,7 +365,7 @@ function IKST_Debug.onClientStatusResult(player, args)
     end
     IKST_Debug.pushStatusToPanel(player, args.lines)
     if player and IKST.notify then
-        IKST.notify(player, "IKST debug status — see panel log + console", true)
+        IKST.notify(player, "IKST debug status - see panel log + console", true)
     end
 end
 
@@ -392,6 +392,6 @@ function IKST_Debug.onClientTailResult(player, args)
     pushBlock("server debug", args.server)
     pushBlock("client debug", args.client)
     if player and IKST.notify then
-        IKST.notify(player, "IKST debug tail — see panel log + console", true)
+        IKST.notify(player, "IKST debug tail - see panel log + console", true)
     end
 end

@@ -22,7 +22,7 @@ function IKST_TilesGuardOps.guardUsername(player)
     if not player then
         return nil
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local name = player:getUsername()
         if name and name ~= "" then
             return name

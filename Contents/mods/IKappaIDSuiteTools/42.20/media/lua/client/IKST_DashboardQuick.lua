@@ -286,7 +286,7 @@ function IKST_DashboardQuick.assignableEntries(player)
                     for _, tool in ipairs(ws.tools) do
                         if not tool.adminOnly or (IKST_Access and IKST_Access.canUseStaffTools(player)) then
                             local id = "nav:" .. tostring(ws.id) .. ":" .. tostring(tool.id)
-                            add(id, IKST_HubNav.modeLabel(ws) .. " — " .. IKST_HubNav.toolLabel(tool))
+                            add(id, IKST_HubNav.modeLabel(ws) .. " - " .. IKST_HubNav.toolLabel(tool))
                         end
                     end
                 else

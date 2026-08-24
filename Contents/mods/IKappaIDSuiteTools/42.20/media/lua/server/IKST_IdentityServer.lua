@@ -19,11 +19,11 @@ local function tryConnect(player)
         return
     end
     local key = IKST_ServerPlayers.playerKey(player)
-    if not key or IKST_IdentityServer._seen[key] then
-        return
+    if key and not IKST_IdentityServer._seen[key] then
+        IKST_IdentityServer._seen[key] = true
+        IKST_IdentityServer.onPlayerConnect(player)
     end
-    IKST_IdentityServer._seen[key] = true
-    IKST_IdentityServer.onPlayerConnect(player)
+    IKST_IdentityServer.ensurePlayerIdCard(player)
 end
 
 local function resolvePlayer(index)
@@ -75,10 +75,37 @@ function IKST_IdentityServer.onPlayerConnect(player)
         return
     end
     IKST_Identity.migratePlayerOnConnect(player)
-    if IKST_Economy and IKST_Economy.idCardBanking and IKST_Economy.isEconomyActive
-        and IKST_Economy.isEconomyActive() and IKST_Economy.idCardBanking()
-        and IKST_EconomyIdentity and IKST_EconomyIdentity.strictEnsureIdCardOnConnect then
-        IKST_EconomyIdentity.strictEnsureIdCardOnConnect(player)
+end
+
+function IKST_IdentityServer.ensurePlayerIdCard(player)
+    if not player then
+        return
+    end
+    if not IKST_Economy or not IKST_Economy.idCardBanking or not IKST_Economy.isEconomyActive
+        or not IKST_Economy.isEconomyActive() or not IKST_Economy.idCardBanking() then
+        return
+    end
+    if not IKST_EconomyIdentity then
+        return
+    end
+    if IKST_EconomyIdentity.prunePlayerBankCards then
+        IKST_EconomyIdentity.prunePlayerBankCards(player)
+    end
+    if IKST_EconomyIdentity.hasValidIdCard and IKST_EconomyIdentity.hasValidIdCard(player) then
+        return
+    end
+    if IKST_EconomyIdentity.repairPlayerIdCard then
+        IKST_EconomyIdentity.repairPlayerIdCard(player)
+    end
+    if IKST_EconomyIdentity.hasValidIdCard and IKST_EconomyIdentity.hasValidIdCard(player) then
+        return
+    end
+    if IKST_EconomyIdentity.reissueIdCard then
+        IKST_EconomyIdentity.reissueIdCard(player, {
+            recordCooldown = false,
+            bumpSerial = true,
+            notifyPlayer = true,
+        })
     end
 end
 

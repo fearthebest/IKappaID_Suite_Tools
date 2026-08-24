@@ -162,6 +162,23 @@ function IKST_JobVehicle.buildPruneControls(panel, y)
             end,
         },
     }, 6, 24)
+    local vid = panel.selectedVehicleId
+    y = IKST_JobLayout.flowRow(panel, y, {
+        {
+            label = IKST.text("IGUI_IKST_UnlockTrunk", "Unlock trunk"),
+            w = 120,
+            fn = function()
+                IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockTrunk, { vehicleId = vid })
+            end,
+        },
+        {
+            label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"),
+            w = 120,
+            fn = function()
+                IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockDoors, { vehicleId = vid })
+            end,
+        },
+    }, 6, 24)
     return y
 end
 
@@ -585,15 +602,15 @@ function IKST_JobVehicle.buildOverview(panel)
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_RepairNear", "Repair nearby"),
+                label = IKST.text("IGUI_IKST_VehicleMove", "Move"),
                 onClick = function()
                     go("spawn")
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_KeyNear", "Give keys nearby"),
+                label = IKST.text("IGUI_IKST_VehicleDelete", "Delete"),
                 onClick = function()
-                    go("spawn")
+                    go("prune")
                 end,
             },
         })
@@ -610,19 +627,13 @@ function IKST_JobVehicle.buildOverview(panel)
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"),
-                onClick = function()
-                    go("repair")
-                end,
-            },
-            {
                 label = IKST.text("IGUI_IKST_VehicleRepair", "Repair"),
                 onClick = function()
                     go("repair")
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_VehicleDelete", "Delete vehicle"),
+                label = IKST.text("IGUI_IKST_KeyNear", "Give keys nearby"),
                 onClick = function()
                     go("repair")
                 end,
@@ -647,7 +658,7 @@ function IKST_JobVehicle.buildOverview(panel)
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_VehicleTile_PrecisionPrune", "Precision prune"),
+                label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"),
                 onClick = function()
                     go("prune")
                 end,
@@ -794,15 +805,17 @@ function IKST_JobVehicle.buildSpawnHand(panel)
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_RepairNear", "Repair near"),
+                label = IKST.text("IGUI_IKST_VehicleMove", "Move here"),
                 onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleRepairNear, {})
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_KeyNear", "Key near"),
-                onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.vehicleKeyNear, {})
+                    local list = IKST_JobVehicle.listCache or {}
+                    local vid = panel.selectedVehicleId or (list[1] and list[1].id)
+                    if not vid then
+                        IKST_JobVehicle.requestList(p)
+                        IKST.notify(p, IKST.text("IGUI_IKST_VehicleListEmpty", "No vehicles nearby — Refresh list."), false)
+                        return
+                    end
+                    panel.selectedVehicleId = vid
+                    IKST_JobVehicle.dispatchMove(panel)
                 end,
             },
         })
@@ -900,28 +913,15 @@ function IKST_JobVehicle.buildRepairHand(panel)
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_UnlockDoors", "Unlock"),
+                label = IKST.text("IGUI_IKST_RepairNear", "Repair near"),
                 onClick = function()
-                    local vid = vehicleNeedId(panel)
-                    if vid then
-                        IKST.dispatchCommand(p, IKST.CMD.vehicleUnlockDoors, { vehicleId = vid })
-                    end
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleRepairNear, {})
                 end,
             },
             {
-                label = IKST.text("IGUI_IKST_VehicleMove", "Move"),
+                label = IKST.text("IGUI_IKST_KeyNear", "Key near"),
                 onClick = function()
-                    local vid = vehicleNeedId(panel)
-                    if vid then
-                        panel.selectedVehicleId = vid
-                        IKST_JobVehicle.dispatchMove(panel)
-                    end
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_VehicleDelete", "Delete"),
-                onClick = function()
-                    IKST_JobVehicle.dispatchDelete(panel, IKST_JobVehicle.resolveSelectedId(panel))
+                    IKST.dispatchCommand(p, IKST.CMD.vehicleKeyNear, {})
                 end,
             },
         })
@@ -976,9 +976,9 @@ function IKST_JobVehicle.build(panel)
         end
         modes = { "prune", "delete" }
     elseif panel.view == IKST.VIEW.server and state.navTool == "vehicles" then
-        modes = { "list", "spawn", "claims", "cleanup" }
+        modes = { "list", "spawn", "cleanup" }
     else
-        modes = { "spawn", "list", "extras", "prune", "delete" }
+        modes = { "spawn", "list", "prune", "delete" }
     end
 
     if modes then
@@ -1003,8 +1003,6 @@ function IKST_JobVehicle.build(panel)
 
     if state.vehicleMode == "spawn" then
         return IKST_JobVehicle.buildSpawnHand(panel)
-    elseif state.vehicleMode == "claims" and IKST_JobGuard then
-        y = IKST_JobGuard.buildVehicles(panel, y)
     elseif state.vehicleMode == "cleanup" then
         panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Vehicle_cleanup", "Cleanup"), UIFont.Small)
         y = y + 18
@@ -1015,24 +1013,6 @@ function IKST_JobVehicle.build(panel)
         y = IKST_JobVehicle.buildVehiclePickList(panel, y, { visibleRows = 8 })
     elseif state.vehicleMode == "list" then
         return IKST_JobVehicle.buildRepairHand(panel)
-    elseif state.vehicleMode == "extras" then
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleExtrasNote", "Skin and unlock on selected or nearest vehicle."), UIFont.Small)
-        y = y + 22
-        local vid = panel.selectedVehicleId
-        panel:makeJobButton(12, y, 90, 24, IKST.text("IGUI_IKST_SkinPrev", "Skin -"), function()
-            IKST.dispatchCommand(panel.player, IKST.CMD.vehicleSkinPrev, { vehicleId = vid })
-        end, false)
-        panel:makeJobButton(108, y, 90, 24, IKST.text("IGUI_IKST_SkinNext", "Skin +"), function()
-            IKST.dispatchCommand(panel.player, IKST.CMD.vehicleSkinNext, { vehicleId = vid })
-        end, true)
-        y = y + 28
-        panel:makeJobButton(12, y, 120, 24, IKST.text("IGUI_IKST_UnlockTrunk", "Unlock trunk"), function()
-            IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockTrunk, { vehicleId = vid })
-        end, true)
-        panel:makeJobButton(138, y, 120, 24, IKST.text("IGUI_IKST_UnlockDoors", "Unlock doors"), function()
-            IKST.dispatchCommand(panel.player, IKST.CMD.vehicleUnlockDoors, { vehicleId = vid })
-        end, false)
-        y = y + 34
     elseif state.vehicleMode == "prune" then
         y = IKST_JobVehicle.buildPruneControls(panel, y)
     elseif state.vehicleMode == "delete" then

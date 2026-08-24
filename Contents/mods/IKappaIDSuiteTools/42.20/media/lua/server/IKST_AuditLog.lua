@@ -34,11 +34,11 @@ function IKST_AuditLog.playerMeta(player)
         return "?", nil
     end
     local username = "?"
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         username = player:getUsername() or username
     end
     local onlineId = nil
-    if player.getOnlineID then
+    if type(player.getOnlineID) == "function" then
         onlineId = player:getOnlineID()
     end
     return username, onlineId

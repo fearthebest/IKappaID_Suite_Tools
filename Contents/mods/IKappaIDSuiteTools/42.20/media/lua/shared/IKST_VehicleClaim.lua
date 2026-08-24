@@ -1,5 +1,5 @@
 -- Vehicle ownership claims (server-authoritative ModData).
--- Registry keys are durable IKST_vkey stamps on the vehicle — never BaseVehicle:getId().
+-- Registry keys are durable IKST_vkey stamps on the vehicle - never BaseVehicle:getId().
 
 require "IKST_Shared"
 require "IKST_Authority"
@@ -45,6 +45,7 @@ function IKST_VehicleClaim.nextDurableKey()
 end
 
 function IKST_VehicleClaim.ensureKey(vehicle)
+    IKST_VehicleClaim.applyPendingClear(vehicle)
     local existing = IKST_VehicleIdentity.readKey(vehicle)
     if existing then
         return existing
@@ -180,15 +181,9 @@ function IKST_VehicleClaim.purgeExpired()
             removed[#removed + 1] = k
         end
     end
+    -- Same path as manual release: clear stamp now or defer until vehicle loads.
     for _, k in ipairs(removed) do
-        local entry = data.byId[k]
-        data.byId[k] = nil
-        if entry and entry.owner then
-            IKST_VehicleClaim.removeFromOwnerList(entry.owner, k)
-        end
-    end
-    if #removed > 0 then
-        IKST_VehicleClaim.transmit("purge")
+        IKST_VehicleClaim.release(k)
     end
     return #removed
 end
@@ -252,12 +247,13 @@ function IKST_VehicleClaim.claim(vehicleId, ownerKey, meta)
         z = meta.z,
         groups = IKST_VehiclePermissions.defaultGroups(),
         users = {},
-        claimedAt = IKST_ClaimPolicy.nowHours(),
-        expiresAt = IKST_ClaimPolicy.expiresAtFromNow(),
     }
+    IKST_ClaimPolicy.initClaimTimes(entry)
     IKST_VehicleClaim.ensureEntryShape(entry)
     local data = IKST_VehicleClaim.store()
     data.byId[k] = entry
+    data.pendingClear = data.pendingClear or {}
+    data.pendingClear[k] = nil
     IKST_VehicleClaim.addToOwnerList(ownerKey, k)
     IKST_VehicleClaim.transmit("set", k, entry)
     return true, "claimed"
@@ -275,8 +271,81 @@ function IKST_VehicleClaim.release(vehicleId)
     local data = IKST_VehicleClaim.store()
     data.byId[k] = nil
     IKST_VehicleClaim.removeFromOwnerList(entry.owner, k)
+    data.pendingClear = data.pendingClear or {}
+    local vehicle = IKST_VehicleClaim.findVehicleByKey(k)
+    if vehicle and IKST_VehicleIdentity.clearKey then
+        IKST_VehicleIdentity.clearKey(vehicle)
+        data.pendingClear[k] = nil
+    else
+        data.pendingClear[k] = true
+    end
     IKST_VehicleClaim.transmit("clear", k)
     return true, "released"
+end
+
+function IKST_VehicleClaim.findVehicleByKey(claimKey)
+    if not claimKey or claimKey == "" then
+        return nil
+    end
+    if not IKST_VehicleUtil or type(IKST_VehicleUtil.getVehiclesFromCell) ~= "function" then
+        return nil
+    end
+    local cell = type(getCell) == "function" and getCell() or nil
+    if not cell then
+        return nil
+    end
+    local list = IKST_VehicleUtil.getVehiclesFromCell(cell)
+    local found = nil
+    if IKST_VehicleUtil.forEachVehicle then
+        IKST_VehicleUtil.forEachVehicle(list, function(vehicle)
+            if found then
+                return
+            end
+            local key = IKST_VehicleIdentity.readKey(vehicle)
+            if key and tostring(key) == tostring(claimKey) then
+                found = vehicle
+            end
+        end)
+    end
+    return found
+end
+
+function IKST_VehicleClaim.applyPendingClear(vehicle)
+    if not vehicle then
+        return false
+    end
+    local key = IKST_VehicleIdentity.readKey(vehicle)
+    if not key then
+        return false
+    end
+    local data = IKST_VehicleClaim.store()
+    data.pendingClear = data.pendingClear or {}
+    if not data.pendingClear[key] then
+        return false
+    end
+    if IKST_VehicleIdentity.clearKey then
+        IKST_VehicleIdentity.clearKey(vehicle)
+    end
+    data.pendingClear[key] = nil
+    return true
+end
+
+function IKST_VehicleClaim.touchOwnerVehicle(player, vehicle)
+    if not player or not vehicle then
+        return false
+    end
+    local entry, key = IKST_VehicleClaim.getForVehicle(vehicle)
+    if not entry or not key then
+        return false
+    end
+    if not IKST_VehicleClaim.isOwner(entry, player) then
+        return false
+    end
+    if not IKST_ClaimPolicy.touchActivity(entry) then
+        return false
+    end
+    IKST_VehicleClaim.transmit("set", key, entry)
+    return true
 end
 
 -- After admin relocate respawns the vehicle, keep the durable claim row on the new object.
@@ -455,7 +524,7 @@ function IKST_VehicleClaim.isOwner(entry, playerOrKey)
     if not entry or not playerOrKey then
         return false
     end
-    if type(playerOrKey) == "table" and playerOrKey.getUsername then
+    if type(playerOrKey) == "table" and type(playerOrKey.getUsername) == "function" then
         return IKST_Identity.playerOwnsKey(playerOrKey, entry.owner)
     end
     return IKST_ClaimPolicy.usernamesEqual(entry.owner, playerOrKey)

@@ -17,7 +17,7 @@ IKST_CommandQueue._tickHooked = false
 IKST_CommandQueue._pruneHooked = false
 
 function IKST_CommandQueue.getKey(player)
-    if not player or not player.getOnlineID then
+    if not player or type(player.getOnlineID) ~= "function" then
         return "0"
     end
     return tostring(player:getOnlineID())

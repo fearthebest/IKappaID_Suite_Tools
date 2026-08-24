@@ -60,7 +60,7 @@ function IKST_Identity.username(player)
     if not player then
         return nil
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local u = player:getUsername()
         if u and u ~= "" then
             return u
@@ -74,7 +74,7 @@ function IKST_Identity.displayLabel(player)
     if u and u ~= "" then
         return u
     end
-    if player and player.getOnlineID then
+    if player and type(player.getOnlineID) == "function" then
         return "Player " .. tostring(player:getOnlineID())
     end
     return "player"

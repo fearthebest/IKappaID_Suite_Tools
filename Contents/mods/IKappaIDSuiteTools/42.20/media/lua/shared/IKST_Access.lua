@@ -88,7 +88,7 @@ function IKST_Access.isAdmin(player)
         return true
     end
     -- MP: authorize only from this player's access level (wiki: server uses IsoPlayer.getAccessLevel).
-    -- Never fall back to global isAdmin()/getAccessLevel() — on listen host that reflects the host, not the actor.
+    -- Never fall back to global isAdmin()/getAccessLevel() - on listen host that reflects the host, not the actor.
     if type(player.getAccessLevel) ~= "function" then
         return false
     end

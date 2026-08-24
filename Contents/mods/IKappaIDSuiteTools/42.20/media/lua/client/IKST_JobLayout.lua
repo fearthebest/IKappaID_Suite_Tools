@@ -140,7 +140,7 @@ function IKST_JobLayout.clampDockPosition(panel)
     IKST_JobLayout.clampPanelEdges(panel)
 end
 
--- Horizontal action log: center third, bottom — width = 1/3 screen, height fits 20 fixed lines.
+-- Horizontal action log: center third, bottom - width = 1/3 screen, height fits 20 fixed lines.
 function IKST_JobLayout.actionLogWindowSize()
     local core = getCore()
     local sw = core and type(core.getScreenWidth) == "function" and core:getScreenWidth() or 1920
@@ -223,7 +223,7 @@ function IKST_JobLayout.applyActionLogGeometry(panel)
     IKST_JobLayout.restoreActionLogPosition(panel)
 end
 
-local function syncHyperOsMetrics(_panel)
+local function syncChromeMetrics(_panel)
     local scale = IKST_UI_Layout.uiScale()
     local sidebar = IKST_UI_Layout.sidebarWidth()
     IKST_JobLayout.STATUS_HEIGHT = math.max(26, IKST_UI_Layout.s(28))
@@ -244,12 +244,12 @@ local function syncHyperOsMetrics(_panel)
     IKST_JobLayout.MIN_HEIGHT = fixedH
 end
 
-syncHyperOsMetrics()
-IKST_JobLayout.syncHyperOsMetrics = syncHyperOsMetrics
+syncChromeMetrics()
+IKST_JobLayout.syncChromeMetrics = syncChromeMetrics
 
 -- Window no longer resizes: always snap back to the one fixed size.
 function IKST_JobLayout.clampSize(panel, _w, _h)
-    IKST_JobLayout.syncHyperOsMetrics(panel)
+    IKST_JobLayout.syncChromeMetrics(panel)
     return IKST_JobLayout.defaultSize()
 end
 
@@ -267,7 +267,7 @@ end
 
 -- Fixed three-pane puzzle: sidebar | content | log (same slots, proportional widths).
 function IKST_JobLayout.resolveColumns(panel)
-    IKST_JobLayout.syncHyperOsMetrics(panel)
+    IKST_JobLayout.syncChromeMetrics(panel)
     local grip = IKST_JobLayout.RESIZE_GRIP
     local avail = math.max(0, (panel and panel.width or IKST_JobLayout.MIN_WIDTH) - grip)
 
@@ -520,7 +520,7 @@ function IKST_JobLayout.relayoutJobLayer(panel)
     if not panel or not panel.jobLayer then
         return
     end
-    IKST_JobLayout.syncHyperOsMetrics(panel)
+    IKST_JobLayout.syncChromeMetrics(panel)
     local top = IKST_JobLayout.layerTop(panel)
     local grip = IKST_JobLayout.RESIZE_GRIP
     panel.jobLayer:setX(0)
@@ -670,7 +670,7 @@ function IKST_JobLayout.flowRow(panel, y, specs, gap, rowH)
 end
 
 -- Hand-placed tool pills (dashboard density). Locked from UI preview:
--- fixed standard size (Utilities Self), pack fewer columns — never shrink.
+-- fixed standard size (Utilities Self), pack fewer columns - never shrink.
 IKST_JobLayout.TOOL_PAD = 20
 IKST_JobLayout.BTN_GAP = 6
 IKST_JobLayout.PACK_COLS = 3
@@ -942,7 +942,7 @@ function IKST_JobLayout.placeFieldActionCorner(panel, parent, areaX, areaY, area
             panel[spec.fieldName] = entry
         end
     elseif n == 2 then
-        -- ID + qty: never let qty collide with Give — clamp into fieldRowW.
+        -- ID + qty: never let qty collide with Give - clamp into fieldRowW.
         local qtyW = IKST_JobLayout.QTY_FIELD_W or 48
         local primaryW = fieldRowW - qtyW - fieldGap
         if primaryW < 96 then
@@ -1126,13 +1126,13 @@ function IKST_JobLayout.makeSelectList(panel, parent, x, y, w, h, rows, opts)
     local list = ISScrollingListBox:new(x, y, w, h)
     list:initialise()
     list:instantiate()
-    list.itemheight = IKST_JobLayout.listItemHeight()
+    list.itemheight = opts.itemHeight or IKST_JobLayout.listItemHeight()
     list.font = UIFont.Small
     list.drawBorder = true
     if IKUI_Chrome and type(IKUI_Chrome.styleListBox) == "function" then
         IKUI_Chrome.styleListBox(list)
     end
-    list.doDrawItem = IKST_JobLayout.drawSelectListItem
+    list.doDrawItem = opts.doDrawItem or IKST_JobLayout.drawSelectListItem
     IKST_JobLayout.attachSelectChild(panel, parent, list)
     panel._ikstSelectLists = panel._ikstSelectLists or {}
     panel._ikstSelectLists[#panel._ikstSelectLists + 1] = list

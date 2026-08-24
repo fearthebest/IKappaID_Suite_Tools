@@ -105,7 +105,7 @@ function IKST_JobEveryone.build(panel)
 
     do
         local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_EveryoneTile_SectionServer", "Server info"))
-        local dayNum = "—"
+        local dayNum = "-"
         if type(getGameTime) == "function" then
             local gt = getGameTime()
             if gt and type(gt.getDay) == "function" then
@@ -113,14 +113,14 @@ function IKST_JobEveryone.build(panel)
             end
         end
         local snap = IKST_Dashboard and IKST_Dashboard.snapshot
-        local onlineVal = snap and tostring(snap.online or 0) or "—"
-        local maxVal = snap and tostring(snap.maxPlayers or 0) or "—"
+        local onlineVal = snap and tostring(snap.online or 0) or "-"
+        local maxVal = snap and tostring(snap.maxPlayers or 0) or "-"
         local claimN = #(IKST_JobGuard and IKST_JobGuard.claims or {})
         local shN = #(IKST_JobGuard and IKST_JobGuard.safehouses or {})
         local note = IKST.text("IGUI_IKST_EveryoneTile_Online", "Online") .. " " .. onlineVal
             .. " / " .. maxVal
-            .. "  ·  " .. IKST.text("IGUI_IKST_EveryoneTile_Day", "Day") .. " " .. dayNum
-            .. "  ·  " .. IKST.text("IGUI_IKST_EveryoneTile_SectionClaims", "Claims") .. " " .. tostring(claimN + shN)
+            .. "  -  " .. IKST.text("IGUI_IKST_EveryoneTile_Day", "Day") .. " " .. dayNum
+            .. "  -  " .. IKST.text("IGUI_IKST_EveryoneTile_SectionClaims", "Claims") .. " " .. tostring(claimN + shN)
         local line = ISLabel:new(ax, ay, 16, note, 1, 1, 1, 1, UIFont.Small, true)
         line:initialise()
         card:addChild(line)
@@ -135,7 +135,7 @@ function IKST_JobEveryone.build(panel)
         local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_EveryoneTile_SectionClaims", "Claims directory"))
         local rows = claimRows(panel, state)
         if #rows == 0 then
-            local emptyMsg = IKST.text("IGUI_IKST_Everyone_NoClaims", "No vehicle claims loaded — press Refresh.")
+            local emptyMsg = IKST.text("IGUI_IKST_Everyone_NoClaims", "No vehicle claims loaded - press Refresh.")
             if state and state.everyoneOnlineOnly == true then
                 emptyMsg = IKST.text("IGUI_IKST_Everyone_NoOnlineClaims", "No claims with online owners.")
             end

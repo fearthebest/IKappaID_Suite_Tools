@@ -190,12 +190,16 @@ function IKST_RateLimit.groupForCommand(command)
     if command == IKST.CMD.unstuck or command == IKST.CMD.helpRequest
         or command == IKST.CMD.reportPlayer
         or command == IKST.CMD.claimRequest
+        or command == IKST.CMD.vehicleClaimRequest
         or command == IKST.CMD.claimDispute
         or command == IKST.CMD.dashboardSnapshot
         or command == IKST.CMD.eventJoin or command == IKST.CMD.eventReturn then
         return "player_self"
     end
     if command == IKST.CMD.helpList or command == IKST.CMD.helpResolve
+        or command == IKST.CMD.claimRequestList
+        or command == IKST.CMD.claimRequestApprove
+        or command == IKST.CMD.claimRequestDeny
         or command == IKST.CMD.staffHistoryList or command == IKST.CMD.eventSet
         or command == IKST.CMD.eventClear
         or command == IKST.CMD.blueprintList then
@@ -255,13 +259,13 @@ function IKST_RateLimit.playerKey(player)
             return account
         end
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local name = player:getUsername()
         if name and name ~= "" then
             return name
         end
     end
-    if player.getOnlineID then
+    if type(player.getOnlineID) == "function" then
         return "id:" .. tostring(player:getOnlineID())
     end
     return "?"

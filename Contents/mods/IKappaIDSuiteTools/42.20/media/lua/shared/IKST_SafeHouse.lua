@@ -62,7 +62,7 @@ function IKST_SafeHouse.id(sh)
 end
 
 function IKST_SafeHouse.onlineId(sh)
-    if not sh or not sh.getOnlineID then
+    if not sh or type(sh.getOnlineID) ~= "function" then
         return nil
     end
     return sh:getOnlineID()

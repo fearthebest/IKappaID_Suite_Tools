@@ -204,6 +204,20 @@ function IKST_VehicleClaimClient.rowForVehicle(vehicleId, vehicle)
     return nil
 end
 
+function IKST_VehicleClaimClient.finalizeUiState(state, player)
+    if not state then
+        return nil
+    end
+    if state.claimed == true then
+        state.canClaim = false
+        return state
+    end
+    if IKST_ClaimPolicy and type(IKST_ClaimPolicy.mayCreateVehicleClaim) == "function" then
+        state.canClaim = IKST_ClaimPolicy.mayCreateVehicleClaim(player) == true
+    end
+    return state
+end
+
 function IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
     local claimKey = nil
     if vehicle and IKST_VehicleIdentity and type(IKST_VehicleIdentity.readKey) == "function" then
@@ -236,7 +250,7 @@ function IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
         id = runtimeId or vehicleId,
         claimKey = claimKey,
         claimed = false,
-        canClaim = IKST_ClaimPolicy.mayCreateClaim(player),
+        canClaim = IKST_ClaimPolicy.mayCreateVehicleClaim(player),
         canRelease = false,
         canEdit = false,
     }
@@ -245,7 +259,7 @@ end
 function IKST_VehicleClaimClient.uiState(vehicleId, player, vehicle)
     local row = IKST_VehicleClaimClient.rowForVehicle(vehicleId, vehicle)
     if row and row.claimed == true then
-        return row
+        return IKST_VehicleClaimClient.finalizeUiState(row, player)
     end
     local claimKey = nil
     if vehicle and IKST_VehicleIdentity and type(IKST_VehicleIdentity.readKey) == "function" then
@@ -257,15 +271,16 @@ function IKST_VehicleClaimClient.uiState(vehicleId, player, vehicle)
     local lookupKey = claimKey or vehicleId
     local entry = lookupKey and IKST_VehicleClaim.get(lookupKey)
     if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
-        return IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
+        return IKST_VehicleClaimClient.finalizeUiState(
+            IKST_VehicleClaimClient.buildRowFromEntry(entry, player), player)
     end
     if row then
-        return row
+        return IKST_VehicleClaimClient.finalizeUiState(row, player)
     end
     local id = tonumber(vehicleId)
     if IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
         if entry and not IKST_VehicleClaim.isEntryExpired(entry) then
-            return {
+            return IKST_VehicleClaimClient.finalizeUiState({
                 id = id or claimKey or vehicleId,
                 claimKey = claimKey,
                 claimed = true,
@@ -274,19 +289,19 @@ function IKST_VehicleClaimClient.uiState(vehicleId, player, vehicle)
                 canEdit = false,
                 canClaim = false,
                 stale = true,
-            }
+            }, player)
         end
-        return {
+        return IKST_VehicleClaimClient.finalizeUiState({
             id = id or vehicleId,
             claimKey = claimKey,
             claimed = false,
-            canClaim = false,
             canRelease = false,
             canEdit = false,
             stale = true,
-        }
+        }, player)
     end
-    return IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
+    return IKST_VehicleClaimClient.finalizeUiState(
+        IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle), player)
 end
 
 function IKST_VehicleClaimClient.applyMirror(args)
@@ -314,7 +329,7 @@ function IKST_VehicleClaimClient.applyMirror(args)
                         id = runtimeId or row.id,
                         claimKey = nil,
                         claimed = false,
-                        canClaim = IKST_ClaimPolicy.mayCreateClaim(player),
+                        canClaim = IKST_ClaimPolicy.mayCreateVehicleClaim(player),
                         canRelease = false,
                         canEdit = false,
                     }

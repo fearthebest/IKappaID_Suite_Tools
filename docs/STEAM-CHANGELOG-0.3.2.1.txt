@@ -1,0 +1,18 @@
+IKappaID Suite Tools — v0.3.2.1 BETA (Build 42.20)
+
+Requires IKappaID UI Framework (Mod ID: IKappaID_UI).
+
+FIXED
+• Vehicle self-claim — Claim button shows correctly for admins and self-service players (not only Request).
+• Staff claim-request list — Rows selectable; Approve/Deny work reliably.
+• Request validation — Max claims, overlap, PhunZones, and residential rules checked before queueing.
+• Vehicle requests — Seat, engine, and key rules match self-claim on submit and approve.
+• Safehouse UI — Release/edit buttons correct when MP list is still loading.
+
+CHANGED
+• Four separate sandbox claim modes (house/vehicle × self/request).
+• Request house on context menu and radial for request-only players.
+• Staff with direct-claim no longer see duplicate Request buttons.
+
+ADDED
+• Vehicle claim requests — Staff approve/deny alongside house requests ([House] / [Vehicle] labels).

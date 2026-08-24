@@ -15,7 +15,7 @@ require "IKST_Args"
 IKST_StaffOps = IKST_StaffOps or {}
 
 
--- Local constants (do not alias IKST_ClimatePresets at load — require order can leave it nil).
+-- Local constants (do not alias IKST_ClimatePresets at load - require order can leave it nil).
 IKST_StaffOps.CLIMATE = {
     desat = 0,
     night = 2,

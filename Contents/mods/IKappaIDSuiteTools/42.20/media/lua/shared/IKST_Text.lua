@@ -13,7 +13,7 @@ function IKST.text(key, fallback)
     return fallback or key
 end
 
--- Safe substitution for UI strings. Prefer {1}/{2} placeholders — never %1 in
+-- Safe substitution for UI strings. Prefer {1}/{2} placeholders - never %1 in
 -- Translate files used with bare getText (B42 Translator throws MissingFormatArgumentException).
 function IKST.format(key, fallback, ...)
     local fmt = IKST.text(key, fallback)

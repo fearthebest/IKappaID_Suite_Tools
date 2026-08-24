@@ -1,5 +1,5 @@
 -- Latest-20 action lines for the standalone Action Log window.
--- No scrollbars, no docked JobsPanel card — just colored text rows.
+-- No scrollbars, no docked JobsPanel card - just colored text rows.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end

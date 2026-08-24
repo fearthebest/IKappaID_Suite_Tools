@@ -10,6 +10,7 @@ require "IKST_Access"
 IKST_Economy = IKST_Economy or {}
 
 require "IKST_EconomyIdentity"
+require "IKST_EconomyValuables"
 IKST_Economy.STORE_KEY = "IKST_Economy"
 IKST_Economy.VEND_TAG = "IKST_vend"
 IKST_Economy.VEND_OWNER = "IKST_vendOwner"
@@ -490,7 +491,7 @@ function IKST_Economy.legacyAccountName(player)
     if not player then
         return "local"
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local u = player:getUsername()
         if u and u ~= "" then
             return u
@@ -871,36 +872,18 @@ function IKST_Economy.snapshot(player)
 end
 
 function IKST_Economy.loadValuables()
-    if IKST_Economy._valuables then
-        return IKST_Economy._valuables
+    if IKST_EconomyValuables and IKST_EconomyValuables.load then
+        return IKST_EconomyValuables.load()
     end
-    local list = {}
-    local fileLines = IKST_Economy.readModTextLines("media/ikst/valuables_list.txt")
-    for i = 1, #fileLines do
-        local line = IKST_Economy._trimText(fileLines[i])
-        if line ~= "" and line:sub(1, 1) ~= "#" then
-            local itemType, label, price = line:match("^([^|]+)|([^|]+)|(%d+)$")
-            itemType = itemType and IKST_Economy._trimText(itemType)
-            label = label and IKST_Economy._trimText(label)
-            price = tonumber(price)
-            if itemType and price and price > 0 then
-                table.insert(list, { itemType = itemType, label = label or itemType, price = price })
-            end
-        end
+    return { list = {}, byType = {} }
+end
+
+function IKST_Economy.reloadValuables()
+    if IKST_EconomyValuables and IKST_EconomyValuables.reload then
+        return IKST_EconomyValuables.reload()
     end
-    if #list == 0 then
-        list = {
-            { itemType = "Base.GoldScrap", label = "Gold fragments", price = 25 },
-            { itemType = "Base.SilverScrap", label = "Silver fragments", price = 12 },
-            { itemType = "Base.Necklace_Gold", label = "Gold necklace", price = 40 },
-        }
-    end
-    local byType = {}
-    for _, e in ipairs(list) do
-        byType[e.itemType] = e
-    end
-    IKST_Economy._valuables = { list = list, byType = byType }
-    return IKST_Economy._valuables
+    IKST_Economy._valuables = nil
+    return IKST_Economy.loadValuables()
 end
 
 function IKST_Economy.valuableEntry(itemType)
@@ -992,6 +975,14 @@ function IKST_Economy.formatResultMessage(code, extra)
     end
     if msg == "present your bank ID card" then
         return IKST.text("IGUI_IKST_Economy_PresentIdCard", "Present your bank ID card.")
+    end
+    if msg == "bank ID not linked" then
+        return IKST.text("IGUI_IKST_Economy_IdCardNotLinked",
+            "That ID is not linked to your bank. At an ATM, use Replace bank ID (loot IDs do not work).")
+    end
+    if msg == "bank ID expired" then
+        return IKST.text("IGUI_IKST_Economy_IdCardExpired",
+            "Your bank ID card is expired. At an ATM, use Replace bank ID.")
     end
     if msg == "invalid amount" then
         return IKST.text("IGUI_IKST_Economy_InvalidAmount", "Invalid amount.")

@@ -1,4 +1,4 @@
--- Thin player→staff help request queue (server ModData).
+-- Thin player->staff help request queue (server ModData).
 
 if type(isClient) == "function" and isClient()
     and type(isServer) == "function" and not isServer() then

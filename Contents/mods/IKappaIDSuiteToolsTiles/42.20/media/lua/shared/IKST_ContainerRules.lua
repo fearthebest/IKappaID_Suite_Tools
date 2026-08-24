@@ -39,7 +39,7 @@ function IKST_ContainerRules.playerName(player)
     if not player then
         return ""
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         return player:getUsername() or ""
     end
     if player.getDisplayName then

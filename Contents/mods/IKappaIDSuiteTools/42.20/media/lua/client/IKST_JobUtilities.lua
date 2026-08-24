@@ -190,6 +190,17 @@ function IKST_JobUtilities.buildServerTools(panel)
                     IKST.dispatchCommand(p, IKST.CMD.auditTail, { count = 25 })
                 end,
             },
+            {
+                label = IKST.text("IGUI_IKST_Guard_Lightbulbs", "Repair lights"),
+                onClick = function()
+                    if not IKST_JobGuard then
+                        require "IKST_JobGuard"
+                    end
+                    if IKST_JobGuard and type(IKST_JobGuard.dispatchRadius) == "function" then
+                        IKST_JobGuard.dispatchRadius(panel, IKST.CMD.lightbulbsArea, nil)
+                    end
+                end,
+            },
         })
     end
 

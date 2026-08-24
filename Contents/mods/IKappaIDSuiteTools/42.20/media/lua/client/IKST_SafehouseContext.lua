@@ -17,11 +17,18 @@ require "IKST_SafeHouse"
 require "IKST_Access"
 require "IKST_ClaimIcons"
 require "IKST_JobsPanel"
+require "IKST_JobGuard"
 
 IKST_SafehouseContext = IKST_SafehouseContext or {}
 
 function IKST_SafehouseContext.mayCreateClaim(player)
-    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateClaim and IKST_ClaimPolicy.mayCreateClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateSafehouseClaim
+        and IKST_ClaimPolicy.mayCreateSafehouseClaim(player)
+end
+
+function IKST_SafehouseContext.mayRequestClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayRequestSafehouseClaim
+        and IKST_ClaimPolicy.mayRequestSafehouseClaim(player)
 end
 
 function IKST_SafehouseContext.addOption(sub, label, player, fn, iconPath)
@@ -245,7 +252,7 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
             end, IKST_ClaimIcons.SAFEHOUSE_UNCLAIM)
         end
         if canEdit then
-            IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"), player, function()
+            IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."), player, function()
                 if IKST_SafehouseClaimUI and IKST_SafehouseClaimUI.open then
                     IKST_SafehouseClaimUI.open(player, x, y, w, h)
                 end
@@ -256,7 +263,8 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
         return
     end
 
-    if not IKST_SafehouseContext.mayCreateClaim(player) then
+    if not IKST_SafehouseContext.mayCreateClaim(player)
+        and not (IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(player)) then
         return
     end
 
@@ -282,17 +290,24 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
     IKST_ClaimIcons.applyContextIcon(root, IKST_ClaimIcons.SAFEHOUSE_CLAIM)
     local sub = ISContextMenu:getNew(context)
     context:addSubMenu(root, sub)
-    IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_Guard_SH_Claim", "Claim land here"), player, function()
-        IKST.dispatchCommand(player, IKST.CMD.safehouseClaim, {
-            x = math.floor(player:getX()),
-            y = math.floor(player:getY()),
-            z = pz or 0,
-            size = IKST_ClaimRadial and IKST_ClaimRadial.DEFAULT_SH_SIZE or 13,
-            w = pw,
-            h = ph,
-            claimMode = claimMode,
-        })
-    end, IKST_ClaimIcons.SAFEHOUSE_CLAIM)
+    if IKST_SafehouseContext.mayCreateClaim(player) then
+        IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_Guard_SH_Claim", "Claim land here"), player, function()
+            IKST.dispatchCommand(player, IKST.CMD.safehouseClaim, {
+                x = math.floor(player:getX()),
+                y = math.floor(player:getY()),
+                z = pz or 0,
+                size = IKST_ClaimRadial and IKST_ClaimRadial.DEFAULT_SH_SIZE or 13,
+                w = pw,
+                h = ph,
+                claimMode = claimMode,
+            })
+        end, IKST_ClaimIcons.SAFEHOUSE_CLAIM)
+    end
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(player) then
+        IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house"), player, function()
+            IKST_JobGuard.startHouseClaimRequest(player, nil)
+        end, IKST_ClaimIcons.SAFEHOUSE_CLAIM)
+    end
 end
 
 if Events and Events.OnFillWorldObjectContextMenu then

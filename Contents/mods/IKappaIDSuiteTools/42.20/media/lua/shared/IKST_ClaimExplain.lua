@@ -95,5 +95,21 @@ end
 
 function IKST_ClaimExplain.summaryForRect(player, x, y, w, h)
     local lines = IKST_ClaimExplain.linesForRect(player, x, y, w, h)
-    return table.concat(lines, " · ")
+    return table.concat(lines, " | ")
+end
+
+function IKST_ClaimExplain.rulesHint()
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.limitsSummary then
+        return IKST_ClaimPolicy.limitsSummary()
+    end
+    return ""
+end
+
+function IKST_ClaimExplain.linesForRectWithRules(player, x, y, w, h)
+    local lines = IKST_ClaimExplain.linesForRect(player, x, y, w, h)
+    local rules = IKST_ClaimExplain.rulesHint()
+    if rules and rules ~= "" then
+        lines[#lines + 1] = rules
+    end
+    return lines
 end

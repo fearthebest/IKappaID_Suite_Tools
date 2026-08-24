@@ -225,11 +225,16 @@ function IKST_JobEconomy.ensureShopAtPlayer(panel)
     return false
 end
 
-function IKST_JobEconomy.buildShop(panel, _y)
+function IKST_JobEconomy.buildShop(panel, contentTop)
     local p = panel.player
     IKST_JobEconomy.ensureShopAtPlayer(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
+    if contentTop and contentTop > rect.y then
+        local shrink = contentTop - rect.y
+        rect.y = contentTop
+        rect.h = math.max(80, rect.h - shrink)
+    end
     local gap = 6
     local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
     local inner = IKST_JobLayout.SECTION_INNER
@@ -354,28 +359,31 @@ end
 function IKST_JobEconomy.buildValuables(panel, y)
     local p = panel.player
     IKST_EconomyUI.addJobIconLabel(panel, 12, y, IKST_EconomyUI.atmItemType(),
-        IKST.text("IGUI_IKST_Economy_ValuableHelp", "Sell junk for cash — use Open economy at an ATM."), UIFont.Small, 22, true)
+        IKST.text("IGUI_IKST_Economy_ValuableHelp", "Sell items from media/ikst/sell_list.txt (ATM exchange)."), UIFont.Small, 22, true)
     y = y + 24
     local rows = IKST_EconomyUI.buildValuableRows(p)
-    for i, row in ipairs(rows) do
-        if i > 8 then
-            break
-        end
+    local shown = 0
+    for i = 1, #rows do
+        local row = rows[i]
         local owned = row.count or 0
-        local label = row.label .. "  ×" .. tostring(owned) .. "   " .. row.priceLabel
-        IKST_EconomyUI.addJobIconButton(panel, 12, y, panel.contentW or 300, 24, row.itemType, label, function()
-            if owned <= 0 then
-                IKST.notify(p, IKST.text("IGUI_IKST_Economy_NoItem", "You do not have that item."), false)
-                return
-            end
-            IKST.dispatchCommand(p, IKST.CMD.economyExchange, {
-                itemType = row.itemType,
-                x = math.floor(p:getX()),
-                y = math.floor(p:getY()),
-                z = p:getZ(),
-            })
-        end, owned > 0)
-        y = y + 26
+        if owned > 0 then
+            shown = shown + 1
+            local label = row.label .. "  ×" .. tostring(owned) .. "   " .. row.priceLabel
+            IKST_EconomyUI.addJobIconButton(panel, 12, y, panel.contentW or 300, 24, row.itemType, label, function()
+                IKST.dispatchCommand(p, IKST.CMD.economyExchange, {
+                    itemType = row.itemType,
+                    x = math.floor(p:getX()),
+                    y = math.floor(p:getY()),
+                    z = p:getZ(),
+                })
+            end, true)
+            y = y + 26
+        end
+    end
+    if shown == 0 then
+        IKST_EconomyUI.addJobIconLabel(panel, 12, y,
+            IKST.text("IGUI_IKST_Economy_NoOwnedValuables", "No sellable valuables in inventory."), UIFont.Small, 22, true)
+        y = y + 24
     end
     IKST_EconomyUI.addJobIconButton(panel, 12, y, 160, 24, IKST_EconomyUI.cashItemType(),
         IKST.text("IGUI_IKST_Economy_SellAll", "Sell all"), function()
@@ -393,14 +401,15 @@ function IKST_JobEconomy.buildValuables(panel, y)
     return y + 30
 end
 
-function IKST_JobEconomy.buildAdmin(panel, _y)
+function IKST_JobEconomy.buildAdmin(panel, contentTop)
     local p = panel.player
-    local balance = 0
-    if IKST_EconomyBridge and type(IKST_EconomyBridge.getBalance) == "function" then
-        balance = IKST_EconomyBridge.getBalance(p)
-    end
 
     local rect = IKST_JobLayout.toolContentRect(panel)
+    if contentTop and contentTop > rect.y then
+        local shrink = contentTop - rect.y
+        rect.y = contentTop
+        rect.h = math.max(80, rect.h - shrink)
+    end
     local gap = 6
     local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
     local inner = IKST_JobLayout.SECTION_INNER
@@ -418,8 +427,7 @@ function IKST_JobEconomy.buildAdmin(panel, _y)
 
     do
         local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Economy_Snapshot", "Snapshot"))
-        local noteH = 16
-        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah - noteH, {
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
             {
                 label = IKST.text("IGUI_IKST_Economy_Refresh", "Refresh"),
                 primary = true,
@@ -429,65 +437,52 @@ function IKST_JobEconomy.buildAdmin(panel, _y)
                 end,
             },
         })
-        local note = ISLabel:new(ax, ay + ah - noteH, noteH,
-            IKST.text("IGUI_IKST_Economy_Balance", "Your balance") .. ": " .. IKST_Economy.formatAmount(balance),
-            1, 1, 1, 1, UIFont.Small, true)
-        note:initialise()
-        card:addChild(note)
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Economy_GiveSelf", "Give cash"))
-        IKST_JobLayout.placeFieldActionCorner(panel, card, ax, ay, aw, ah, {
-            { text = "100", fieldName = "economyAmount" },
-        }, IKST.text("IGUI_IKST_Economy_GiveSelf", "Give cash"), function()
-            IKST.dispatchCommand(p, IKST.CMD.economyGive, {
-                amount = IKST.parseAmount(IKST_JobEconomy.readEntry(panel.economyAmount)),
-            })
-            panel:refreshJobUI()
-        end)
+        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_Economy_PlaceAtmAdmin", "ATM"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Economy_PlaceAtmAdmin", "Place ATM fixture (admin)"),
+                primary = true,
+                onClick = function()
+                    if not IKST_EconomyAtmKit then
+                        require "IKST_EconomyAtmKit"
+                    end
+                    if IKST_EconomyAtmKit and type(IKST_EconomyAtmKit.placeAt) == "function" then
+                        IKST_EconomyAtmKit.placeAt(p, p:getX(), p:getY(), p:getZ())
+                    else
+                        IKST.dispatchCommand(p, IKST.CMD.economyAtmPlace, {
+                            x = math.floor(p:getX()),
+                            y = math.floor(p:getY()),
+                            z = math.floor(p:getZ() or 0),
+                        })
+                    end
+                end,
+            },
+            {
+                label = IKST.text("IGUI_IKST_Economy_VendEnable", "Enable shop here"),
+                onClick = function()
+                    IKST.dispatchCommand(p, IKST.CMD.economyVendEnable, {
+                        x = math.floor(p:getX()),
+                        y = math.floor(p:getY()),
+                        z = math.floor(p:getZ() or 0),
+                    })
+                end,
+            },
+        })
     end
 
     do
         local card, ax, ay, aw, ah = openBand(bands[3], IKST.text("IGUI_IKST_Economy_Ids", "IDs"))
-        local items = {
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
             {
                 label = IKST.text("IGUI_IKST_Economy_ReissueIdSelf", "Reissue self"),
                 onClick = function()
-                    IKST.dispatchCommand(p, IKST.CMD.economyReissueId, {})
+                    IKST.dispatchCommand(p, IKST.CMD.economyIdCardReissue, {})
                 end,
             },
-        }
-        if IKST.isMultiplayerSession() and IKST_JobStaff then
-            items[#items + 1] = {
-                label = IKST.text("IGUI_IKST_Economy_ReissueIdTarget", "Reissue target"),
-                onClick = function()
-                    local target = IKST_JobStaff.getSelectedTarget(panel)
-                    if not target then
-                        IKST.notify(p, IKST.text("IGUI_IKST_NoTarget", "Select a player in Staff tab first"), false)
-                        return
-                    end
-                    IKST.dispatchCommand(p, IKST.CMD.economyReissueIdTarget, { target = target.id })
-                end,
-            }
-        end
-        if IKST.isMultiplayerSession() and IKST_JobStaff then
-            items[#items + 1] = {
-                label = IKST.text("IGUI_IKST_Economy_GiveTarget", "Give target $"),
-                onClick = function()
-                    local target = IKST_JobStaff.getSelectedTarget(panel)
-                    if not target then
-                        IKST.notify(p, IKST.text("IGUI_IKST_NoTarget", "Select a player in Staff tab first"), false)
-                        return
-                    end
-                    IKST.dispatchCommand(p, IKST.CMD.economyGiveTarget, {
-                        target = target.id,
-                        amount = IKST.parseAmount(IKST_JobEconomy.readEntry(panel.economyAmount)),
-                    })
-                end,
-            }
-        end
-        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, items)
+        })
     end
 
     panel._ikstToolFit = true
@@ -660,7 +655,7 @@ function IKST_JobEconomy.openPayRequest(player)
     IKST_JobEconomy.openPayRequestPicker(player, nearby)
 end
 
-function IKST_JobEconomy.buildOverview(panel)
+function IKST_JobEconomy.buildOverview(panel, contentTop)
     local p = panel.player
     if not p then
         return 8
@@ -679,6 +674,11 @@ function IKST_JobEconomy.buildOverview(panel)
     end
 
     local rect = IKST_JobLayout.toolContentRect(panel)
+    if contentTop and contentTop > rect.y then
+        local shrink = contentTop - rect.y
+        rect.y = contentTop
+        rect.h = math.max(80, rect.h - shrink)
+    end
     local gap = 6
     local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
     local inner = IKST_JobLayout.SECTION_INNER
@@ -860,19 +860,19 @@ function IKST_JobEconomy.build(panel)
         y = y + 40
         return y
     end
+    y = IKST_JobEconomy.buildModeRow(panel, y)
     local mode = IKST_JobEconomy.ensureMode(panel)
     if mode == "money" then
-        return IKST_JobEconomy.buildOverview(panel)
+        return IKST_JobEconomy.buildOverview(panel, y)
     end
     if mode == "shop" then
-        return IKST_JobEconomy.buildShop(panel)
+        return IKST_JobEconomy.buildShop(panel, y)
     end
     if mode == "admin" then
-        return IKST_JobEconomy.buildAdmin(panel)
+        return IKST_JobEconomy.buildAdmin(panel, y)
     end
-    y = IKST_JobEconomy.buildModeRow(panel, y)
     if mode == "valuables" then
-        y = IKST_JobEconomy.buildValuables(panel, y)
+        return IKST_JobEconomy.buildValuables(panel, y)
     end
     return y
 end

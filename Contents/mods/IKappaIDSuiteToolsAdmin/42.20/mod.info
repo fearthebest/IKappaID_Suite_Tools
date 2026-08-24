@@ -1,10 +1,10 @@
-name=IKappaID Suite Tools — Admin
+name=IKappaID Suite Tools - Admin
 id=IKappaIDSuiteToolsAdmin
 description=Spectator, kick, and ban for IKappaID Suite Tools server admins. Uses vanilla GameServer kick and ServerWorldDatabase bans.
 author=IKappaID
 poster=poster.png
 icon=icon.png
-modversion=0.3.2.0
+modversion=0.3.2.1
 versionMin=42.20
 require=IKappaIDSuiteTools
 category=Admin

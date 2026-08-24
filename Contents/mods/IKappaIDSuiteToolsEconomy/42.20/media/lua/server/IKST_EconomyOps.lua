@@ -118,9 +118,17 @@ function IKST_EconomyOps.bankGate(player, x, y, z, action)
         return false, "too far"
     end
     if IKST_Economy.idCardBanking and IKST_Economy.idCardBanking() then
-        if not IKST_EconomyIdentity.hasValidIdCard(player) then
-            return false, "present your bank ID card"
+        local ok, status = IKST_EconomyIdentity.authorizeBankId(player, { repair = true })
+        if ok then
+            return true
         end
+        if status == "invalid" then
+            return false, "bank ID not linked"
+        end
+        if status == "expired" then
+            return false, "bank ID expired"
+        end
+        return false, "present your bank ID card"
     end
     return true
 end
@@ -730,24 +738,34 @@ function IKST_EconomyOps.playerIdCardReissue(player, x, y, z)
     if not IKST_Economy.idCardPlayerReissue or not IKST_Economy.idCardPlayerReissue() then
         return false, "bank ID replacement disabled"
     end
-    if not IKST_Economy.isAtmSquare(x, y, z) then
-        return false, "use an ATM to replace your bank ID"
-    end
-    if not IKST_Economy.atmAllows(x, y, z, "deposit") and not IKST_Economy.atmAllows(x, y, z, "withdraw") then
-        return false, "ATM cannot replace bank ID"
-    end
-    local remain = IKST_Economy.idCardReissueCooldownRemainMs(player)
-    if remain > 0 then
-        local hours = math.ceil(remain / 3600000)
-        return false, "wait " .. tostring(hours) .. "h before replacing bank ID again"
-    end
-    local fee = IKST_Economy.idCardReissueFee()
-    if fee > 0 then
-        if not IKST_Economy.takeBank(player, fee) then
-            return false, "need " .. IKST_Economy.formatAmount(fee) .. " in bank for replacement fee"
+    local staffBypass = IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(player)
+    if not staffBypass then
+        if not IKST_Economy.isAtmSquare(x, y, z) then
+            return false, "use an ATM to replace your bank ID"
+        end
+        if not IKST_Economy.atmAllows(x, y, z, "deposit") and not IKST_Economy.atmAllows(x, y, z, "withdraw") then
+            return false, "ATM cannot replace bank ID"
+        end
+        local remain = IKST_Economy.idCardReissueCooldownRemainMs(player)
+        if remain > 0 then
+            local hours = math.ceil(remain / 3600000)
+            return false, "wait " .. tostring(hours) .. "h before replacing bank ID again"
         end
     end
-    local ok, msg = IKST_EconomyIdentity.reissueIdCard(player, { recordCooldown = true, bumpSerial = true, notifyPlayer = true })
+    local fee = 0
+    if not staffBypass then
+        fee = IKST_Economy.idCardReissueFee()
+        if fee > 0 then
+            if not IKST_Economy.takeBank(player, fee) then
+                return false, "need " .. IKST_Economy.formatAmount(fee) .. " in bank for replacement fee"
+            end
+        end
+    end
+    local ok, msg = IKST_EconomyIdentity.reissueIdCard(player, {
+        recordCooldown = not staffBypass,
+        bumpSerial = true,
+        notifyPlayer = true,
+    })
     if not ok and fee > 0 then
         IKST_Economy.addBank(player, fee)
     end
@@ -769,9 +787,17 @@ function IKST_EconomyOps.exchangeGate(player, x, y, z)
         return false, "ATM cannot exchange valuables"
     end
     if IKST_Economy.idCardBanking and IKST_Economy.idCardBanking() then
-        if not IKST_EconomyIdentity.hasValidIdCard(player) then
-            return false, "present your bank ID card"
+        local ok, status = IKST_EconomyIdentity.authorizeBankId(player, { repair = true })
+        if ok then
+            return true
         end
+        if status == "invalid" then
+            return false, "bank ID not linked"
+        end
+        if status == "expired" then
+            return false, "bank ID expired"
+        end
+        return false, "present your bank ID card"
     end
     return true
 end

@@ -1,4 +1,4 @@
--- IKST dashboard home — upper half server info, lower half 4×3 function grid (IKappaID UI).
+-- IKST dashboard home - upper half server info, lower half 4x3 function grid (IKappaID UI).
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
@@ -249,14 +249,14 @@ end
 function IKST_DashboardUI.drawStatCell(panel, x, y, w, h, stat)
     local c = IKUI_Chrome.colors
     local pad = 10
-    local value = "—"
+    local value = "-"
     local caption = IKST.text("IGUI_IKST_Dashboard_Stat_Placeholder", "Tap Refresh")
     if IKST_Dashboard and type(IKST_Dashboard.statLines) == "function" then
         value, caption = IKST_Dashboard.statLines(stat.id)
     end
     panel:drawText(string.upper(IKST.text(stat.titleKey, stat.title)),
         x + pad, y + pad, c.accent.r, c.accent.g, c.accent.b, 1, UIFont.Small)
-    panel:drawText(tostring(value or "—"), x + pad, y + pad + 18,
+    panel:drawText(tostring(value or "-"), x + pad, y + pad + 18,
         c.textPrimary.r, c.textPrimary.g, c.textPrimary.b, 1, UIFont.Large)
     if caption and caption ~= "" then
         panel:drawText(caption, x + pad, y + h - pad - 14,

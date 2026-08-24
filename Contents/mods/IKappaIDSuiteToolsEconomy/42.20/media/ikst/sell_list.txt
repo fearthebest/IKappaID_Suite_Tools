@@ -1,0 +1,72 @@
+# IKST ATM / economy — SELL list (operator-editable)
+# Same format as IKappaID Phone Shop sell_list.txt
+# Format: ItemType|Label|Price|Category
+# Deploy: copy Desktop/Lua/ikst/sell_list.txt to this path, restart server.
+# When EconomyValuablesMirrorPhoneShop is on (default), Phone Shop sell prices override matching rows here.
+
+# --- Valuables / electronics ---
+Base.Bracelet_BangleRightGold|Gold Bangle|80|Tools
+Base.Bracelet_ChainRightGold|Gold Chain Bracelet|90|Tools
+Base.Necklace_Gold|Gold Necklace|120|Tools
+Base.Necklace_GoldRuby|Gold Ruby Necklace|180|Tools
+Base.Necklace_GoldDiamond|Gold Diamond Necklace|220|Tools
+Base.Ring_Left_RingFinger_Gold|Gold Ring|100|Tools
+Base.Ring_Left_RingFinger_GoldDiamond|Gold Diamond Ring|200|Tools
+Base.Ring_Left_RingFinger_GoldRuby|Gold Ruby Ring|160|Tools
+Base.Earring_LoopLrg_Gold|Gold Loop Earring|70|Tools
+Base.Earring_LoopMed_Gold|Gold Med Earring|60|Tools
+Base.Earring_LoopSmall_Gold_Both|Gold Small Earrings|50|Tools
+Base.WristWatch_Right_ClassicGold|Gold Watch|140|Tools
+Base.SilverCoin|Silver Coin|25|Tools
+Base.GoldCoin|Gold Coin|80|Tools
+Base.Gem|Gem|150|Tools
+Base.ElectronicsScrap|Electronics Scrap|15|Tools
+Base.ScrapMetal|Scrap Metal|10|Tools
+Base.Amplifier|Amplifier|40|Tools
+Base.RadioReceiver|Radio Receiver|35|Tools
+Base.RadioTransmitter|Radio Transmitter|40|Tools
+Base.Headphones|Headphones|20|Tools
+Base.Earbuds|Earbuds|15|Tools
+Base.Camera|Camera|60|Tools
+Base.CameraDisposable|Disposable Camera|25|Tools
+Base.CameraExpensive|Expensive Camera|120|Tools
+Base.CordlessPhone|Cordless Phone|50|Tools
+Base.VideoGame|Video Game|40|Tools
+Base.Cubicle|Cube Toy|20|Tools
+Base.ToyCar|Toy Car|15|Tools
+
+# --- Cigs / comfort ---
+Base.Cigarette|Cigarette|5|Food
+Base.CigaretteCarton|Cigarette Carton|80|Food
+Base.Tobacco|Tobacco|20|Food
+Base.Cigar|Cigar|25|Food
+
+# --- Excess guns (low sell — map loot, not a cash printer) ---
+Base.Pistol|Pistol|60|Weapons
+Base.Pistol2|Pistol 2|70|Weapons
+Base.Pistol3|Pistol 3|80|Weapons
+Base.Revolver|Revolver|70|Weapons
+Base.Shotgun|Shotgun|100|Weapons
+Base.HuntingRifle|Hunting Rifle|110|Weapons
+Base.AssaultRifle|Assault Rifle|160|Weapons
+Base.AssaultRifle2|Assault Rifle 2|180|Weapons
+Base.VarmintRifle|Varmint Rifle|90|Weapons
+Base.Katana|Katana|150|Weapons
+Base.Machete|Machete|50|Weapons
+Base.Axe|Axe|40|Weapons
+Base.Crowbar|Crowbar|35|Weapons
+
+# --- Ammo sell ---
+Base.Bullets9mmBox|9mm Box|40|Ammo
+Base.Bullets45Box|45 Box|45|Ammo
+Base.556Box|5.56 Box|55|Ammo
+Base.308Box|308 Box|55|Ammo
+Base.ShotgunShellsBox|Shotgun Shells Box|50|Ammo
+
+# --- Armor sell ---
+Base.Vest_BulletCivilian|Civilian Vest|80|Armor
+Base.Vest_BulletPolice|Police Vest|110|Armor
+Base.Vest_BulletArmy|Army Vest|140|Armor
+Base.Hat_Army|Army Helmet|60|Armor
+Base.Hat_RiotHelmet|Riot Helmet|70|Armor
+Base.Bag_ALICEpack_Army|ALICE Pack Army|90|Armor

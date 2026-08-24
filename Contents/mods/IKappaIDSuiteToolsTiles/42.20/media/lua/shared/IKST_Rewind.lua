@@ -16,7 +16,7 @@ function IKST_Rewind.playerKey(player)
     if IKST_Identity and IKST_Identity.accountKey then
         return IKST_Identity.accountKey(player)
     end
-    if player.getOnlineID then
+    if type(player.getOnlineID) == "function" then
         return "oid:" .. tostring(player:getOnlineID())
     end
     return nil

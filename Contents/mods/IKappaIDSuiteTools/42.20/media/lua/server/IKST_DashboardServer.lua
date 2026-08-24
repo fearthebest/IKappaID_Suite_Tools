@@ -10,6 +10,7 @@ require "IKST_Access"
 require "IKST_Identity"
 require "IKST_ServerPlayers"
 require "IKST_HelpQueue"
+require "IKST_ClaimRequestQueue"
 require "IKST_VehicleClaim"
 require "IKST_SafehouseClaim"
 
@@ -128,6 +129,11 @@ function IKST_DashboardServer.buildSnapshot(viewer)
         end
     end
 
+    local pendingClaims = 0
+    if IKST_ClaimRequestQueue and type(IKST_ClaimRequestQueue.list) == "function" then
+        pendingClaims = #(IKST_ClaimRequestQueue.list() or {})
+    end
+
     local boot = IKST_DashboardServer.bootMs or 0
     local uptimeSec = 0
     if boot > 0 then
@@ -149,6 +155,7 @@ function IKST_DashboardServer.buildSnapshot(viewer)
         activeAdmins = staffView and admins or 0,
         adminNames = staffView and table.concat(adminNames, ", ") or "",
         pendingHelp = staffView and pendingHelp or 0,
+        pendingClaimRequests = staffView and pendingClaims or 0,
         helpOldestMin = staffView and helpOldestMin or 0,
         staffView = staffView,
         onlineNames = onlineNames,

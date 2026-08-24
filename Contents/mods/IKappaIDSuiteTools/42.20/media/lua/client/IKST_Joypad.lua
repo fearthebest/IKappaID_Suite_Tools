@@ -1,5 +1,5 @@
 --[[
-    IKappaID Suite Tools — controller map (B42 Joypad.* constants)
+    IKappaID Suite Tools - controller map (B42 Joypad.* constants)
 
     Keyboard
       Ctrl+Shift+W          always              toggle hub
@@ -20,7 +20,7 @@
       LB / RB               previous / next workspace
 
     Authority note: one thin JoypadControllerData.onPressButtonNoFocus wrap
-    for world Y/Start only — no OnTick poll, no ISEquippedItem patches.
+    for world Y/Start only - no OnTick poll, no ISEquippedItem patches.
 ]]
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
@@ -323,7 +323,7 @@ function IKST_Joypad.drawRingOn(el)
     if ww < 2 or hh < 2 then
         return
     end
-    -- Rounded highlight only — never drawRectBorder (that made square corners
+    -- Rounded highlight only - never drawRectBorder (that made square corners
     -- on top of pill buttons like Refresh / Home / Disarm).
     local radius = math.max(2, math.floor(math.min(ww, hh) / 2))
     if IKUI_Chrome and type(IKUI_Chrome.drawRoundedFill) == "function" then

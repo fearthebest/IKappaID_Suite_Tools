@@ -167,7 +167,7 @@ function IKST_ContextMenu.fillJobSubMenu(sub, player)
     end
     local protectViews = {}
     if IKST.Plugins and IKST.Plugins.isActive("tiles") then
-        table.insert(protectViews, { key = "IGUI_IKST_Job_Guard", fallback = "Rules & Protection", view = IKST.VIEW.guard })
+        table.insert(protectViews, { key = "IGUI_IKST_Job_Guard", fallback = "Rules & Protection", view = IKST.VIEW.protect })
         table.insert(protectViews, { key = "IGUI_IKST_Job_Automation", fallback = "Quick Area Jobs", view = IKST.VIEW.automation })
     end
     if #protectViews > 0 then

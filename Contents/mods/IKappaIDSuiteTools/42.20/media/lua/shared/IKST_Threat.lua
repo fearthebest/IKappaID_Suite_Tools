@@ -14,7 +14,7 @@ function IKST_Threat.affectsLabel(radius)
     local span = (2 * math.floor(radius)) + 1
     return IKST.text("IGUI_IKST_Loot_Affects", "Affects")
         .. " r=" .. tostring(radius)
-        .. " (~" .. tostring(span) .. "×" .. tostring(span) .. ")"
+        .. " (~" .. tostring(span) .. "x" .. tostring(span) .. ")"
 end
 
 function IKST_Threat.applyClientPreview(cx, cy, cz, radius, colorKey)

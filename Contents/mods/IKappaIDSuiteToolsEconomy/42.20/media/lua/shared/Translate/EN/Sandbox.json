@@ -13,7 +13,10 @@
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyCurrencyName_tooltip": "The name of your server's money (e.g., Dollars, Credits, Gold).",
 
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyValuables": "Enable Selling Valuables",
-    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyValuables_tooltip": "Allow players to sell expensive items like jewelry or electronics for cash at shops.",
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyValuables_tooltip": "Allow players to sell items listed in media/ikst/sell_list.txt at ATMs.",
+
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyValuablesMirrorPhoneShop": "ATM prices match Phone Shop sell list",
+    "Sandbox_IKappaIDSuiteToolsEconomy_EconomyValuablesMirrorPhoneShop_tooltip": "When on, IKST ATM exchange uses Phone Shop sell_list.txt prices for matching items (edit phoneshop once, both stay in sync).",
 
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyIdCardBanking": "Enable Bank Accounts",
     "Sandbox_IKappaIDSuiteToolsEconomy_EconomyIdCardBanking_tooltip": "Allow players to use ID cards to access virtual bank accounts. This uses Steam IDs to keep money safe.",

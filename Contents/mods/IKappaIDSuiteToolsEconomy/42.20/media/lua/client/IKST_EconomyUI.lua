@@ -331,7 +331,7 @@ function IKST_EconomyUI.nearbyPlayers(player, maxDist)
     local px, py = player:getX(), player:getY()
     for i = 0, list:size() - 1 do
         local p = list:get(i)
-        if p and p ~= player and p.getUsername then
+        if p and p ~= player and type(p.getUsername) == "function" then
             local dx = p:getX() - px
             local dy = p:getY() - py
             if (dx * dx + dy * dy) <= (maxDist * maxDist) then

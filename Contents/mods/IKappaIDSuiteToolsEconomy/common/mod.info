@@ -1,4 +1,4 @@
-name=IKappaID Suite Tools — Economy
+name=IKappaID Suite Tools - Economy
 
 id=IKappaIDSuiteToolsEconomy
 
@@ -6,7 +6,7 @@ description=Bank accounts, money transfers, and player shops for IKappaID Suite 
 
 author=IKappaID
 
-modversion=0.3.2.0
+modversion=0.3.2.1
 
 versionMin=42.20
 

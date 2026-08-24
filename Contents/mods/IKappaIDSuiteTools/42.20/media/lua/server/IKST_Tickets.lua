@@ -23,7 +23,6 @@ local COORD_ABS_MAX = 100000
 IKST_Tickets.LABELS = {
     report = true,
     dispute = true,
-    ["claim-request"] = true,
     delivery = true,
     bounty = true,
 }
@@ -82,42 +81,10 @@ function IKST_Tickets.submit(player, message, label)
     return true, "ticket sent"
 end
 
--- Derive an axis-aligned zone from two corners and file a staff ticket.
--- Does not create a safehouse. Admin must claim after review.
+-- Claim requests use IKST_ClaimRequestQueue (ModData), not vanilla tickets.
 function IKST_Tickets.requestClaim(player, args)
-    if IKST_Authority and not IKST_Authority.guardServerMutate() then
-        return false, "server only"
+    if IKST_ClaimRequestQueue and type(IKST_ClaimRequestQueue.submit) == "function" then
+        return IKST_ClaimRequestQueue.submit(player, args)
     end
-    if not player then
-        return false, "no player"
-    end
-    local x1 = IKST_Args.readCoord(args, "x1")
-    local y1 = IKST_Args.readCoord(args, "y1")
-    local z1 = IKST_Args.readCoord(args, "z1")
-    local x2 = IKST_Args.readCoord(args, "x2")
-    local y2 = IKST_Args.readCoord(args, "y2")
-    local z2 = IKST_Args.readCoord(args, "z2")
-    if not coordInRange(x1) or not coordInRange(y1) or z1 == nil
-        or not coordInRange(x2) or not coordInRange(y2) or z2 == nil then
-        return false, "need both corners"
-    end
-    if z1 < -1 or z1 > 32 or z2 < -1 or z2 > 32 then
-        return false, "need both corners"
-    end
-    local dist = 8
-    if IKST_Access and type(IKST_Access.sandboxInt) == "function" then
-        dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
-    end
-    if not IKST_Args.actorNearCoord(player, x2, y2, z2, dist) then
-        return false, "stand at the end corner"
-    end
-    local ok, err, x, y, w, h = IKST_Claim.playerResidentialRect(x1, y1, z1, x2, y2, z2)
-    if not ok then
-        return false, err or "residential buildings only"
-    end
-    local msg = string.format(
-        "residential A(%d,%d,%d) B(%d,%d,%d) house %d,%d %dx%d - admin must claim; not auto-approved",
-        x1, y1, z1, x2, y2, z2, x, y, w, h
-    )
-    return IKST_Tickets.submit(player, msg, "claim-request")
+    return false, "claim request queue unavailable"
 end

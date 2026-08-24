@@ -1,5 +1,5 @@
 -- Durable vehicle identity for claims.
--- BaseVehicle:getId() is a session short id and is reused after restart — never persist it.
+-- BaseVehicle:getId() is a session short id and is reused after restart - never persist it.
 -- https://projectzomboid.com/modding/zombie/vehicles/BaseVehicle.html
 
 IKST_VehicleIdentity = IKST_VehicleIdentity or {}
@@ -90,6 +90,21 @@ function IKST_VehicleIdentity.stampWith(vehicle, key)
     local changed = data[IKST_VehicleIdentity.KEY_FIELD] ~= want
     data[IKST_VehicleIdentity.KEY_FIELD] = want
     if changed and type(vehicle.transmitModData) == "function" then
+        vehicle:transmitModData()
+    end
+    return true
+end
+
+function IKST_VehicleIdentity.clearKey(vehicle)
+    if not mayWrite() or not vehicle or type(vehicle.getModData) ~= "function" then
+        return false
+    end
+    local data = vehicle:getModData()
+    if not data or data[IKST_VehicleIdentity.KEY_FIELD] == nil then
+        return false
+    end
+    data[IKST_VehicleIdentity.KEY_FIELD] = nil
+    if type(vehicle.transmitModData) == "function" then
         vehicle:transmitModData()
     end
     return true

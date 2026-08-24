@@ -121,13 +121,13 @@ function IKST_StaffOps.playerLabel(player)
     if not player then
         return "player"
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local name = player:getUsername()
         if name and name ~= "" then
             return name
         end
     end
-    if player.getOnlineID then
+    if type(player.getOnlineID) == "function" then
         return "Player " .. tostring(player:getOnlineID())
     end
     return "player"
@@ -582,7 +582,7 @@ function IKST_StaffOps.listOnlinePlayers()
     end
     for i = 0, list:size() - 1 do
         local player = list:get(i)
-        if player and player.getOnlineID then
+        if player and type(player.getOnlineID) == "function" then
             out[#out + 1] = {
                 id = player:getOnlineID(),
                 name = IKST_StaffOps.playerLabel(player),

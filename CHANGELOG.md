@@ -1,5 +1,26 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.1 — BETA (2026-08-24)
+
+Build **42.20** — claim system fixes and request-queue hardening.
+
+### Fixed
+- **Vehicle self-claim UI** — Admins and self-service players see **Claim vehicle** instead of only **Request** when the nearby list was stale or admin bypass did not match server rules.
+- **Staff claim-request list** — House and vehicle request rows are selectable; Approve/Deny work from the shared list pattern.
+- **Request submit validation** — Rejects at max claims, overlapping safehouses, PhunZones blocks, and residential-only failures before enqueueing.
+- **Vehicle request rules** — Submit and staff approve enforce seat, engine, and key requirements like direct self-claim when the requester is online.
+- **Safehouse stale UI** — Release/edit buttons derive from policy and mirror data when the MP safehouse list has not loaded yet.
+
+### Changed
+- **Four claim sandbox modes** — Independent toggles: house self-claim, house request, vehicle self-claim, vehicle request.
+- **Request UX** — Request-only players get **Request house** on ground context menu and radial; staff who can direct-claim no longer see redundant request buttons.
+- **House request flow** — Walk-draw can start from context menu / radial (`startHouseClaimRequest`).
+
+### Added
+- **Vehicle claim requests** — Players submit vehicle claims to the staff queue; staff list shows `[House]` / `[Vehicle]` labels.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.1.txt`
+
 ## 0.3.2.0 — BETA (2026-08-13)
 
 Build **42.20** public Beta pack.

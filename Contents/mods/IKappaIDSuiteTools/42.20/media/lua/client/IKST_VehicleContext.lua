@@ -26,7 +26,13 @@ function IKST_VehicleContext.vehicleFromWorldObjects(worldobjects)
 end
 
 function IKST_VehicleContext.mayCreateClaim(player)
-    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateClaim and IKST_ClaimPolicy.mayCreateClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateVehicleClaim
+        and IKST_ClaimPolicy.mayCreateVehicleClaim(player)
+end
+
+function IKST_VehicleContext.mayShowRequestClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowVehicleClaimRequest
+        and IKST_ClaimPolicy.mayShowVehicleClaimRequest(player)
 end
 
 function IKST_VehicleContext.addOption(sub, label, player, fn, iconPath)
@@ -51,12 +57,14 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
     if vid == nil then
         return
     end
-    local uiState = IKST_VehicleClaimClient.uiState(vid, player)
+    local uiState = IKST_VehicleClaimClient.uiState(vid, player, vehicle)
     local claimed = uiState and uiState.claimed == true
     local showCreate = (not claimed) and uiState and uiState.canClaim == true
         and IKST_VehicleContext.mayCreateClaim(player)
+    local showRequest = (not claimed) and uiState and uiState.canClaim ~= true
+        and IKST_VehicleContext.mayShowRequestClaim(player)
     local showRefresh = (not claimed) and uiState and uiState.stale
-    if not claimed and not showCreate and not showRefresh then
+    if not claimed and not showCreate and not showRequest and not showRefresh then
         return
     end
 
@@ -69,6 +77,10 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
         if showCreate then
             IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"), player, function()
                 IKST.dispatchCommand(player, IKST.CMD.vehicleClaim, { vehicleId = vid })
+            end, IKST_ClaimIcons.VEHICLE_CLAIM)
+        elseif showRequest then
+            IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_ClaimTile_RequestVehicle", "Request vehicle claim"), player, function()
+                IKST.dispatchCommand(player, IKST.CMD.vehicleClaimRequest, { vehicleId = vid })
             end, IKST_ClaimIcons.VEHICLE_CLAIM)
         elseif showRefresh then
             sub:addOption(IKST.text("IGUI_IKST_Guard_Vehicle_RefreshClaims", "Refresh claims list"), player, function()
@@ -91,7 +103,7 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
     end
 
     if uiState.canEdit then
-        IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions…"), player, function()
+        IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."), player, function()
             if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
                 IKST_VehicleClaimUI.open(player, vid)
             end

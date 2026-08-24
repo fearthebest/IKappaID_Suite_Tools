@@ -28,6 +28,7 @@ require "IKST_DestroyServer"
 require "IKST_CommandQueue"
 require "IKST_StaffHistory"
 require "IKST_HelpQueue"
+require "IKST_ClaimRequestQueue"
 require "IKST_Tickets"
 require "IKST_DashboardServer"
 require "IKST_Unstuck"
@@ -289,7 +290,13 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
     end
 
     if command == IKST.CMD.claimRequest then
-        ok, msg = IKST_Tickets.requestClaim(playerObj, args)
+        ok, msg = IKST_ClaimRequestQueue.submit(playerObj, args)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.vehicleClaimRequest then
+        ok, msg = IKST_ClaimRequestQueue.submitVehicle(playerObj, args)
         IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
         return
     end
@@ -310,6 +317,35 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
     if command == IKST.CMD.helpResolve then
         ok, msg = IKST_HelpQueue.resolve(playerObj, args and args.id)
         IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        return
+    end
+
+    if command == IKST.CMD.claimRequestList then
+        IKST.deliverClientCommand(playerObj, IKST.CMD.claimRequestListResult, {
+            pending = IKST_ClaimRequestQueue.list(),
+        })
+        return
+    end
+
+    if command == IKST.CMD.claimRequestApprove then
+        ok, msg = IKST_ClaimRequestQueue.approve(playerObj, args and args.id)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        if ok then
+            IKST.deliverClientCommand(playerObj, IKST.CMD.claimRequestListResult, {
+                pending = IKST_ClaimRequestQueue.list(),
+            })
+        end
+        return
+    end
+
+    if command == IKST.CMD.claimRequestDeny then
+        ok, msg = IKST_ClaimRequestQueue.deny(playerObj, args and args.id, args and args.reason)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        if ok then
+            IKST.deliverClientCommand(playerObj, IKST.CMD.claimRequestListResult, {
+                pending = IKST_ClaimRequestQueue.list(),
+            })
+        end
         return
     end
 
@@ -424,6 +460,9 @@ if type(isServer) == "function" and isServer() then
             if IKST_GuardOps and IKST_GuardOps.purgeExpiredSafehouses then
                 IKST_GuardOps.purgeExpiredSafehouses()
             end
+            if IKST_GuardOps and IKST_GuardOps.touchOnlineClaimActivity then
+                IKST_GuardOps.touchOnlineClaimActivity()
+            end
         end)
     end
 
@@ -432,6 +471,6 @@ if type(isServer) == "function" and isServer() then
         require "IKST_Debug"
     end
     if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
-        IKST_Debug.log("boot", "server JVM ready — grep IB/server log for [IKST-DEBUG]")
+        IKST_Debug.log("boot", "server JVM ready - grep IB/server log for [IKST-DEBUG]")
     end
 end

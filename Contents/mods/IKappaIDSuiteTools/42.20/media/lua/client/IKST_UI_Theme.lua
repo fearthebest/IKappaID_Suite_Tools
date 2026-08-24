@@ -1,4 +1,4 @@
--- Compatibility shim — palette lives in IKappaID_UI/IKUI_Chrome.
+-- Compatibility shim - palette lives in IKappaID_UI/IKUI_Chrome.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end

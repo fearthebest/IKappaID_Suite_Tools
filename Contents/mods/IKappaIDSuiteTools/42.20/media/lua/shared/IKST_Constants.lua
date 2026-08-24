@@ -2,7 +2,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.3.2.0"
+IKST.VERSION = "0.3.2.1"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 IKST.RESTORE_MAX_PERK_LEVEL = 10
@@ -225,7 +225,12 @@ IKST.CMD = {
     helpRequest = "helpRequest",
     reportPlayer = "reportPlayer",
     claimRequest = "claimRequest",
+    vehicleClaimRequest = "vehicleClaimRequest",
     claimDispute = "claimDispute",
+    claimRequestList = "claimRequestList",
+    claimRequestListResult = "claimRequestListResult",
+    claimRequestApprove = "claimRequestApprove",
+    claimRequestDeny = "claimRequestDeny",
     helpList = "helpList",
     helpResolve = "helpResolve",
     helpListResult = "helpListResult",
@@ -317,7 +322,7 @@ IKST.PLAYER_CLAIM_COMMANDS = {
     lockInstallKeypad = true,
 }
 
--- Creating a claim is staff-only unless ClaimPlayerSelfService is on.
+-- Creating a claim is staff-only unless the matching self-service sandbox flag is on.
 IKST.PLAYER_CLAIM_CREATE = {
     vehicleClaim = true,
     safehouseClaim = true,
@@ -392,6 +397,9 @@ IKST.STAFF_COMMANDS = {
     eventClear = true,
     helpList = true,
     helpResolve = true,
+    claimRequestList = true,
+    claimRequestApprove = true,
+    claimRequestDeny = true,
     staffHistoryList = true,
 }
 
@@ -401,6 +409,7 @@ IKST.PLAYER_SELF_COMMANDS = {
     helpRequest = true,
     reportPlayer = true,
     claimRequest = true,
+    vehicleClaimRequest = true,
     claimDispute = true,
     dashboardSnapshot = true,
     eventJoin = true,

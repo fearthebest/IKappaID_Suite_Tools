@@ -73,7 +73,7 @@ function IKST_GuardOps.enrichNearbyRow(row, viewer)
         end
     else
         row.claimed = false
-        row.canClaim = IKST_ClaimPolicy.mayCreateClaim(viewer)
+        row.canClaim = IKST_ClaimPolicy.mayCreateVehicleClaim(viewer)
         row.canRelease = false
         row.canEdit = false
         row.isMine = false
@@ -86,9 +86,13 @@ function IKST_GuardOps.notifyVehicleClaimResult(player, ok, message, extra)
     if not player or not IKST.deliverClientCommand then
         return
     end
+    local text = tostring(message or "")
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.friendlyMessage then
+        text = IKST_ClaimPolicy.friendlyMessage(text)
+    end
     local payload = {
         ok = ok == true,
-        message = tostring(message or ""),
+        message = text,
     }
     if extra then
         for key, value in pairs(extra) do
@@ -260,4 +264,59 @@ function IKST_GuardOps.canManageVehicleClaim(actor, entry, vehicleId)
         return true
     end
     return IKST_VehicleClaim.playerMayRelease(entry, actor, vehicleId)
+end
+
+-- Keep inactivity clocks fresh for online owners (vehicles + safehouses). Also clears pending vehicle stamps.
+function IKST_GuardOps.touchOnlineClaimActivity()
+    if IKST_ClaimPolicy.inactivityHours() <= 0 then
+        return
+    end
+    if type(getOnlinePlayers) ~= "function" then
+        return
+    end
+    local list = getOnlinePlayers()
+    if not list or type(list.size) ~= "function" then
+        return
+    end
+    for i = 0, list:size() - 1 do
+        local player = list:get(i)
+        if player then
+            local vehicle = type(player.getVehicle) == "function" and player:getVehicle() or nil
+            if vehicle then
+                IKST_VehicleClaim.applyPendingClear(vehicle)
+                IKST_VehicleClaim.touchOwnerVehicle(player, vehicle)
+            end
+            if SafeHouse and type(SafeHouse.getSafeHouse) == "function" then
+                local square = type(player.getCurrentSquare) == "function" and player:getCurrentSquare() or nil
+                local sh = square and SafeHouse.getSafeHouse(square) or nil
+                if sh and type(sh.getX) == "function" then
+                    local x, y = sh:getX(), sh:getY()
+                    local w = type(sh.getW) == "function" and sh:getW() or 1
+                    local h = type(sh.getH) == "function" and sh:getH() or 1
+                    local entry = IKST_SafehouseClaim.get(x, y, w, h)
+                    local meta = IKST_ClaimPolicy.getSafehouseMeta(x, y, w, h)
+                    local ownerName = type(sh.getOwner) == "function" and sh:getOwner() or nil
+                    local isOwner = false
+                    if entry and IKST_SafehouseClaim.isOwner then
+                        isOwner = IKST_SafehouseClaim.isOwner(entry, player)
+                    elseif meta and IKST_Identity and IKST_Identity.playerOwnsKey then
+                        isOwner = IKST_Identity.playerOwnsKey(player, meta.owner)
+                    elseif ownerName and IKST_ClaimPolicy.usernamesEqual then
+                        local uname = type(player.getUsername) == "function" and player:getUsername() or ""
+                        isOwner = IKST_ClaimPolicy.usernamesEqual(ownerName, uname)
+                    end
+                    if isOwner then
+                        if entry and IKST_ClaimPolicy.touchActivity(entry) then
+                            IKST_SafehouseClaim.transmit("set", entry.key or IKST_SafehouseClaim.keyFor(x, y, w, h), entry)
+                        end
+                        if meta and IKST_ClaimPolicy.touchActivity(meta) then
+                            if IKST.transmitModData and IKST.ModDataKeys then
+                                IKST.transmitModData(IKST.ModDataKeys.WorldRules)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end

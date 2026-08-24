@@ -40,7 +40,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Admin",
         icon = "media/ui/ikst/ws_admin.png",
         descKey = "IGUI_IKST_WS_Admin_Desc",
-        desc = "Spectator, kick, and ban — vanilla server commands",
+        desc = "Spectator, kick, and ban - vanilla server commands",
         pluginId = "admin",
         adminOnly = true,
         tools = nil,
@@ -54,6 +54,7 @@ IKST_HubNav.WORKSPACES = {
         desc = "Claim a safehouse or vehicle",
         tools = {
             { id = "overview", titleKey = "IGUI_IKST_Claim_Overview", title = "Overview", order = 5 },
+            { id = "requests", titleKey = "IGUI_IKST_ClaimRequestQueue", title = "Claim requests", order = 8, adminOnly = true },
             { id = "safehouses", titleKey = "IGUI_IKST_Claim_Safehouse", title = "Claim safehouse", order = 10 },
             { id = "vehicleclaim", titleKey = "IGUI_IKST_Claim_Vehicle", title = "Claim vehicle", order = 20 },
             { id = "catch", titleKey = "IGUI_IKST_Guard_Catch", title = "Freeze player", order = 40, adminOnly = true },
@@ -76,7 +77,7 @@ IKST_HubNav.WORKSPACES = {
         title = "Vehicles",
         icon = "media/ui/ikst/ws_vehicles.png",
         descKey = "IGUI_IKST_WS_Vehicles_Desc",
-        desc = "Spawn, repair, prune — admin vehicle tools",
+        desc = "Spawn, repair, prune - admin vehicle tools",
         pluginId = "vehicles",
         adminOnly = true,
         tools = nil,
@@ -345,6 +346,8 @@ function IKST_HubNav.applyToolState(state, modeId, toolId)
     elseif modeId == IKST.VIEW.claim then
         if toolId == "overview" then
             state.guardMode = "overview"
+        elseif toolId == "requests" then
+            state.guardMode = "requests"
         elseif toolId == "safehouses" then
             state.guardMode = "safehouses"
         elseif toolId == "vehicleclaim" then
@@ -361,6 +364,8 @@ function IKST_HubNav.applyToolState(state, modeId, toolId)
             state.worldEditMode = "inspect"
         elseif toolId == "blueprints" then
             state.guardMode = "blueprints"
+        elseif toolId == "area" then
+            state.autoRadius = state.autoRadius or IKST.RADIUS_PRESETS.M
         elseif toolId == "protect" then
             state.guardMode = "tiles"
         end
@@ -368,7 +373,7 @@ function IKST_HubNav.applyToolState(state, modeId, toolId)
         if toolId == "spawn" then
             state.vehicleMode = "spawn"
         elseif toolId == "repair" then
-            state.vehicleMode = "extras"
+            state.vehicleMode = "list"
         elseif toolId == "prune" then
             state.vehicleMode = "prune"
         end
@@ -442,7 +447,7 @@ function IKST_HubNav.syncArmedTab(state, armedJob)
     if not state or not armedJob then
         return
     end
-    -- Do not yank the sidebar away while a click-tool is armed (old guard→claim redirect broke picks).
+    -- Do not yank the sidebar away while a click-tool is armed (old guard->claim redirect broke picks).
     local mode, tool = IKST_HubNav.resolveView(armedJob)
     if state.navMode == mode then
         return
@@ -461,15 +466,28 @@ function IKST_HubNav.onNavEntered(panel, modeId, toolId)
     if modeId == IKST.VIEW.claim and toolId == "overview" and IKST_JobGuard then
         IKST_JobGuard.requestSafehouses(player)
         IKST_JobGuard.requestClaims(player)
+        if IKST_JobStaff and type(IKST_JobStaff.requestClaimRequests) == "function"
+            and IKST_Access and type(IKST_Access.canUseStaffTools) == "function"
+            and IKST_Access.canUseStaffTools(player) then
+            IKST_JobStaff.requestClaimRequests(player)
+        end
+    elseif modeId == IKST.VIEW.claim and toolId == "requests" and IKST_JobStaff then
+        IKST_JobStaff.requestClaimRequests(player)
     elseif modeId == IKST.VIEW.claim and toolId == "safehouses" and IKST_JobGuard then
         IKST_JobGuard.requestSafehouses(player)
     elseif modeId == IKST.VIEW.claim and toolId == "vehicleclaim" and IKST_JobGuard then
         IKST_JobGuard.requestClaims(player)
         IKST_JobGuard.requestNearbyVehicles(player)
+    elseif modeId == IKST.VIEW.claim and toolId == "catch" and IKST_JobStaff then
+        IKST_JobStaff.requestPlayers(player)
     elseif modeId == IKST.VIEW.utilities and toolId == "players" then
-        local st = IKST.getPlayerState(player)
-        if st and (st.staffMode == "players" or st.staffMode == "moderate") and IKST.isMultiplayerSession() and IKST_JobStaff then
+        if IKST_JobStaff then
             IKST_JobStaff.requestPlayers(player)
+            if type(IKST_JobStaff.requestHelpList) == "function" then
+                IKST_JobStaff.requestHelpList(player)
+            else
+                IKST.dispatchCommand(player, IKST.CMD.helpList, {})
+            end
         end
     elseif modeId == IKST.VIEW.utilities and toolId == "teleport" and IKST_JobStaff then
         IKST_JobStaff.requestWaypoints(player)

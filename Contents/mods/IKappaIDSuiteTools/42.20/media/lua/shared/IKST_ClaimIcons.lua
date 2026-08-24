@@ -2,7 +2,7 @@ require "IKST_Shared"
 
 IKST_ClaimIcons = IKST_ClaimIcons or {}
 
--- HyperOS glyphs under media/ui/ikst (64x64 transparent).
+-- IKappaID chrome glyphs under media/ui/ikst (64x64 transparent).
 IKST_ClaimIcons.HUB_UI_ICONS = true
 IKST_ClaimIcons.CONTEXT_ICONS = true
 

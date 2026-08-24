@@ -237,7 +237,7 @@ function IKST_Clearance.stampCard(item, player, zoneId, serial)
     end
     if item.setName then
         local label = IKST_Identity.displayLabel and IKST_Identity.displayLabel(player) or "Survivor"
-        item:setName(label .. " — " .. zoneId)
+        item:setName(label .. " - " .. zoneId)
     end
     return true
 end

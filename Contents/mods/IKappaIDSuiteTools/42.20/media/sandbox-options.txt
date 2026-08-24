@@ -8,12 +8,36 @@ option IKappaIDSuiteTools.EnableMod
     translation = IKappaIDSuiteTools_EnableMod,
 }
 
-option IKappaIDSuiteTools.ClaimPlayerSelfService
+option IKappaIDSuiteTools.ClaimHouseSelfService
 {
     type = boolean,
     default = false,
     page = IKST_Claims,
-    translation = IKappaIDSuiteTools_ClaimPlayerSelfService,
+    translation = IKappaIDSuiteTools_ClaimHouseSelfService,
+}
+
+option IKappaIDSuiteTools.ClaimHouseRequestEnabled
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimHouseRequestEnabled,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleSelfService
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleSelfService,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleRequestEnabled
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleRequestEnabled,
 }
 
 option IKappaIDSuiteTools.MaxVehicleClaims
@@ -44,6 +68,40 @@ option IKappaIDSuiteTools.ClaimDurationDays
     max = 365,
     page = IKST_Claims,
     translation = IKappaIDSuiteTools_ClaimDurationDays,
+}
+
+option IKappaIDSuiteTools.ClaimInactivityDays
+{
+    type = integer,
+    default = 14,
+    min = 0,
+    max = 365,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimInactivityDays,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleRequireSeat
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleRequireSeat,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleRequireEngine
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleRequireEngine,
+}
+
+option IKappaIDSuiteTools.ClaimVehicleRequireKeys
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimVehicleRequireKeys,
 }
 
 option IKappaIDSuiteTools.ClaimListMaxSize

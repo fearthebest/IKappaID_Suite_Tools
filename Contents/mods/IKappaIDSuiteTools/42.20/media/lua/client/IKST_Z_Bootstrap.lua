@@ -23,6 +23,7 @@ require "IKST_ActionLogWindow"
 require "IKST_JobsPanel"
 require "IKST_JobThreat"
 require "IKST_JobStaff"
+require "IKST_ClaimRequestDraw"
 require "IKST_JobGuard"
 require "IKST_JobGadgets"
 require "IKST_JobUtilities"
@@ -147,7 +148,7 @@ local function onServerCommand(module, command, args)
                     local z = tonumber(args.z) or 0
                     line = line .. " @ " .. tostring(x) .. "," .. tostring(y) .. "," .. tostring(z)
                 end
-                line = line .. " — " .. tostring(args.message)
+                line = line .. " - " .. tostring(args.message)
                 if args.success then
                     IKST.pushLog(player, line, "success")
                 else
@@ -180,7 +181,7 @@ local function onServerCommand(module, command, args)
         local total = tonumber(args and args.total) or 0
         local line = tostring(label) .. " " .. tostring(index) .. "/" .. tostring(total)
         if args and args.msg then
-            line = line .. " — " .. tostring(args.msg)
+            line = line .. " - " .. tostring(args.msg)
         end
         IKST.pushLog(player, line, "progress")
         if IKST_JobsPanel.instance and IKST_JobsPanel.instance.onBatchProgress then
@@ -244,6 +245,13 @@ local function onServerCommand(module, command, args)
     if command == IKST.CMD.helpListResult then
         if IKST_JobStaff and IKST_JobStaff.onHelpListResult then
             IKST_JobStaff.onHelpListResult(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.claimRequestListResult then
+        if IKST_JobStaff and IKST_JobStaff.onClaimRequestListResult then
+            IKST_JobStaff.onClaimRequestListResult(args)
         end
         return
     end
@@ -488,7 +496,7 @@ local function onGameStart()
         require "IKST_Debug"
     end
     if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
-        IKST_Debug.log("boot", "v" .. IKST.VERSION .. " client JVM ready — grep console for [IKST-DEBUG]")
+        IKST_Debug.log("boot", "v" .. IKST.VERSION .. " client JVM ready - grep console for [IKST-DEBUG]")
     end
     print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (client)")
     local player = getPlayer and getPlayer() or nil

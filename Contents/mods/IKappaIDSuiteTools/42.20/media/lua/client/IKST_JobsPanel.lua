@@ -398,7 +398,7 @@ end
 -- externally-forced width/height change (e.g. DPI/resolution change) back to
 -- the one fixed shell size and rebuilds the UI.
 function IKST_JobsPanel:onResize()
-    IKST_JobLayout.syncHyperOsMetrics(self)
+    IKST_JobLayout.syncChromeMetrics(self)
     self.minimumWidth = IKST_JobLayout.MIN_WIDTH
     self.minimumHeight = IKST_JobLayout.MIN_HEIGHT
     IKST_JobsPanel.MIN_WIDTH = IKST_JobLayout.MIN_WIDTH
@@ -458,7 +458,7 @@ function IKST_JobsPanel:armedModeLabel()
     end
     local job = tostring(state.armedJob)
     local title = IKST_HubNav and IKST_HubNav.labelForNav and IKST_HubNav.labelForNav(job, state.navTool) or job
-    return IKST.text("IGUI_IKST_Armed_Mode", "Mode") .. ": " .. title .. " · " .. IKST.text("IGUI_IKST_ClickWorld", "Click a square")
+    return IKST.text("IGUI_IKST_Armed_Mode", "Mode") .. ": " .. title .. " - " .. IKST.text("IGUI_IKST_ClickWorld", "Click a square")
 end
 
 function IKST_JobsPanel:enterNav(modeId, toolId)
@@ -726,7 +726,7 @@ function IKST_JobsPanel:getHintText()
         return IKST.text("IGUI_IKST_Tip_Home", "Tip: Open a dashboard card, then use the left tools.")
     end
     if self.view == IKST.VIEW.utilities then
-        return IKST.text("IGUI_IKST_Tip_Utilities", "Tip: Admin utilities — pick a category on the left")
+        return IKST.text("IGUI_IKST_Tip_Utilities", "Tip: Admin utilities - pick a category on the left")
     end
     if self.view == IKST.VIEW.claim then
         return IKST.text("IGUI_IKST_Tip_Claim", "Tip: Claim land or register a vehicle")
@@ -817,7 +817,7 @@ function IKST_JobsPanel:statusStripTexts()
         if type(player.getZ) == "function" then
             z = player:getZ() or 0
         end
-        leftText = string.format("%d, %d, %d  ·  Cell %d,%d",
+        leftText = string.format("%d, %d, %d  -  Cell %d,%d",
             math.floor(x), math.floor(py), z, math.floor(x / 300), math.floor(py / 300))
         if IKST_Access and type(IKST_Access.isAdmin) == "function" and IKST_Access.isAdmin(player) then
             rightText = IKST.text("IGUI_IKST_Admin", "Admin")
@@ -1055,7 +1055,7 @@ function IKST_JobsPanel.ensure()
         end
         return IKST_JobsPanel.instance
     end
-    IKST_JobLayout.syncHyperOsMetrics()
+    IKST_JobLayout.syncChromeMetrics()
     local defW, defH = IKST_JobLayout.defaultSize()
     IKST_JobsPanel.WIDTH = defW
     IKST_JobsPanel.HEIGHT = defH

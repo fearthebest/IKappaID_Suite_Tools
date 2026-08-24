@@ -1,10 +1,10 @@
-name=IKappaID Suite Tools — Loot
+name=IKappaID Suite Tools - Loot
 id=IKappaIDSuiteToolsLoot
 description=Repopulate container loot with vanilla distributions for IKappaID Suite Tools server admins.
 author=IKappaID
 poster=poster.png
 icon=icon.png
-modversion=0.3.2.0
+modversion=0.3.2.1
 versionMin=42.20
 require=IKappaIDSuiteTools
 category=Admin

@@ -121,7 +121,7 @@ function IKST.Plugins.buildJobTool(panel, toolId)
         if not IKST.Plugins.isActive(pluginId) then
             -- skip inactive addon
         elseif modeId and not IKST.Plugins.servesMode(spec, modeId) then
-            -- tool ids like "overview" exist on multiple addons — bind to panel workspace
+            -- tool ids like "overview" exist on multiple addons - bind to panel workspace
         elseif spec.jobTools and spec.buildJobTools and spec.buildJobTools[toolId] then
             return spec.buildJobTools[toolId](panel)
         elseif spec.jobTool == toolId and spec.buildJob then

@@ -22,7 +22,7 @@ function IKST_Briefing.clampBody(text)
     if #text <= maxBytes then
         return text
     end
-    return string.sub(text, 1, maxBytes) .. "\n…"
+    return string.sub(text, 1, maxBytes) .. "\n..."
 end
 
 -- Default sections ship with the mod. Hosts override via Zomboid/IKST/Briefing/<id>.txt
@@ -33,7 +33,7 @@ IKST_Briefing.DEFAULT_SECTIONS = {
         titleKey = "IGUI_IKST_Briefing_Sec_Welcome",
         title = "Welcome",
         body = table.concat({
-            "This server runs IKappaID Suite Tools (IKST) — a Knox County operations layer for claims, recovery, and staff tools.",
+            "This server runs IKappaID Suite Tools (IKST) - a Knox County operations layer for claims, recovery, and staff tools.",
             "",
             "Press Ctrl+Shift+W anytime for the IKST panel. Use the Everyone workspace to see your position and vehicle claims.",
             "",
@@ -49,10 +49,10 @@ IKST_Briefing.DEFAULT_SECTIONS = {
             "Replace this section with your house rules.",
             "",
             "Suggested topics:",
-            "• PvP and safe zones",
-            "• Base building and claim etiquette",
-            "• Looting and vehicle theft",
-            "• Staff contact and appeal process",
+            "- PvP and safe zones",
+            "- Base building and claim etiquette",
+            "- Looting and vehicle theft",
+            "- Staff contact and appeal process",
         }, "\n"),
     },
     {
@@ -61,15 +61,15 @@ IKST_Briefing.DEFAULT_SECTIONS = {
         titleKey = "IGUI_IKST_Briefing_Sec_Features",
         title = "IKST features",
         body = table.concat({
-            "Claims — Register vehicles and safehouses so only you and guests you allow can use them.",
+            "Claims - Register vehicles and safehouses so only you and guests you allow can use them.",
             "",
-            "Recovery journal — Snapshot your character to a journal item and restore after death (when enabled).",
+            "Recovery journal - Snapshot your character to a journal item and restore after death (when enabled).",
             "",
-            "Arrival stabilization — Short deployment grace after join or respawn; zombies ignore you until the timer ends.",
+            "Arrival stabilization - Short deployment grace after join or respawn; zombies ignore you until the timer ends.",
             "",
-            "Field recovery — Unstick a claimed or keyed vehicle that flipped nearby (Vehicles addon).",
+            "Field recovery - Unstick a claimed or keyed vehicle that flipped nearby (Vehicles addon).",
             "",
-            "Staff utilities — Admins use the Utilities and World workspaces; changes are rate-limited and audited when configured.",
+            "Staff utilities - Admins use the Utilities and World workspaces; changes are rate-limited and audited when configured.",
         }, "\n"),
     },
     {
@@ -79,8 +79,8 @@ IKST_Briefing.DEFAULT_SECTIONS = {
         title = "Reporting & support",
         body = table.concat({
             "For bugs or feature requests for IKST itself:",
-            "• GitHub: fearthebest/IKappaID_Suite_Tools",
-            "• Discord: callmekappaid",
+            "- GitHub: fearthebest/IKappaID_Suite_Tools",
+            "- Discord: callmekappaid",
             "",
             "For in-game issues on this server, contact staff through your usual channel (Discord, forum, etc.).",
             "",

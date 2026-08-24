@@ -107,6 +107,13 @@ local BUILD_TOOLS = {
     },
     {
         mode = IKST.VIEW.tiles,
+        id = "area",
+        titleKey = "IGUI_IKST_Job_Automation",
+        title = "Area jobs",
+        order = 45,
+    },
+    {
+        mode = IKST.VIEW.tiles,
         id = "protect",
         titleKey = "IGUI_IKST_Tool_Protect",
         title = "Protection",
@@ -193,6 +200,7 @@ IKST.Plugins.register("tiles", {
         paint = true,
         inspect = true,
         blueprints = true,
+        area = true,
         protect = true,
     },
     buildJobTools = {
@@ -201,6 +209,7 @@ IKST.Plugins.register("tiles", {
         paint = buildPaint,
         inspect = buildInspect,
         blueprints = buildBlueprints,
+        area = buildArea,
         protect = buildProtect,
     },
     onNavEntered = function(panel, modeId, toolId)

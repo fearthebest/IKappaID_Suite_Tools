@@ -1,7 +1,7 @@
 version=1
 id=3750835193
 title=IKappaID Suite Tools
-description=Build 42 admin suite — [b]v0.3.2.0 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
+description=Build 42 admin suite — [b]v0.3.2.1 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
 description=
 description=[b]Requires[/b] IKappaID UI Framework (Mod ID: IKappaID_UI). Subscribe and enable it with this suite.
 description=

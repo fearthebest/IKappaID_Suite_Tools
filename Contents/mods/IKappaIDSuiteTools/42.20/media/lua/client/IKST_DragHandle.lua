@@ -1,4 +1,4 @@
--- Edge drag tabs — floating UIManager buttons that move their owner window.
+-- Edge drag tabs - floating UIManager buttons that move their owner window.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end

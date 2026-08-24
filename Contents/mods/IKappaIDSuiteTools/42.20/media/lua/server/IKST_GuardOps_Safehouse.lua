@@ -78,7 +78,7 @@ function IKST_GuardOps.countSafehousesForOwner(ownerOrPlayer)
     end
     local ownerName = ownerOrPlayer
     local ownerKey = nil
-    if type(ownerOrPlayer) == "table" and ownerOrPlayer.getUsername then
+    if type(ownerOrPlayer) == "table" and type(ownerOrPlayer.getUsername) == "function" then
         ownerName = IKST_GuardOps.username(ownerOrPlayer)
         ownerKey = IKST_Identity.accountKey(ownerOrPlayer)
     elseif IKST_Identity.isAccountKey(ownerOrPlayer) then
@@ -167,7 +167,7 @@ end
 function IKST_GuardOps.filterSafehousesForPlayer(list, playerOrName)
     local username = nil
     local ownerKey = nil
-    if playerOrName and type(playerOrName) == "table" and playerOrName.getUsername then
+    if playerOrName and type(playerOrName) == "table" and type(playerOrName.getUsername) == "function" then
         username = IKST_GuardOps.username(playerOrName)
         if IKST_Identity and IKST_Identity.accountKey then
             ownerKey = IKST_Identity.accountKey(playerOrName)
@@ -536,30 +536,55 @@ function IKST_GuardOps.resolveClaimUser(admin, ownerName)
     return vanillaUser, claimPlayer, ownerKey
 end
 
-function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMode, w, h)
+-- honorRect: x,y,w,h are the exact AABB (walk-draw / approved request), not a center+size.
+function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMode, w, h, honorRect)
     if not player or not SafeHouse or not SafeHouse.addSafeHouse then
         return false, "no SafeHouse API"
     end
     x = math.floor(tonumber(x) or player:getX())
     y = math.floor(tonumber(y) or player:getY())
     z = tonumber(z) or player:getZ()
-    local square = IKST_WorldOps.getSquare(x, y, z)
+    honorRect = honorRect == true
+    local claimX, claimY, claimW, claimH
+    if honorRect and w ~= nil and h ~= nil then
+        claimW = math.floor(tonumber(w) or 1)
+        claimH = math.floor(tonumber(h) or 1)
+        if claimW < 1 then
+            claimW = 1
+        end
+        if claimH < 1 then
+            claimH = 1
+        end
+        claimX, claimY = x, y
+    else
+        claimX, claimY, claimW, claimH = IKST_GuardOps.claimBounds(x, y, size, w, h)
+    end
+    local probeX = claimX + math.floor(claimW / 2)
+    local probeY = claimY + math.floor(claimH / 2)
+    local square = IKST_WorldOps.getSquare(probeX, probeY, z)
+    if not square then
+        square = IKST_WorldOps.getSquare(x, y, z)
+    end
     if not square then
         return false, "invalid square"
     end
-    local blocked, blockReason = IKST_GuardOps.claimLocationPolicyBlocked(player, x, y, z)
+    local blocked, blockReason = IKST_GuardOps.claimLocationPolicyBlocked(player, probeX, probeY, z)
     if blocked then
         return false, blockReason or "not_your_claim"
     end
-    local claimX, claimY, claimW, claimH = IKST_GuardOps.claimBounds(x, y, size, w, h)
-    claimMode = IKST_Claim.resolveClaimMode(x, y, z, claimMode)
-    local useBuilding = claimMode == IKST_Claim.MODE.building and IKST_GuardOps.squareHasBuilding(square)
+    claimMode = IKST_Claim.resolveClaimMode(probeX, probeY, z, claimMode)
+    if honorRect then
+        claimMode = IKST_Claim.MODE.square
+    end
+    local useBuilding = (not honorRect)
+        and claimMode == IKST_Claim.MODE.building
+        and IKST_GuardOps.squareHasBuilding(square)
     if not useBuilding then
         local allowed, blockMsg = IKST_PhunZones.claimAllowed(claimX, claimY, z, claimW, claimH, square)
         if not allowed then
             return false, blockMsg or "claim blocked"
         end
-    elseif IKST_PhunZones.pointBlocksSafehouse(x, y, square) then
+    elseif IKST_PhunZones.pointBlocksSafehouse(probeX, probeY, square) then
         return false, IKST_PhunZones.blockMessage()
     end
     if SafeHouse.getSafeHouse then
@@ -586,7 +611,10 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
         if not IKST_Claim.isResidentialBuilding(building) then
             return false, "residential buildings only"
         end
-        useBuilding = true
+        -- Approved walk-draw keeps the drawn rect; do not snap to whole building.
+        if not honorRect then
+            useBuilding = true
+        end
     end
     if IKST_GuardOps.atMaxSafehouseClaims(claimPlayer or user) then
         return false, "max safehouse claims"
@@ -604,14 +632,13 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
         end
         sh = IKST_SafeHouse.addBuilding(square, claimPlayer)
     else
-        local claimX, claimY, claimW, claimH = IKST_GuardOps.claimBounds(x, y, size, w, h)
         local existing = IKST_GuardOps.safehouseAt(claimX, claimY, z, claimW, claimH)
         if existing then
             return false, "safehouse already here"
         end
         sh = IKST_GuardOps.addSafeHouseRect(claimX, claimY, claimW, claimH, user)
         if not sh then
-            return false, "rect claim failed — try Whole building or another spot"
+            return false, "rect claim failed - try Whole building or another spot"
         end
     end
 
@@ -792,9 +819,13 @@ function IKST_GuardOps.notifySafehouseClaimResult(player, ok, message, extra)
     if not player or not IKST.deliverClientCommand then
         return
     end
+    local text = tostring(message or "")
+    if IKST_ClaimPolicy and IKST_ClaimPolicy.friendlyMessage then
+        text = IKST_ClaimPolicy.friendlyMessage(text)
+    end
     local payload = {
         ok = ok == true,
-        message = tostring(message or ""),
+        message = text,
     }
     if extra then
         for key, value in pairs(extra) do

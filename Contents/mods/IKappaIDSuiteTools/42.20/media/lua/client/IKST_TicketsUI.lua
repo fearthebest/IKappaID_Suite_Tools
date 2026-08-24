@@ -13,7 +13,7 @@ require "IKST_JobsPanel"
 
 IKST_TicketsUI = IKST_TicketsUI or {}
 
--- Staff inbox is vanilla ISAdminTicketsUI (F1 Admin → See Tickets).
+-- Staff inbox is vanilla ISAdminTicketsUI (F1 Admin -> See Tickets).
 -- IKST does not keep a second ticket list.
 function IKST_TicketsUI.openInbox(player)
     player = IKST.resolvePlayer(player) or (getPlayer and getPlayer())
@@ -22,7 +22,7 @@ function IKST_TicketsUI.openInbox(player)
     end
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         IKST.notify(player, IKST.text("IGUI_IKST_SeeTickets_MpOnly",
-            "Tickets need multiplayer. Staff review them in F1 Admin → See Tickets."), false)
+            "Tickets need multiplayer. Staff review them in F1 Admin -> See Tickets."), false)
         return
     end
     if IKST_Access and type(IKST_Access.canUseStaffTools) == "function"

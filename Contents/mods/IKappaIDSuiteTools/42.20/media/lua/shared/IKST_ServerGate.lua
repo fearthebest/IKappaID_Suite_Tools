@@ -563,11 +563,22 @@ function IKST_ServerGate.authorize(player, command, args)
             end
         end
         if command == IKST.CMD.claimRequest then
+            if not IKST_ClaimPolicy.mayRequestSafehouseClaim(player) then
+                return false, "house_requests_disabled", { group = "player_self" }
+            end
             local keys = { "x1", "y1", "z1", "x2", "y2", "z2" }
             for _, key in ipairs(keys) do
                 if IKST_Args.readCoord(args, key) == nil then
                     return false, "bad_coords", { group = "player_self" }
                 end
+            end
+        end
+        if command == IKST.CMD.vehicleClaimRequest then
+            if not IKST_ClaimPolicy.mayRequestVehicleClaim(player) then
+                return false, "vehicle_requests_disabled", { group = "player_self" }
+            end
+            if args and args.vehicleId == nil then
+                return false, "bad_vehicle", { group = "player_self" }
             end
         end
         return IKST_ServerGate.checkRateAndArgs(player, command, args, { group = "player_self" })
@@ -578,7 +589,15 @@ function IKST_ServerGate.authorize(player, command, args)
             local staff = IKST_Access.canUseStaffTools(player)
             if not staff then
                 if IKST.PLAYER_CLAIM_CREATE and IKST.PLAYER_CLAIM_CREATE[command] then
-                    if not IKST_ClaimPolicy.playerClaimsEnabled() then
+                    if command == IKST.CMD.safehouseClaim then
+                        if not IKST_ClaimPolicy.mayCreateSafehouseClaim(player) then
+                            return false, "house_self_claim_disabled", {}
+                        end
+                    elseif command == IKST.CMD.vehicleClaim then
+                        if not IKST_ClaimPolicy.mayCreateVehicleClaim(player) then
+                            return false, "vehicle_self_claim_disabled", {}
+                        end
+                    else
                         return false, "claims_need_staff", {}
                     end
                 elseif IKST.PLAYER_CLAIM_MANAGE and IKST.PLAYER_CLAIM_MANAGE[command] then
@@ -635,6 +654,14 @@ function IKST_ServerGate.deny(player, command, args, reason, meta)
         msg = "player claims disabled"
     elseif code == "claims_need_staff" then
         msg = "staff must approve claims"
+    elseif code == "house_self_claim_disabled" then
+        msg = "house self-claim disabled"
+    elseif code == "vehicle_self_claim_disabled" then
+        msg = "vehicle self-claim disabled"
+    elseif code == "house_requests_disabled" then
+        msg = "house claim requests disabled"
+    elseif code == "vehicle_requests_disabled" then
+        msg = "vehicle claim requests disabled"
     elseif code == "respawn_disabled" then
         msg = "safehouse respawn disabled"
     elseif code == "world_loading" then

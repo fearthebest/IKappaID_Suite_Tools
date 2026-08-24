@@ -96,6 +96,6 @@ function IKST_JobCatalog.truncationNote(shown, total)
     if total <= shown then
         return nil
     end
-    return IKST.text("IGUI_IKST_Catalog_Truncated", "Showing first results — narrow category or search.")
+    return IKST.text("IGUI_IKST_Catalog_Truncated", "Showing first results - narrow category or search.")
         .. " (" .. tostring(shown) .. "/" .. tostring(total) .. ")"
 end

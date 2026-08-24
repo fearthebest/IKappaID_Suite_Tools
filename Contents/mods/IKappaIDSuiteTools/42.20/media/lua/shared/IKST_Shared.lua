@@ -171,7 +171,7 @@ end
 function IKST.cleanupScopeLabel(scope, state)
     if scope == IKST.CLEANUP_SCOPES.cube then
         local edge = IKST.cubeEdgeLength(state and state.cleanupCubeHalf or IKST.CUBE_PRESETS.M)
-        return IKST.text("IGUI_IKST_Scope_Cube", "Cube") .. " " .. edge .. "³"
+        return IKST.text("IGUI_IKST_Scope_Cube", "Cube") .. " " .. edge .. "3"
     end
     if scope == IKST.CLEANUP_SCOPES.radius then
         local radius = state and state.cleanupRadius or IKST.RADIUS_PRESETS.M
@@ -249,6 +249,10 @@ function IKST.vehicleShowAllClaims()
 end
 
 function IKST.vehicleClaimRequireKeys()
+    local base = SandboxVars and SandboxVars.IKappaIDSuiteTools
+    if base and base.ClaimVehicleRequireKeys == true then
+        return true
+    end
     local sv = SandboxVars and SandboxVars.IKappaIDSuiteToolsVehicles
     return sv and sv.VehicleClaimRequireKeys == true
 end
@@ -301,7 +305,7 @@ function IKST.parseNumber(text, fallback)
     if text == "" then
         return fallback
     end
-    -- Digits only — never pass free-form UI text to tonumber (Kahlua can throw).
+    -- Digits only - never pass free-form UI text to tonumber (Kahlua can throw).
     local matched = string.match(text, "^([%-%+]?%d+%.?%d*)")
     if not matched then
         return fallback

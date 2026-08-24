@@ -8,11 +8,30 @@ require "IKST_Economy"
 
 IKST_EconomyIdentity.ID_CARD_TYPE = "Base.IDcard"
 
+-- Bank ID model (claim-style authority): WHO is always IKST_Identity.accountKey(player) on the server.
+-- Registry row holds activeCardSerial; carried Base.IDcard is the possession token (hands + inventory).
+-- Lost / stale: server bumps serial, removes old stamped cards, restamps or reissues.
+
+-- Loot ID variants (B42). Bank cards are always Base.IDcard; these are for messaging only.
+IKST_EconomyIdentity.ID_CARD_TYPES = {
+    ["Base.IDcard"] = true,
+    ["Base.IDcard_Female"] = true,
+    ["Base.IDcard_Male"] = true,
+    ["Base.IDcard_Stolen"] = true,
+}
+
 function IKST_EconomyIdentity.isIdCardItem(item)
     if not item or type(item.getFullType) ~= "function" then
         return false
     end
     return item:getFullType() == IKST_EconomyIdentity.ID_CARD_TYPE
+end
+
+function IKST_EconomyIdentity.isAnyVanillaIdCard(item)
+    if not item or type(item.getFullType) ~= "function" then
+        return false
+    end
+    return IKST_EconomyIdentity.ID_CARD_TYPES[item:getFullType()] == true
 end
 
 function IKST_EconomyIdentity.iterInventoryItems(inv, visitor)
@@ -34,17 +53,137 @@ function IKST_EconomyIdentity.iterInventoryItems(inv, visitor)
     end
 end
 
+-- Hands + main inventory (nested bags). Hands checked explicitly — not always in getItems().
+function IKST_EconomyIdentity.iterPlayerCarriedItems(player, visitor)
+    if not player or not visitor then
+        return
+    end
+    local seen = {}
+    local function visit(item)
+        if not item then
+            return
+        end
+        if type(item.getID) == "function" then
+            local id = item:getID()
+            if id and seen[id] then
+                return
+            end
+            if id then
+                seen[id] = true
+            end
+        end
+        visitor(item)
+    end
+    if type(player.getPrimaryHandItem) == "function" then
+        visit(player:getPrimaryHandItem())
+    end
+    if type(player.getSecondaryHandItem) == "function" then
+        visit(player:getSecondaryHandItem())
+    end
+    if type(player.getInventory) == "function" and player:getInventory() then
+        IKST_EconomyIdentity.iterInventoryItems(player:getInventory(), visit)
+    end
+end
+
+-- First Base.IDcard in bags (may be unstamped loot). Prefer findValidIdCard for gates.
 function IKST_EconomyIdentity.findPlayerIdCard(player)
-    if not player or not player.getInventory then
+    if not player then
         return nil
     end
     local found = nil
-    IKST_EconomyIdentity.iterInventoryItems(player:getInventory(), function(item)
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
         if not found and IKST_EconomyIdentity.isIdCardItem(item) then
             found = item
         end
     end)
     return found
+end
+
+-- Bank gate: carried Base.IDcard linked to this player with matching active serial.
+function IKST_EconomyIdentity.findValidIdCard(player)
+    if not player then
+        return nil
+    end
+    local found = nil
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
+        if found then
+            return
+        end
+        if IKST_EconomyIdentity.isIdCardItem(item)
+            and IKST_EconomyIdentity.cardMatchesPlayer(item, player) then
+            found = item
+        end
+    end)
+    return found
+end
+
+function IKST_EconomyIdentity.hasAnyVanillaIdCard(player)
+    if not player then
+        return false
+    end
+    local found = false
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
+        if not found and IKST_EconomyIdentity.isAnyVanillaIdCard(item) then
+            found = true
+        end
+    end)
+    return found
+end
+
+-- "ok" | "missing" | "invalid" | "expired" — read-only; does not repair.
+function IKST_EconomyIdentity.idCardGateStatus(player)
+    if IKST_EconomyIdentity.findValidIdCard(player) then
+        return "ok"
+    end
+    local hasOwnedStale = false
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
+        if hasOwnedStale or not IKST_EconomyIdentity.isIdCardItem(item) then
+            return
+        end
+        local owner = IKST_EconomyIdentity.cardOwnerKeyFromItem(item)
+        if owner and IKST_Identity.playerOwnsKey(player, owner) then
+            hasOwnedStale = true
+        end
+    end)
+    if hasOwnedStale then
+        return "expired"
+    end
+    if IKST_EconomyIdentity.hasAnyVanillaIdCard(player)
+        or IKST_EconomyIdentity.findPlayerIdCard(player) then
+        return "invalid"
+    end
+    return "missing"
+end
+
+-- Server-authoritative bank ID gate (mirrors claim owner checks: player object → accountKey → registry).
+function IKST_EconomyIdentity.authorizeBankId(player, options)
+    options = options or {}
+    if not player then
+        return false, "missing"
+    end
+    local onServer = IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+    if onServer then
+        if IKST_Authority and not IKST_Authority.guardServerMutate() then
+            return false, "missing"
+        end
+        local key = IKST_Identity.accountKey(player)
+        if key and key ~= "" and IKST_Economy and IKST_Economy.getAccountByKey then
+            IKST_Economy.getAccountByKey(key)
+            IKST_EconomyIdentity.ensureCardSerial(key)
+        end
+        if options.repair ~= false then
+            if IKST_EconomyIdentity.prunePlayerBankCards then
+                IKST_EconomyIdentity.prunePlayerBankCards(player)
+            end
+            if not IKST_EconomyIdentity.hasValidIdCard(player) then
+                IKST_EconomyIdentity.repairPlayerIdCard(player)
+            end
+        end
+    end
+    if IKST_EconomyIdentity.hasValidIdCard(player) then
+        return true, "ok"
+    end
+    return false, IKST_EconomyIdentity.idCardGateStatus(player)
 end
 
 function IKST_EconomyIdentity.cardSerialFromItem(item)
@@ -74,7 +213,14 @@ function IKST_EconomyIdentity.cardOwnerKeyFromItem(item)
 end
 
 function IKST_EconomyIdentity.getActiveCardSerial(accountKey)
-    if not accountKey or accountKey == "" or not IKST_Economy or not IKST_Economy.getStore then
+    if not accountKey or accountKey == "" then
+        return nil
+    end
+    if IKST.runsOnServerJvm and IKST.runsOnServerJvm()
+        and IKST_EconomyIdentity.ensureCardSerial then
+        return IKST_EconomyIdentity.ensureCardSerial(accountKey)
+    end
+    if not IKST_Economy or not IKST_Economy.getStore then
         return nil
     end
     local store = IKST_Economy.getStore()
@@ -121,6 +267,9 @@ function IKST_EconomyIdentity.stampIdCard(item, player)
     if not item or not player or not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
         return false
     end
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false
+    end
     if not IKST_EconomyIdentity.isIdCardItem(item) then
         return false
     end
@@ -134,6 +283,9 @@ function IKST_EconomyIdentity.stampIdCard(item, player)
     md[IKST_Identity.MD_CARD_SERIAL] = serial
     if item.syncItemFields then
         item:syncItemFields()
+    end
+    if item.transmitModData then
+        item:transmitModData()
     end
     if item.setName then
         local label = IKST_Identity.displayLabel(player)
@@ -211,7 +363,7 @@ function IKST_EconomyIdentity.removePlayerBankCards(player, exceptItem)
         return 0
     end
     local toRemove = {}
-    IKST_EconomyIdentity.iterInventoryItems(player:getInventory(), function(item)
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
         if item ~= exceptItem and IKST_EconomyIdentity.isStampedBankCard(item) then
             if IKST_Identity.playerOwnsKey(player, IKST_EconomyIdentity.cardOwnerKeyFromItem(item)) then
                 toRemove[#toRemove + 1] = item
@@ -245,7 +397,7 @@ function IKST_EconomyIdentity.prunePlayerBankCards(player)
     end
     local keep = nil
     local toRemove = {}
-    IKST_EconomyIdentity.iterInventoryItems(player:getInventory(), function(item)
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
         if not IKST_EconomyIdentity.isStampedBankCard(item) then
             return
         end
@@ -302,6 +454,7 @@ function IKST_EconomyIdentity.invalidateActiveCard(player)
     if IKST_Economy.persistStore then
         IKST_Economy.persistStore()
     end
+    IKST_EconomyIdentity.removePlayerBankCards(player, nil)
 end
 
 function IKST_EconomyIdentity.cardMatchesPlayer(item, player)
@@ -311,12 +464,13 @@ function IKST_EconomyIdentity.cardMatchesPlayer(item, player)
     if not IKST_EconomyIdentity.isIdCardItem(item) then
         return false
     end
+    local playerKey = IKST_Identity.accountKey(player)
     local ownerKey = IKST_EconomyIdentity.cardOwnerKeyFromItem(item)
-    if not ownerKey or not IKST_Identity.playerOwnsKey(player, ownerKey) then
+    if ownerKey and not IKST_Identity.playerOwnsKey(player, ownerKey) then
         return false
     end
     local serial = IKST_EconomyIdentity.cardSerialFromItem(item)
-    local active = IKST_EconomyIdentity.getActiveCardSerial(IKST_Identity.accountKey(player))
+    local active = IKST_EconomyIdentity.getActiveCardSerial(playerKey)
     if serial == nil or active == nil then
         return false
     end
@@ -324,23 +478,66 @@ function IKST_EconomyIdentity.cardMatchesPlayer(item, player)
 end
 
 function IKST_EconomyIdentity.hasValidIdCard(player)
-    local card = IKST_EconomyIdentity.findPlayerIdCard(player)
-    if not card then
+    return IKST_EconomyIdentity.findValidIdCard(player) ~= nil
+end
+
+-- Server: restamp owned card or reissue when serial/account link is stale (death, migration).
+function IKST_EconomyIdentity.repairPlayerIdCard(player)
+    if not player or not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
         return false
     end
-    return IKST_EconomyIdentity.cardMatchesPlayer(card, player)
+    if IKST_EconomyIdentity.hasValidIdCard(player) then
+        return true
+    end
+    local key = IKST_Identity.accountKey(player)
+    if key and key ~= "" then
+        IKST_EconomyIdentity.ensureCardSerial(key)
+    end
+    local candidate = nil
+    IKST_EconomyIdentity.iterPlayerCarriedItems(player, function(item)
+        if candidate or not IKST_EconomyIdentity.isIdCardItem(item) then
+            return
+        end
+        local owner = IKST_EconomyIdentity.cardOwnerKeyFromItem(item)
+        if owner and owner ~= "" then
+            if IKST_Identity.playerOwnsKey(player, owner) then
+                candidate = item
+            end
+            return
+        end
+        candidate = item
+    end)
+    if candidate and IKST_EconomyIdentity.stampIdCard(candidate, player) then
+        if IKST_EconomyIdentity.hasValidIdCard(player) then
+            return true
+        end
+    end
+    local ok = IKST_EconomyIdentity.reissueIdCard(player, {
+        recordCooldown = false,
+        bumpSerial = true,
+        notifyPlayer = false,
+    })
+    return ok and IKST_EconomyIdentity.hasValidIdCard(player)
+end
+
+function IKST_EconomyIdentity.ensurePlayerIdCardForGate(player)
+    local ok = IKST_EconomyIdentity.authorizeBankId(player, { repair = true })
+    return ok
 end
 
 function IKST_EconomyIdentity.issueIdCard(player)
     if not player or not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
         return false, "server only"
     end
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
     local inv = player:getInventory()
     if not inv then
         return false, "no inventory"
     end
-    local existing = IKST_EconomyIdentity.findPlayerIdCard(player)
-    if existing and IKST_EconomyIdentity.cardMatchesPlayer(existing, player) then
+    local existing = IKST_EconomyIdentity.findValidIdCard(player)
+    if existing then
         return true, "already have ID"
     end
     if not instanceItem then
@@ -362,6 +559,9 @@ end
 
 function IKST_EconomyIdentity.reissueIdCard(player, options)
     if not player or not IKST.runsOnServerJvm or not IKST.runsOnServerJvm() then
+        return false, "server only"
+    end
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false, "server only"
     end
     options = options or {}

@@ -24,6 +24,14 @@ option IKappaIDSuiteToolsEconomy.EconomyValuables
     translation = IKappaIDSuiteToolsEconomy_EconomyValuables,
 }
 
+option IKappaIDSuiteToolsEconomy.EconomyValuablesMirrorPhoneShop
+{
+    type = boolean,
+    default = true,
+    page = IKST_Economy_Core,
+    translation = IKappaIDSuiteToolsEconomy_EconomyValuablesMirrorPhoneShop,
+}
+
 option IKappaIDSuiteToolsEconomy.EconomyIdCardBanking
 {
     type = boolean,

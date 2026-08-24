@@ -1,8 +1,8 @@
 --[[
-    IKST Arrival HUD — UI example (NOT wired).
+    IKST Arrival HUD - UI example (NOT wired).
 
     Why the live bar showed "Arrival stabilization ? 17s":
-      The old string used a middle-dot "·" (U+00B7). Project Zomboid's Small font
+      The old string used a middle-dot "-" (U+00B7). Project Zomboid's Small font
       often cannot draw that glyph, so it becomes "?". Prefer ASCII separators: " - " or " | ".
 
     How to try this example later:

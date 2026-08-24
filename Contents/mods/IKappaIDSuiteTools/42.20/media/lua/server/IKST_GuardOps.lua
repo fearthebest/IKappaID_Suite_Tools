@@ -63,7 +63,7 @@ function IKST_GuardOps.username(player)
     if not player then
         return nil
     end
-    if player.getUsername then
+    if type(player.getUsername) == "function" then
         local name = player:getUsername()
         if name and name ~= "" then
             return name
@@ -264,7 +264,7 @@ function IKST_GuardOps.handle(command, admin, args)
 
     if command == IKST.CMD.safehouseClaim then
         if not IKST_GuardOps.actorIsAdmin(admin) then
-            if not IKST_ClaimPolicy.playerClaimsEnabled() then
+            if not IKST_ClaimPolicy.mayCreateSafehouseClaim(admin) then
                 IKST_GuardOps.notifySafehouseClaimResult(admin, false, "staff must approve claims", { x = ax, y = ay, z = az })
                 return false, "staff must approve claims"
             end
@@ -335,8 +335,17 @@ function IKST_GuardOps.handle(command, admin, args)
             return false, "no vehicle nearby - pick one in the list"
         end
         if not IKST_GuardOps.actorIsAdmin(admin) then
-            if not IKST_ClaimPolicy.playerClaimsEnabled() then
+            if not IKST_ClaimPolicy.mayCreateVehicleClaim(admin) then
                 return false, "staff must approve claims"
+            end
+            local seated = type(admin.getVehicle) == "function" and admin:getVehicle() or nil
+            if IKST_ClaimPolicy.vehicleRequireSeat() and seated ~= claimVehicle then
+                return false, "sit in the vehicle to claim it"
+            end
+            if IKST_ClaimPolicy.vehicleRequireEngine() then
+                if type(claimVehicle.isEngineRunning) ~= "function" or not claimVehicle:isEngineRunning() then
+                    return false, "start the engine to claim"
+                end
             end
             local vz = type(claimVehicle.getZ) == "function" and claimVehicle:getZ() or 0
             if not IKST_Args.actorNearCoord(admin, claimVehicle:getX(), claimVehicle:getY(), vz, IKST.getVehicleNearRadius()) then
@@ -357,7 +366,7 @@ function IKST_GuardOps.handle(command, admin, args)
         end
         if not IKST_GuardOps.actorIsAdmin(admin) then
             ownerKey = IKST_Identity.accountKey(admin)
-            if IKST.vehicleClaimRequireKeys() then
+            if IKST_ClaimPolicy.vehicleRequireKeys() then
                 if not IKST_VehicleUtil.playerHasVehicleKey(admin, claimVehicle) then
                     return false, "need vehicle key to claim"
                 end

@@ -26,7 +26,7 @@ function IKST_JobWorldEdit.buildOverview(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 5, gap)
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -128,7 +128,20 @@ function IKST_JobWorldEdit.buildOverview(panel)
     end
 
     do
-        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Tool_Protect", "Protection"))
+        local card, ax, ay, aw, ah = openBand(bands[4], IKST.text("IGUI_IKST_Job_Automation", "Area jobs"))
+        IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
+            {
+                label = IKST.text("IGUI_IKST_Job_Automation", "Area jobs"),
+                primary = true,
+                onClick = function()
+                    go("area")
+                end,
+            },
+        })
+    end
+
+    do
+        local card, ax, ay, aw, ah = openBand(bands[5], IKST.text("IGUI_IKST_Tool_Protect", "Protection"))
         IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
             {
                 label = IKST.text("IGUI_IKST_Protect_Square", "Protect square"),
