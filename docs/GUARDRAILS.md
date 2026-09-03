@@ -2,10 +2,10 @@
 
 ## Suite architecture (mandatory — follow strictly)
 
-**One approach only.** The old dock / dual-window mod is gone. Entire suite = Aegis soft hub (HyperOS chrome). **No hybrids.**
+**One approach only.** The old dock / dual-window mod is gone. Entire suite = IKappaID soft hub (dark grey + orange). **No hybrids.**
 
-**Aegis structure for all of IKST.** Read and obey [`docs/AEGIS-SUITE-LAW.md`](AEGIS-SUITE-LAW.md) before any UI work — total soft refactor, not parallel paths.  
-**Claim / safehouse domain UX** (inside that shell): also [`docs/CLAIM-UX-LAW.md`](CLAIM-UX-LAW.md) (Survivors Edge patterns only — `Desktop\3789778974`). Gate: box model (`IKUI_Layout` / `IKST_UI_Layout`) → soft layout helpers → `contains` before place. Overlap = ship blocker. No soft `splitBands`. Primary actions stay in soft; floating = optional Open window only.
+**Soft hub for all of IKST.** Read and obey [`docs/SOFT-HUB-LAW.md`](SOFT-HUB-LAW.md) before any UI work — total soft refactor, not parallel paths.  
+**Claim / safehouse domain UX** (inside that shell): also [`docs/CLAIM-UX-LAW.md`](CLAIM-UX-LAW.md). Gate: box model (`IKUI_Layout` / `IKST_UI_Layout`) → soft layout helpers → `contains` before place. Overlap = ship blocker. No soft `splitBands`. Primary actions stay in soft; floating = optional Open window only.
 
 ## Staff sandbox (document)
 

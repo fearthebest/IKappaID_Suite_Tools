@@ -1,4 +1,4 @@
--- Safehouse member invites (SE-style Accept/Decline). Server-authoritative pending list.
+-- Safehouse member invites (Accept/Decline). Server-authoritative pending list.
 -- Not fully transmitted ModData — invitee gets deliverClientCommand payloads.
 
 require "IKST_Shared"

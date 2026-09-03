@@ -162,7 +162,7 @@ function IKST_ClaimPermissionsUI.openVehicle(player, vehicleId, defaultScope, cl
     IKST_ClaimPermissionsUI.open(player, cfg)
 end
 
--- Soft hub only (Aegis): permissions live in SoftPageHost detail — not a second window.
+-- Soft hub only: permissions live in SoftPageHost detail — not a second window.
 function IKST_ClaimPermissionsUI.beginSoft(hub, config)
     if not hub or not config then
         return

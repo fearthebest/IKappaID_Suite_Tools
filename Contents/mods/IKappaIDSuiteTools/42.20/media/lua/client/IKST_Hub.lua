@@ -1,5 +1,5 @@
 -- Floating soft hub — owns IKUI_Shell instance and page registry (MODULE-MAP).
--- HyperOS orange via IKappaID_UI. Feature pages in IKST_Page*; Job* builds via SoftPageHost.
+-- Dark grey + orange via IKappaID_UI. Feature pages in IKST_Page*; Job* builds via SoftPageHost.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
@@ -294,7 +294,7 @@ local function bindShell(win, player)
         end
         return true
     end
-    -- Aegis: sidebar page click always binds navMode/navTool to that page (never leave stale tiles/protect).
+    -- Sidebar page click always binds navMode/navTool to that page (never leave stale tiles/protect).
     win.onPageChanged = function(_win, pageId)
         if not pageId or pageId == "home" then
             return

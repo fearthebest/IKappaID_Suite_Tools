@@ -1,0 +1,22 @@
+IKappaID Suite Tools — v0.3.2.2 BETA (Build 42.20)
+
+Requires IKappaID UI Framework (Mod ID: IKappaID_UI).
+
+CHANGED
+• Soft hub only — one Jobs shell; old dual dock / floating job windows removed from the primary path.
+• Claim UX — bounds-first safehouse identity; no auto-select; one safehouse list; Permissions open soft inside the hub.
+• Safehouses — single Size control (no competing resize paths).
+• Overview vehicles — soft master/detail layout inside the hub.
+• Economy Valuables — Deposit / Withdraw / Transfer run soft in-hub (Open window optional).
+• Staff — explicit target select required; StaffRemoteAdmin danger called out (default off).
+• Help / Rules — soft Help page (no floating Briefing as the primary path).
+
+ADDED
+• Safehouse invites — Accept / Decline flow for membership invites.
+
+FIXED
+• Claim / permissions / staff selection edge cases that caused wrong house or wrong player actions.
+• Soft layout placement (pill groups, contains) so hub pages stop fighting each other for space.
+
+NOTE
+• Sync this pack and IKappaID_UI before playtest. Dedicated Mods= must include both.

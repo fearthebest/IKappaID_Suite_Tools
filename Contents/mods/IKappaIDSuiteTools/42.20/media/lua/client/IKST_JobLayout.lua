@@ -650,7 +650,7 @@ end
 
 function IKST_JobLayout.begin(panel, opts)
     opts = opts or {}
-    -- Soft shell owns chrome (Aegis page host). Do not run JobsPanel puzzle relayout.
+    -- Soft shell owns chrome. Do not run JobsPanel puzzle relayout.
     if softShellMode(panel) then
         if type(panel.placeChrome) == "function" then
             panel:placeChrome({ preserveScroll = opts.preserveScroll == true })

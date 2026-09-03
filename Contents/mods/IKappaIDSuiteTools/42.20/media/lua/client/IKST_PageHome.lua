@@ -1,4 +1,4 @@
--- Soft-shell Home page — dashboard stats + workspace grid (HyperOS orange).
+-- Soft-shell Home page — dashboard stats + workspace grid.
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end

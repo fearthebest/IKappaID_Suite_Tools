@@ -945,7 +945,7 @@ function IKST_JobStaff.buildPlayersHand(panel, contentTop)
         return items
     end
 
-    -- Soft-only: Aegis Players pagination — left list fills page height, right detail fills rest.
+    -- Soft-only: Players pagination — left list fills page height, right detail fills rest.
     local left, right = IKST_JobLayout.softMasterDetail(rect, 280, 12)
     do
         local card, ax, ay, aw, ah = openCol(left, IKST.text("IGUI_IKST_Util_Players", "Online players"))

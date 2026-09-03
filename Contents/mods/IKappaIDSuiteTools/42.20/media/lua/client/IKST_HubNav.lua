@@ -17,7 +17,7 @@ IKST_HubNav = IKST_HubNav or {}
 IKST_HubNav.SIDEBAR_W = IKST_UI_Layout.sidebarWidth()
 
 IKST_HubNav.WORKSPACES = {
-    -- Order mirrors Aegis: player-facing → claims/zones → staff utilities → world tools → vehicles → extras → moderation.
+    -- Order: player-facing → claims/zones → staff utilities → world tools → vehicles → extras → moderation.
     {
         id = IKST.VIEW.everyone,
         titleKey = "IGUI_IKST_WS_Everyone",
@@ -670,7 +670,7 @@ function IKST_HubNav.buildSidebar(panel)
     local itemH = math.max(32, IKST_UI_Layout.s(40))
     local gap = IKST_UI_Layout.s(8)
 
-    -- Aegis: on tight height, pack rows then scroll — never paint through the floor.
+    -- On tight height, pack rows then scroll — never paint through the floor.
     local q1H = panel.q1Panel.height or 0
     local visibleCount = #tools
     local space = math.max(0, q1H - pad * 2)

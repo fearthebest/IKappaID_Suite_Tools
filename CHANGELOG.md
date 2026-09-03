@@ -2,7 +2,7 @@
 
 ## 0.3.2.4 — BETA (2026-09-03)
 
-Build **42.20** — hub-only manage surfaces + HyperOS economy detach.
+Build **42.20** — hub-only manage surfaces + IKappaID_UI economy detach.
 
 ### Changed
 - **One hub** — Claim Permissions, Briefing Rules, Economy shop/ATM, and Help tickets stay in the soft panel.

@@ -937,7 +937,7 @@ function IKST_JobVehicle.buildRepairHand(panel)
         })
     end
 
-    -- Soft-only: pick | actions (Aegis softMasterDetail). Dock splitBands removed.
+    -- Soft-only: pick | actions (softMasterDetail). Dock splitBands removed.
     local left, right = IKST_JobLayout.softMasterDetail(rect, 280, 12)
     do
         local card, ax, ay, aw, ah = openCol(left, IKST.text("IGUI_IKST_VehiclePick", "Pick"))

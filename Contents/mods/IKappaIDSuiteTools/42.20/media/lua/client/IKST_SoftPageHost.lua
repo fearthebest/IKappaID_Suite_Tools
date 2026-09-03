@@ -74,7 +74,7 @@ function IKST_SoftPageHost:initialise()
 end
 
 function IKST_SoftPageHost:createChildren()
-    -- Aegis-style: tool rail | stencil scroll. No Q2/Q4/jobLayer puzzle.
+    -- Tool rail | stencil scroll. No Q2/Q4/jobLayer puzzle.
     local sc = IKUI_Chrome.colors.bgSidebar
     self.toolRail = ISPanel:new(0, 0, TOOL_RAIL, self.height)
     self.toolRail.backgroundColor = { r = sc.r, g = sc.g, b = sc.b, a = sc.a }
@@ -493,7 +493,7 @@ function IKST_SoftPageHost:updateActions(preserveScroll)
 end
 
 function IKST_SoftPageHost:refreshJobUI(preserveScroll)
-    -- Defer rebuild out of mouse/network dispatch (Aegis rebuildWanted pattern).
+    -- Defer rebuild out of mouse/network dispatch (rebuildWanted).
     if not self._flushRefresh then
         self._pendingRefresh = true
         if preserveScroll ~= nil then

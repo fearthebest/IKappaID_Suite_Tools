@@ -95,7 +95,7 @@ function IKST_SoftTool_Claim.buildTools(panel, contentTop)
         })
     end
 
-    -- Soft-only: list | catch (Aegis softMasterDetail). Dock splitBands removed.
+    -- Soft-only: list | catch (softMasterDetail). Dock splitBands removed.
     local left, right = IKUI_SoftBody.masterDetail(rect, 280, 12)
     do
         local card, ax, ay, aw, ah = openCol(left, IKST.text("IGUI_IKST_Util_Players", "Online players"))
@@ -890,7 +890,7 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
             return shPills
         end
 
-        -- Soft: SE Claims Manager shape — list | selection CTAs (Aegis softMasterDetail).
+        -- Soft: list | selection CTAs (softMasterDetail).
         do
             local band = bands[shBandIndex]
             local mdRect = { x = rect.x, y = band.y, w = rect.w, h = band.h }
