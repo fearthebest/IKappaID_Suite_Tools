@@ -16,8 +16,10 @@ require "IKST_SafehouseClaimClient"
 require "IKST_SafeHouse"
 require "IKST_Access"
 require "IKST_ClaimIcons"
-require "IKST_JobsPanel"
 require "IKST_JobGuard"
+require "IKST_Hub"
+require "IKST_ClaimPermissionsUI"
+require "IKappaID_UI/IKUI_Shell"
 
 IKST_SafehouseContext = IKST_SafehouseContext or {}
 
@@ -42,13 +44,15 @@ function IKST_SafehouseContext.openClaimWorkspace(player, safehouse)
     if not player then
         return
     end
-    if IKST_JobsPanel and type(IKST_JobsPanel.open) == "function" then
-        IKST_JobsPanel.open(player)
+    if IKST_Hub and type(IKST_Hub.openWorkspace) == "function" then
+        IKST_Hub.openWorkspace(player, IKST.VIEW.claim, "overview")
+    elseif IKST_Hub and type(IKST_Hub.open) == "function" then
+        IKST_Hub.open(player)
+        if type(IKST_Hub.switchWorkspace) == "function" then
+            IKST_Hub.switchWorkspace(IKST.VIEW.claim, "overview")
+        end
     end
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if panel and type(panel.enterNav) == "function" then
-        panel:enterNav(IKST.VIEW.claim, "overview")
-    end
+    local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
     if panel and safehouse and IKST_SafehouseClaim and type(IKST_SafehouseClaim.boundsFromSafehouse) == "function" then
         local x, y, w, h, owner = IKST_SafehouseClaim.boundsFromSafehouse(safehouse)
         if x then
@@ -253,8 +257,24 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
         end
         if canEdit then
             IKST_SafehouseContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."), player, function()
-                if IKST_SafehouseClaimUI and IKST_SafehouseClaimUI.open then
-                    IKST_SafehouseClaimUI.open(player, x, y, w, h)
+                if not IKST_Hub or type(IKST_Hub.openWorkspace) ~= "function" then
+                    return
+                end
+                local claimId = (IKST and IKST.VIEW and IKST.VIEW.claim) or "claim"
+                IKST_Hub.openWorkspace(player, claimId, "overview")
+                local win = IKUI_Shell and IKUI_Shell.instance
+                local soft = win and type(win.page) == "function" and win:page(claimId) or nil
+                if not soft or not IKST_ClaimPermissionsUI then
+                    return
+                end
+                soft.guardSelectedSH = {
+                    x = x, y = y, w = w, h = h, owner = owner,
+                    canEdit = true, isMine = true,
+                }
+                local cfg = IKST_ClaimPermissionsUI.safehouseConfig(x, y, w, h)
+                IKST_ClaimPermissionsUI.beginSoft(soft, cfg)
+                if type(soft.refreshJobUI) == "function" then
+                    soft:refreshJobUI(true)
                 end
             end, IKST_ClaimIcons.PERMS)
         end

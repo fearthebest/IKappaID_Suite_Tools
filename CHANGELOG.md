@@ -1,5 +1,61 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.4 — BETA (2026-09-03)
+
+Build **42.20** — hub-only manage surfaces + HyperOS economy detach.
+
+### Changed
+- **One hub** — Claim Permissions, Briefing Rules, Economy shop/ATM, and Help tickets stay in the soft panel.
+- **World / radial Permissions** — open Claim in the hub instead of a second window.
+- **Action log** — no longer a hub satellite.
+- **Help Tickets** — notify staff to use F1 Admin (vanilla tickets).
+- **Economy Detach** — optional compact wallet uses IKappaID_UI chrome (same dark + orange as the hub).
+
+### Fixed
+- Hover tooltips on truncated hub buttons (requires **IKappaID_UI v0.1.0.3**).
+
+Requires **IKappaID_UI v0.1.0.3+**.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.4.txt`
+
+## 0.3.2.3 — BETA (2026-09-01)
+
+Build **42.20** — SP claim sandbox + World Edit pack page nav.
+
+### Fixed
+- **SP claim sandbox** — self-claim vs request follow per-save sandbox toggles; SP host no longer auto bypasses player claim modes.
+- **SP house requests** — walk-draw submit and staff review queue work in single player for request-only playtests.
+- **World Edit paint** — pack page row (`< | N/M | >`); right scroll control no longer clipped on narrow panels.
+
+### Changed
+- **Paint tiles pack UI** — List/Load on their own row; separate pack and tile page nav rows.
+
+Requires **IKappaID_UI v0.1.0.2+**.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.3.txt`
+
+## 0.3.2.2 — BETA (2026-09-01)
+
+Build **42.20** — soft hub claim UX + dual-window cleanup.
+
+### Changed
+- **Soft hub only** — one Jobs shell; primary path no longer opens the old dock dual-window job panels.
+- **Claim UX** — bounds-first `safehouseId`; no auto-select; single list via Guard → ClaimClient; Permissions place soft in-hub.
+- **Safehouses** — one Size band (no competing resize paths).
+- **Overview vehicles** — soft master/detail inside the hub.
+- **Economy Valuables** — Deposit / Withdraw / Transfer soft in-hub; Open window remains optional.
+- **Staff** — `getSelectedTarget` requires explicit select; StaffRemoteAdmin danger tooltip (default false).
+- **Help** — Rules open soft Help (Briefing not the primary floating path).
+
+### Added
+- **Safehouse invites** — Accept/Decline membership invite flow (`IKST_SafehouseInvite` / client + server commands).
+
+### Fixed
+- Claim / permissions / staff selection fail-closed paths that could act on the wrong house or player.
+- Soft layout (`placePillGroup`, `contains`) so hub pages stop overlapping or fighting for space.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.2.txt`
+
 ## 0.3.2.1 — BETA (2026-08-24)
 
 Build **42.20** — claim system fixes and request-queue hardening.

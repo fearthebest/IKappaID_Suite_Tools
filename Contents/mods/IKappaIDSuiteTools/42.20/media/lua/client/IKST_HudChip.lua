@@ -30,8 +30,8 @@ function IKST_HudChip:createChildren()
 end
 
 function IKST_HudChip:onOpen()
-    if IKST_JobsPanel and self.player then
-        IKST_JobsPanel.open(self.player)
+    if self.player and IKST_Hub and type(IKST_Hub.open) == "function" then
+        IKST_Hub.open(self.player)
     end
 end
 
@@ -89,8 +89,7 @@ function IKST_HudChip.shouldShow(player)
     if not state or not state.armed then
         return false
     end
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if panel and type(panel.getIsVisible) == "function" and panel:getIsVisible() then
+    if IKST_Hub and type(IKST_Hub.isOpenVisible) == "function" and IKST_Hub.isOpenVisible() then
         return false
     end
     return true

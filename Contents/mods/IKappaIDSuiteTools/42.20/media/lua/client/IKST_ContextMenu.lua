@@ -7,7 +7,7 @@ require "IKST_Plugins"
 require "IKST_Utility"
 require "IKST_Access"
 require "IKST_Grid"
-require "IKST_JobsPanel"
+require "IKST_Hub"
 
 IKST_ContextMenu = IKST_ContextMenu or {}
 
@@ -17,10 +17,13 @@ function IKST_ContextMenu.isPainterArmed(player)
 end
 
 function IKST_ContextMenu.openJob(player, view)
-    IKST_JobsPanel.open(player)
-    local panel = IKST_JobsPanel.instance
-    if panel and view then
-        panel:enterJob(view)
+    if IKST_Hub and type(IKST_Hub.openWorkspace) == "function" then
+        IKST_Hub.openWorkspace(player, view)
+    elseif IKST_Hub and type(IKST_Hub.open) == "function" then
+        IKST_Hub.open(player)
+        if view and type(IKST_Hub.switchWorkspace) == "function" then
+            IKST_Hub.switchWorkspace(view)
+        end
     end
 end
 
@@ -108,13 +111,17 @@ end
 
 function IKST_ContextMenu.fillUtilitySubMenu(sub, player)
     sub:addOption(IKST.utilityContextLabel("water"), player, function()
-        if IKST.toggleUtilityForPlayer(player, "water") and IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST.toggleUtilityForPlayer(player, "water") then
+            if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+                IKST_Hub.refreshActive()
+            end
         end
     end)
     sub:addOption(IKST.utilityContextLabel("power"), player, function()
-        if IKST.toggleUtilityForPlayer(player, "power") and IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST.toggleUtilityForPlayer(player, "power") then
+            if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+                IKST_Hub.refreshActive()
+            end
         end
     end)
 end
@@ -124,7 +131,7 @@ function IKST_ContextMenu.fillJobSubMenu(sub, player)
         IKST_ContextMenu.openJob(player, nil)
     end)
     sub:addOption(IKST.text("IGUI_IKST_Context_Toggle", "Show / hide panel"), player, function()
-        IKST_JobsPanel.toggle(player)
+        IKST_Hub.toggle(player)
     end)
 
     local function addCategoryOption(parent, catKey, catFallback, views)
@@ -208,7 +215,7 @@ function IKST_ContextMenu.onFillWorldObjectContextMenu(playerNum, context, world
             IKST_ContextMenu.openJob(player, nil)
         end)
         sub:addOption(IKST.text("IGUI_IKST_Context_Toggle", "Show / hide panel"), player, function()
-            IKST_JobsPanel.toggle(player)
+            IKST_Hub.toggle(player)
         end)
     end
 end

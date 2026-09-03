@@ -3,6 +3,8 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
+require "IKST_Shared"
+
 IKST_UIPrefs = IKST_UIPrefs or {}
 
 local FILE = "IKST_UIPrefs.txt"
@@ -46,7 +48,10 @@ function IKST_UIPrefs.getNumber(key)
     if v == nil then
         return nil
     end
-    return tonumber(v)
+    if IKST and type(IKST.parseNumberOptional) == "function" then
+        return IKST.parseNumberOptional(v)
+    end
+    return nil
 end
 
 function IKST_UIPrefs.set(key, value)

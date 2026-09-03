@@ -36,16 +36,19 @@ end
 
 function IKST_Dashboard.applyResult(args)
     IKST_Dashboard.snapshot = args or {}
-    if IKST_JobsPanel and IKST_JobsPanel.instance and IKST_JobsPanel.instance.refreshJobUI then
-        IKST_JobsPanel.instance:refreshJobUI(true)
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive(true)
     end
 end
 
 function IKST_Dashboard.buildLocalSnapshot(player)
     local online = 1
     local maxPlayers = 1
-    if getServerOptions and getServerOptions() and getServerOptions().getMaxPlayers then
-        maxPlayers = tonumber(getServerOptions():getMaxPlayers()) or 1
+    if getServerOptions and type(getServerOptions) == "function" then
+        local opts = getServerOptions()
+        if opts and type(opts.getMaxPlayers) == "function" then
+            maxPlayers = tonumber(opts:getMaxPlayers()) or 1
+        end
     end
     local staff = IKST_Access and IKST_Access.canUseStaffTools(player) == true
     local name = "?"
@@ -69,9 +72,8 @@ function IKST_Dashboard.buildLocalSnapshot(player)
         safehouseClaims = countMirrorEntries(IKST_SafehouseClaimMirror),
         vehicleClaims = countMirrorEntries(IKST_VehicleClaimMirror),
         uptimeSec = 0,
-        activeAdmins = staff and 1 or 0,
-        adminNames = staff and name or "",
         pendingHelp = 0,
+        pendingClaimRequests = 0,
         helpOldestMin = 0,
         staffView = staff,
         onlineNames = onlineNames,
@@ -139,10 +141,10 @@ function IKST_Dashboard.statLines(statId)
         return tostring(s.online or 0), sub
     end
     if statId == "safehouse" then
-        return tostring(s.safehouseClaims or 0), IKST.text("IGUI_IKST_Dashboard_Stat_ClaimsSub", "active")
+        return tostring(s.safehouseClaims or 0), IKST.text("IGUI_IKST_Dashboard_Stat_ClaimsActiveSub", "active")
     end
     if statId == "vehicle" then
-        return tostring(s.vehicleClaims or 0), IKST.text("IGUI_IKST_Dashboard_Stat_ClaimsSub", "active")
+        return tostring(s.vehicleClaims or 0), IKST.text("IGUI_IKST_Dashboard_Stat_ClaimsActiveSub", "active")
     end
     if statId == "uptime" then
         local value, sub = formatUptime(s.uptimeSec)
@@ -151,11 +153,16 @@ function IKST_Dashboard.statLines(statId)
         end
         return value, sub
     end
-    if statId == "admins" then
+    if statId == "claims" then
         if s.staffView ~= true then
             return "-", IKST.text("IGUI_IKST_Dashboard_StaffOnly", "Staff only")
         end
-        return tostring(s.activeAdmins or 0), tostring(s.adminNames or "")
+        local pending = tonumber(s.pendingClaimRequests) or 0
+        local sub = ""
+        if pending > 0 then
+            sub = IKST.text("IGUI_IKST_Dashboard_Stat_ClaimsPendingSub", "awaiting staff")
+        end
+        return tostring(pending), sub
     end
     if statId == "help" then
         if s.staffView ~= true then
@@ -189,9 +196,11 @@ function IKST_Dashboard.runFavoriteAction(panel, action)
         return true
     end
     if action == "tpHome" then
-        if IKST_JobGuard and IKST_JobGuard.safehouses then
-            for _, row in ipairs(IKST_JobGuard.safehouses) do
-                if row and row.canRelease and row.x and row.y and row.w and row.h then
+        local list = IKST_JobGuard and type(IKST_JobGuard.getSafehouses) == "function"
+            and IKST_JobGuard.getSafehouses() or nil
+        if list then
+            for _, row in ipairs(list) do
+                if row and row.isMine == true and row.x and row.y and row.w and row.h then
                     IKST.dispatchCommand(p, IKST.CMD.safehouseTp, {
                         x = row.x, y = row.y, z = row.z or 0, w = row.w, h = row.h,
                     })

@@ -91,7 +91,7 @@ function MainScreen:instantiate()
     end
     self.ikstBriefingOption.onMouseDown = function()
         getSoundManager():playUISound("UIActivateMainMenuItem")
-        if IKST_BriefingUI and IKST_BriefingUI.open then
+        if IKST_BriefingUI and type(IKST_BriefingUI.open) == "function" then
             IKST_BriefingUI.open(getPlayer())
         end
     end

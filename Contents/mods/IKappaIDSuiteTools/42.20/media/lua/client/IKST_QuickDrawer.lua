@@ -102,9 +102,9 @@ function IKST_QuickDrawer.getCommands(player)
 
                 IKST_QuickActions.run(player, "quickWater")
 
-                if IKST_JobsPanel and IKST_JobsPanel.instance then
+                if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
 
-                    IKST_JobsPanel.instance:refreshJobUI()
+                    IKST_Hub.refreshActive()
 
                 end
 
@@ -122,9 +122,9 @@ function IKST_QuickDrawer.getCommands(player)
 
                 IKST_QuickActions.run(player, "quickPower")
 
-                if IKST_JobsPanel and IKST_JobsPanel.instance then
+                if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
 
-                    IKST_JobsPanel.instance:refreshJobUI()
+                    IKST_Hub.refreshActive()
 
                 end
 

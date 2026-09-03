@@ -1,6 +1,11 @@
 require "IKST_Plugins"
 require "IKST_Access"
 
+if not (type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient()) then
+    require "IKST_SoftTool_Admin"
+    require "IKST_JobAdmin"
+end
+
 local ADMIN_COMMANDS = {
     kickPlayer = true,
     banPlayer = true,
@@ -25,20 +30,55 @@ IKST.Plugins.register("admin", {
         return IKST_AdminOps.handle(command, player, args)
     end,
     afterServer = adminAfterServer,
-    hubTool = {
-        mode = IKST.VIEW.admin,
-        id = "admin",
-        titleKey = "IGUI_IKST_WS_Admin",
-        title = "Admin",
-        order = 10,
+    hubTools = {
+        { mode = IKST.VIEW.admin, id = "ghost", titleKey = "IGUI_IKST_AdminGhostSelf", title = "Ghost", order = 10 },
+        { mode = IKST.VIEW.admin, id = "kick", titleKey = "IGUI_IKST_UtilTile_KickPlayer", title = "Kick", order = 20 },
+        { mode = IKST.VIEW.admin, id = "ban", titleKey = "IGUI_IKST_UtilTile_BanPlayer", title = "Ban", order = 30 },
     },
-    jobTool = "admin",
-    buildJob = function(panel)
-        if IKST_JobAdmin and IKST_JobAdmin.build then
-            return IKST_JobAdmin.build(panel)
-        end
-        return 8
-    end,
+    jobTools = {
+        ghost = true,
+        kick = true,
+        ban = true,
+        admin = true,
+    },
+    buildJobTools = {
+        ghost = function(panel)
+            if IKST_SoftTool_Admin and IKST_SoftTool_Admin.buildGhost then
+                return IKST_SoftTool_Admin.buildGhost(panel)
+            end
+            if IKST_JobAdmin and IKST_JobAdmin.buildGhost then
+                return IKST_JobAdmin.buildGhost(panel)
+            end
+            return IKST_JobAdmin and IKST_JobAdmin.build and IKST_JobAdmin.build(panel) or 8
+        end,
+        kick = function(panel)
+            if IKST_SoftTool_Admin and IKST_SoftTool_Admin.buildKick then
+                return IKST_SoftTool_Admin.buildKick(panel)
+            end
+            if IKST_JobAdmin and IKST_JobAdmin.buildKick then
+                return IKST_JobAdmin.buildKick(panel)
+            end
+            return 8
+        end,
+        ban = function(panel)
+            if IKST_SoftTool_Admin and IKST_SoftTool_Admin.buildBan then
+                return IKST_SoftTool_Admin.buildBan(panel)
+            end
+            if IKST_JobAdmin and IKST_JobAdmin.buildBan then
+                return IKST_JobAdmin.buildBan(panel)
+            end
+            return 8
+        end,
+        admin = function(panel)
+            if IKST_SoftTool_Admin and IKST_SoftTool_Admin.build then
+                return IKST_SoftTool_Admin.build(panel)
+            end
+            if IKST_JobAdmin and IKST_JobAdmin.build then
+                return IKST_JobAdmin.build(panel)
+            end
+            return 8
+        end,
+    },
     onNavEntered = function(panel, modeId, toolId)
         if modeId == IKST.VIEW.admin and panel and panel.player
             and IKST_JobStaff and IKST_JobStaff.requestPlayers then

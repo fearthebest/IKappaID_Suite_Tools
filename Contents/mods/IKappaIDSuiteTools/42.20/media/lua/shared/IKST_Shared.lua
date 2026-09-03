@@ -310,9 +310,97 @@ function IKST.parseNumber(text, fallback)
     if not matched then
         return fallback
     end
-    local n = tonumber(matched)
-    if n == nil then
+    return IKST.matchedToNumber(matched, fallback)
+end
+
+-- Convert a digit-only matched token without calling tonumber (Kahlua can throw).
+function IKST.matchedToNumber(matched, fallback)
+    if not matched or matched == "" then
         return fallback
+    end
+    local sign = 1
+    local start = 1
+    local head = string.sub(matched, 1, 1)
+    if head == "-" then
+        sign = -1
+        start = 2
+    elseif head == "+" then
+        start = 2
+    end
+    local intPart = 0
+    local fracPart = 0
+    local fracDiv = 1
+    local i = start
+    local inFrac = false
+    local sawDigit = false
+    while i <= #matched do
+        local ch = string.sub(matched, i, i)
+        local b = string.byte(ch)
+        if b >= 48 and b <= 57 then
+            sawDigit = true
+            if inFrac then
+                fracPart = fracPart * 10 + (b - 48)
+                fracDiv = fracDiv * 10
+            else
+                intPart = intPart * 10 + (b - 48)
+            end
+        elseif ch == "." and not inFrac then
+            inFrac = true
+        else
+            break
+        end
+        i = i + 1
+    end
+    if not sawDigit then
+        return fallback
+    end
+    return sign * (intPart + fracPart / fracDiv)
+end
+
+function IKST.parseInteger(text, fallback)
+    fallback = fallback or 0
+    if text == nil then
+        return fallback
+    end
+    if type(text) == "number" then
+        return math.floor(text)
+    end
+    if type(text) ~= "string" then
+        text = tostring(text)
+    end
+    text = string.gsub(text, "^%s*(.-)%s*$", "%1")
+    if text == "" then
+        return fallback
+    end
+    local matched = string.match(text, "^([%-+]?%d+)")
+    if not matched then
+        return fallback
+    end
+    return math.floor(IKST.matchedToNumber(matched, fallback))
+end
+
+-- Like parseNumber but returns nil when text is empty or non-numeric (no fallback).
+function IKST.parseNumberOptional(text)
+    if text == nil then
+        return nil
+    end
+    if type(text) == "number" then
+        return text
+    end
+    if type(text) ~= "string" then
+        text = tostring(text)
+    end
+    text = string.gsub(text, "^%s*(.-)%s*$", "%1")
+    if text == "" then
+        return nil
+    end
+    local matched = string.match(text, "^([%-%+]?%d+%.?%d*)")
+    if not matched then
+        return nil
+    end
+    local n = IKST.matchedToNumber(matched, nil)
+    if n == nil then
+        return nil
     end
     return n
 end
@@ -334,11 +422,7 @@ function IKST.parseAmount(text)
     if not matched then
         return 0
     end
-    local n = tonumber(matched)
-    if n == nil then
-        return 0
-    end
-    return math.floor(n)
+    return math.floor(IKST.matchedToNumber(matched, 0))
 end
 
 function IKST.isVegetationObject(obj, square)

@@ -45,8 +45,12 @@ IKST_Economy.SHOP_TERMINAL_SPRITE_FALLBACKS = {
     "location_shop_accessories_01_28",
     "location_shop_accessories_01_29",
 }
-IKST_Economy.ATM_TERMINAL_SPRITE = "ikst_economy_01_0"
+IKST_Economy.ATM_TERMINAL_SPRITE = "location_business_bank_01_64"
 IKST_Economy.ATM_TERMINAL_SPRITE_FALLBACKS = {
+    "location_business_bank_01_65",
+    "location_business_bank_01_66",
+    "location_business_bank_01_67",
+    "ikst_economy_01_0",
     "ikst_economy_01_1",
     "ikst_economy_01_2",
     "ikst_economy_01_3",
@@ -54,10 +58,8 @@ IKST_Economy.ATM_TERMINAL_SPRITE_FALLBACKS = {
 IKST_Economy.ATM_VANILLA_SPRITES = {
     "location_business_bank_01_64",
     "location_business_bank_01_65",
-    "location_business_bank_01_68",
-    "location_business_bank_01_69",
-    "location_business_bank_01_70",
-    "location_business_bank_01_71",
+    "location_business_bank_01_66",
+    "location_business_bank_01_67",
 }
 IKST_Economy.HISTORY_MAX = 12
 
@@ -203,6 +205,45 @@ function IKST_Economy.countPlayerItems(player, itemType)
         end
     end
     return n
+end
+
+function IKST_Economy.findPlayerItem(player, itemType)
+    player = IKST.resolvePlayer(player)
+    if not player or not itemType or itemType == "" then
+        return nil, nil
+    end
+    local inv = type(player.getInventory) == "function" and player:getInventory() or nil
+    if not inv then
+        return nil, nil
+    end
+    local items = nil
+    if type(inv.getItemsFromFullType) == "function" then
+        items = inv:getItemsFromFullType(itemType, true)
+    elseif type(inv.getItemsFromType) == "function" then
+        items = inv:getItemsFromType(itemType, true)
+    elseif type(inv.getItemsFromTypeRecurse) == "function" then
+        items = inv:getItemsFromTypeRecurse(itemType, true)
+    end
+    if items and type(items.size) == "function" and items:size() > 0 then
+        local item = items:get(0)
+        if item then
+            local container = type(item.getContainer) == "function" and item:getContainer() or inv
+            return container, item
+        end
+    end
+    if type(inv.getItems) == "function" then
+        items = inv:getItems()
+        if items and type(items.size) == "function" then
+            for i = 0, items:size() - 1 do
+                local item = items:get(i)
+                if item and type(item.getFullType) == "function" and item:getFullType() == itemType then
+                    local container = type(item.getContainer) == "function" and item:getContainer() or inv
+                    return container, item
+                end
+            end
+        end
+    end
+    return nil, nil
 end
 
 function IKST_Economy.isPerishableItem(item)
@@ -546,7 +587,7 @@ function IKST_Economy.persistStore()
 end
 
 function IKST_Economy.cacheClientBalances(player, bank, pending)
-    if not player or not player.getModData then
+    if not player or type(player.getModData) ~= "function" then
         return
     end
     local md = player:getModData()
@@ -555,7 +596,7 @@ function IKST_Economy.cacheClientBalances(player, bank, pending)
 end
 
 function IKST_Economy.readClientBank(player)
-    if not player or not player.getModData then
+    if not player or type(player.getModData) ~= "function" then
         return 0
     end
     local md = player:getModData()
@@ -563,7 +604,7 @@ function IKST_Economy.readClientBank(player)
 end
 
 function IKST_Economy.readClientPending(player)
-    if not player or not player.getModData then
+    if not player or type(player.getModData) ~= "function" then
         return 0
     end
     local md = player:getModData()
@@ -816,18 +857,15 @@ function IKST_Economy.clearAtm(x, y, z)
 end
 
 function IKST_Economy.isAtmSquare(x, y, z)
-    if IKST_Economy.getAtm(x, y, z) then
+    x = tonumber(x)
+    y = tonumber(y)
+    z = tonumber(z) or 0
+    if x and y and IKST_Economy.getAtm(x, y, z) then
         return true
     end
     local sq = IKST_Grid and IKST_Grid.getSquare(x, y, z)
-    if not sq or not sq.getObjects then
-        return false
-    end
-    for i = 0, sq:getObjects():size() - 1 do
-        local obj = sq:getObjects():get(i)
-        if IKST_Economy.isAtmEnabledObject(obj) then
-            return true
-        end
+    if sq and IKST_Economy.squareHasAtm(sq) then
+        return true
     end
     return false
 end
@@ -856,6 +894,12 @@ function IKST_Economy.playerNearCoord(player, x, y, z, maxDist)
     maxDist = tonumber(maxDist) or 4
     local dx = player:getX() - (tonumber(x) or 0)
     local dy = player:getY() - (tonumber(y) or 0)
+    if type(player.getZ) == "function" then
+        local dz = player:getZ() - (tonumber(z) or 0)
+        if dz * dz > 0.25 then
+            return false
+        end
+    end
     return (dx * dx + dy * dy) <= (maxDist * maxDist)
 end
 

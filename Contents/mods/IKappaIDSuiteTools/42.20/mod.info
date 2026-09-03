@@ -9,7 +9,7 @@ author=IKappaID
 poster=poster.png
 icon=icon.png
 
-modversion=0.3.2.1
+modversion=0.3.2.4
 
 versionMin=42.20
 
@@ -18,4 +18,3 @@ category=Admin
 tags=Build 42;Admin;Multiplayer;Tools;QoL
 
 require=\IKappaID_UI
-

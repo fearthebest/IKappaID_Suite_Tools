@@ -3,6 +3,10 @@ require "IKST_Access"
 require "IKST_Economy"
 require "IKST_EconomyBridge"
 
+if not (type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient()) then
+    require "IKST_SoftTool_Economy"
+end
+
 local PLAYER_COMMANDS = {
     economySnapshot = true,
     economyDeposit = true,
@@ -67,6 +71,20 @@ local function economyAfterServer(command, player, args, ok, msg, isAdmin)
     end
 end
 
+local function buildEconomyTool(panel, mode)
+    local st = IKST.getPlayerState(panel and panel.player)
+    if st and mode then
+        st.economyMode = mode
+    end
+    if IKST_SoftTool_Economy and IKST_SoftTool_Economy.build then
+        return IKST_SoftTool_Economy.build(panel)
+    end
+    if IKST_JobEconomy and IKST_JobEconomy.build then
+        return IKST_JobEconomy.build(panel)
+    end
+    return 8
+end
+
 IKST.Plugins.register("economy", {
     modId = "IKappaIDSuiteToolsEconomy",
     playerCommands = PLAYER_COMMANDS,
@@ -84,22 +102,42 @@ IKST.Plugins.register("economy", {
         return IKST_EconomyOps.handle(command, player, args)
     end,
     afterServer = economyAfterServer,
-    hubTool = {
-        mode = IKST.VIEW.economy,
-        id = "economy",
-        titleKey = "IGUI_IKST_Tab_Economy",
-        title = "Economy",
-        order = 10,
+    hubTools = {
+        { mode = IKST.VIEW.economy, id = "money", titleKey = "IGUI_IKST_Economy_Tab_Money", title = "Money", order = 10 },
+        { mode = IKST.VIEW.economy, id = "shop", titleKey = "IGUI_IKST_Economy_Tab_Shop", title = "Shops", order = 20 },
+        { mode = IKST.VIEW.economy, id = "valuables", titleKey = "IGUI_IKST_Economy_Tab_Values", title = "Valuables", order = 30 },
+        { mode = IKST.VIEW.economy, id = "admin", titleKey = "IGUI_IKST_Economy_Tab_Admin", title = "Admin", order = 40, adminOnly = true },
     },
-    jobTool = "economy",
-    buildJob = function(panel)
-        if IKST_JobEconomy and IKST_JobEconomy.build then
-            return IKST_JobEconomy.build(panel)
-        end
-        return 8
-    end,
+    jobTools = {
+        money = true,
+        shop = true,
+        valuables = true,
+        admin = true,
+        economy = true,
+    },
+    buildJobTools = {
+        money = function(panel)
+            return buildEconomyTool(panel, "money")
+        end,
+        shop = function(panel)
+            return buildEconomyTool(panel, "shop")
+        end,
+        valuables = function(panel)
+            return buildEconomyTool(panel, "valuables")
+        end,
+        admin = function(panel)
+            return buildEconomyTool(panel, "admin")
+        end,
+        economy = function(panel)
+            return buildEconomyTool(panel, nil)
+        end,
+    },
     onNavEntered = function(panel, modeId, toolId)
         if modeId == IKST.VIEW.economy and panel and panel.player then
+            local st = IKST.getPlayerState(panel.player)
+            if st and toolId and toolId ~= "economy" then
+                st.economyMode = toolId
+            end
             IKST_EconomyUI.requestSnapshot(panel.player)
         end
     end,

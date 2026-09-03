@@ -200,6 +200,7 @@ function IKST_RateLimit.groupForCommand(command)
         or command == IKST.CMD.claimRequestList
         or command == IKST.CMD.claimRequestApprove
         or command == IKST.CMD.claimRequestDeny
+        or command == IKST.CMD.claimRequestSetBounds
         or command == IKST.CMD.staffHistoryList or command == IKST.CMD.eventSet
         or command == IKST.CMD.eventClear
         or command == IKST.CMD.blueprintList then
@@ -214,6 +215,8 @@ function IKST_RateLimit.groupForCommand(command)
         or command == IKST.CMD.vehicleClaim or command == IKST.CMD.vehicleReleaseClaim
         or command == IKST.CMD.vehicleClaimSetLabel or command == IKST.CMD.vehicleClaimSetPerms
         or command == IKST.CMD.safehouseAddMember or command == IKST.CMD.safehouseRemoveMember
+        or command == IKST.CMD.safehouseInvite or command == IKST.CMD.safehouseInviteRespond
+        or command == IKST.CMD.safehouseInviteList
         or command == IKST.CMD.safehouseClaimSetPerms
         or command == IKST.CMD.safehouseSetRespawn then
         return "claim_write"

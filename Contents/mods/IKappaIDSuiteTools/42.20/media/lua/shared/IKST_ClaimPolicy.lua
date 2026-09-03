@@ -82,6 +82,12 @@ function IKST_ClaimPolicy.playerClaimsEnabled()
         or IKST_ClaimPolicy.vehicleRequestEnabled()
 end
 
+-- SP: respect sandbox claim modes per save. Host is admin for tools, not auto direct-claim.
+function IKST_ClaimPolicy.useSandboxClaimModes()
+    return IKST_Access and type(IKST_Access.isSinglePlayer) == "function"
+        and IKST_Access.isSinglePlayer()
+end
+
 function IKST_ClaimPolicy.staffMayClaim(player)
     return IKST_Access and type(IKST_Access.canUseStaffTools) == "function"
         and IKST_Access.canUseStaffTools(player)
@@ -102,16 +108,21 @@ function IKST_ClaimPolicy.adminMayCreateClaim(player)
 end
 
 function IKST_ClaimPolicy.mayCreateSafehouseClaim(player)
-    if IKST_ClaimPolicy.staffMayClaim(player) then
-        return true
-    end
-    if IKST_ClaimPolicy.adminMayCreateClaim(player) then
-        return true
+    if not IKST_ClaimPolicy.useSandboxClaimModes() then
+        if IKST_ClaimPolicy.staffMayClaim(player) then
+            return true
+        end
+        if IKST_ClaimPolicy.adminMayCreateClaim(player) then
+            return true
+        end
     end
     return IKST_ClaimPolicy.houseSelfServiceEnabled()
 end
 
 function IKST_ClaimPolicy.mayRequestSafehouseClaim(player)
+    if IKST_ClaimPolicy.useSandboxClaimModes() then
+        return IKST_ClaimPolicy.houseRequestEnabled()
+    end
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return false
     end
@@ -122,16 +133,21 @@ function IKST_ClaimPolicy.mayRequestSafehouseClaim(player)
 end
 
 function IKST_ClaimPolicy.mayCreateVehicleClaim(player)
-    if IKST_ClaimPolicy.staffMayClaim(player) then
-        return true
-    end
-    if IKST_ClaimPolicy.adminMayCreateClaim(player) then
-        return true
+    if not IKST_ClaimPolicy.useSandboxClaimModes() then
+        if IKST_ClaimPolicy.staffMayClaim(player) then
+            return true
+        end
+        if IKST_ClaimPolicy.adminMayCreateClaim(player) then
+            return true
+        end
     end
     return IKST_ClaimPolicy.vehicleSelfServiceEnabled()
 end
 
 function IKST_ClaimPolicy.mayRequestVehicleClaim(player)
+    if IKST_ClaimPolicy.useSandboxClaimModes() then
+        return IKST_ClaimPolicy.vehicleRequestEnabled()
+    end
     if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
         return false
     end
@@ -635,6 +651,13 @@ function IKST_ClaimPolicy.friendlyMessage(message)
         ["safehouse already here"] = "This area is already claimed.",
         ["invalid square"] = "Stand on a valid square to claim.",
         ["residential buildings only"] = "Only residential buildings can be claimed this way.",
+        ["claim on road"] = "That claim covers a road. Move it off the street.",
+        ["too close to safehouse"] = "Too close to another safehouse. Leave space for others.",
+        ["claim too small"] = "Claim area is too small.",
+        ["claim too large"] = "Claim area is too large.",
+        ["claim must be square"] = "Claim must be roughly square on this server.",
+        ["borders updated"] = "Claim request borders updated.",
+        ["vehicle request has no land borders"] = "Vehicle requests have no land borders.",
         ["player must be online for indoor claim"] = "That player must be online for an indoor claim.",
         ["player must be online to claim"] = "You must be online to claim.",
         ["not allowed to claim yet"] = "You are not allowed to claim a safehouse yet.",

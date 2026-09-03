@@ -21,11 +21,16 @@ require "IKST_DragHandle"
 require "IKST_EdgeDock"
 require "IKST_ActionLogWindow"
 require "IKST_JobsPanel"
+require "IKST_SoftPageHost"
+require "IKST_Hub"
 require "IKST_JobThreat"
 require "IKST_JobStaff"
 require "IKST_ClaimRequestDraw"
 require "IKST_JobGuard"
-require "IKST_JobGadgets"
+require "IKST_SoftTool_Claim"
+require "IKST_SoftTool_Everyone"
+require "IKST_SoftTool_Utilities"
+require "IKST_SoftTool_Home"
 require "IKST_JobUtilities"
 require "IKST_ClientStaff"
 require "IKST_JobClaim"
@@ -40,6 +45,7 @@ require "IKST_ClaimPermissionsUI"
 require "IKST_VehicleClaimUI"
 require "IKST_VehicleContext"
 require "IKST_SafehouseClaimClient"
+require "IKST_SafehouseInviteClient"
 require "IKST_SafehouseClaimUI"
 require "IKST_SafehouseContext"
 require "IKST_ClaimIcons"
@@ -64,7 +70,9 @@ local function onKeyPressed(key)
     if not player then
         return
     end
-    IKST_JobsPanel.toggle(player)
+    if IKST_Hub and type(IKST_Hub.toggle) == "function" then
+        IKST_Hub.toggle(player)
+    end
 end
 
 local function onServerCommand(module, command, args)
@@ -164,8 +172,14 @@ local function onServerCommand(module, command, args)
         if IKST_EconomyUI and IKST_EconomyUI.onServerResult then
             IKST_EconomyUI.onServerResult(args or {})
         end
-        if IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:onServerResult(args or {})
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel and type(panel.onServerResult) == "function" then
+            panel:onServerResult(args or {})
+        elseif IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" then
+            local panel = IKST_Hub.activeJobPanel()
+            if panel and type(panel.onServerResult) == "function" then
+                panel:onServerResult(args or {})
+            end
         elseif args and IKST_JobLoot and IKST_JobLoot.onServerResult then
             local mode = args.mode
             if mode == IKST.CMD.lootRepopulateZone or mode == IKST.CMD.lootRepopulateContainer then
@@ -184,8 +198,11 @@ local function onServerCommand(module, command, args)
             line = line .. " - " .. tostring(args.msg)
         end
         IKST.pushLog(player, line, "progress")
-        if IKST_JobsPanel.instance and IKST_JobsPanel.instance.onBatchProgress then
-            IKST_JobsPanel.instance:onBatchProgress(args or {})
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel and type(panel.onBatchProgress) == "function" then
+            panel:onBatchProgress(args or {})
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive(true)
         end
         return
     end
@@ -222,8 +239,11 @@ local function onServerCommand(module, command, args)
         if args and args.x then
             IKST.pushLog(player, "inspect @ " .. args.x .. "," .. args.y .. "," .. args.z)
         end
-        if IKST_JobsPanel.instance and IKST_JobsPanel.instance.onInspectResult then
-            IKST_JobsPanel.instance:onInspectResult(args)
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel and type(panel.onInspectResult) == "function" then
+            panel:onInspectResult(args)
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive(true)
         end
         return
     end
@@ -284,8 +304,10 @@ local function onServerCommand(module, command, args)
         if IKST_Rewind and IKST_Rewind.setClientCount then
             IKST_Rewind.setClientCount(player, args and args.count)
         end
-        if IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive()
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
         end
         return
     end
@@ -307,6 +329,20 @@ local function onServerCommand(module, command, args)
         return
     end
 
+    if command == IKST.CMD.safehouseInviteNotify then
+        if IKST_SafehouseInviteClient and type(IKST_SafehouseInviteClient.onInviteNotify) == "function" then
+            IKST_SafehouseInviteClient.onInviteNotify(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseInviteListResult then
+        if IKST_SafehouseInviteClient and type(IKST_SafehouseInviteClient.setPending) == "function" then
+            IKST_SafehouseInviteClient.setPending(args and args.invites)
+        end
+        return
+    end
+
     if command == IKST.CMD.safehouseClientRefresh then
         if IKST_GuardHooks and IKST_GuardHooks.forceSafehouseRefresh then
             IKST_GuardHooks.forceSafehouseRefresh(args)
@@ -324,8 +360,10 @@ local function onServerCommand(module, command, args)
         if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.forceRefresh then
             IKST_SafehouseClaimClient.forceRefresh()
         end
-        if IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive()
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
         end
         return
     end
@@ -361,8 +399,10 @@ local function onServerCommand(module, command, args)
         if IKST_VehicleClaimClient and IKST_VehicleClaimClient.forceRefresh then
             IKST_VehicleClaimClient.forceRefresh()
         end
-        if IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive()
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
         end
         return
     end
@@ -407,8 +447,10 @@ local function onServerCommand(module, command, args)
                 IKST.applyUtilitySandboxVar("power", args.powerOn and IKST_Utility.FAR_FUTURE or -1)
             end
         end
-        if IKST_JobsPanel and IKST_JobsPanel.instance then
-            IKST_JobsPanel.instance:refreshJobUI()
+        if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive()
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
         end
         return
     end
@@ -491,14 +533,17 @@ end
 
 local function onGameStart()
     IKST_ModDataSync.installClient()
-    IKST_JobsPanel.ensure()
+    -- Soft hub pages register lazily on first open; no legacy JobsPanel.ensure.
+    if IKST_Hub and type(IKST_Hub.ensurePages) == "function" then
+        IKST_Hub.ensurePages()
+    end
     if not IKST_Debug then
         require "IKST_Debug"
     end
     if IKST_Debug and IKST_Debug.enabled and IKST_Debug.enabled() then
         IKST_Debug.log("boot", "v" .. IKST.VERSION .. " client JVM ready - grep console for [IKST-DEBUG]")
     end
-    print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (client)")
+    print("[IKST] IKappaID Suite Tools v" .. IKST.VERSION .. " loaded (client, soft hub)")
     local player = getPlayer and getPlayer() or nil
     if not player and getSpecificPlayer then
         player = getSpecificPlayer(0)

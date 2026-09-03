@@ -1,7 +1,7 @@
 version=1
 id=3750835193
 title=IKappaID Suite Tools
-description=Build 42 admin suite — [b]v0.3.2.1 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
+description=Build 42 admin suite — [b]v0.3.2.4 BETA[/b]. Claims, recovery journal, server utilities, and optional World Edit / Vehicles / Economy / Loot addons.
 description=
 description=[b]Requires[/b] IKappaID UI Framework (Mod ID: IKappaID_UI). Subscribe and enable it with this suite.
 description=
@@ -32,7 +32,7 @@ description=- [b]Admin[/b] — spectator (Ghost), kick, and ban using vanilla se
 description=
 description=[b]Known limits (BETA)[/b]
 description=- Destroy, pickup, and grief-build on claimed/protected tiles, and loot from guarded containers, are reversed on the dedicated server. A modified client cannot keep those changes.
-description=- Jobs panels use the suite chrome; the hub dashboard uses IKappaID UI. Both are intentional.
+description=- The control panel uses IKappaID UI (dark + orange). Optional Detach economy window uses the same chrome.
 description=
 description=[b]Acknowledgements[/b]
 description=IKappaID Suite Tools is its own project, but it owes a great deal to the spirit and ideas behind [b]BTSE[/b] and [b]Bikinitools[/b]. If you have run a server with those tools, much of what this suite tries to do will feel familiar — and that is no accident.

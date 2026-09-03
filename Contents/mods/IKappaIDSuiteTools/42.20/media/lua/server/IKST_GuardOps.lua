@@ -303,6 +303,18 @@ function IKST_GuardOps.handle(command, admin, args)
         return IKST_GuardOps.removeSafehouseMember(admin, args)
     end
 
+    if command == IKST.CMD.safehouseInvite then
+        return IKST_GuardOps.inviteSafehouseMember(admin, args)
+    end
+
+    if command == IKST.CMD.safehouseInviteRespond then
+        return IKST_GuardOps.respondSafehouseInvite(admin, args)
+    end
+
+    if command == IKST.CMD.safehouseInviteList then
+        return IKST_GuardOps.listSafehouseInvites(admin)
+    end
+
     if command == IKST.CMD.safehouseTp then
         return IKST_GuardOps.tpToSafehouse(admin, args.x, args.y, args.w, args.h, args.z)
     end

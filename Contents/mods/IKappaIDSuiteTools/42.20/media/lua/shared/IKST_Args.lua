@@ -9,7 +9,7 @@ function IKST_Args.readCoord(args, key)
     if not args then
         return nil
     end
-    local v = tonumber(args[key])
+    local v = IKST.parseNumberOptional(args[key])
     if v == nil then
         return nil
     end
@@ -27,20 +27,23 @@ function IKST_Args.mapSquareExists(x, y, z)
     if not cell or not cell.getGridSquare then
         return true
     end
-    z = tonumber(z) or 0
+    z = IKST.parseNumberOptional(z) or 0
     return cell:getGridSquare(x, y, z) ~= nil
 end
 
 function IKST_Args.readRadius(args, key, default)
     default = default or IKST.RADIUS_PRESETS.M
-    local r = tonumber(args and args[key or "radius"]) or default
+    local r = IKST.parseNumberOptional(args and args[key or "radius"])
+    if r == nil then
+        r = default
+    end
     return IKST.clampRadius(r)
 end
 
 function IKST_Args.readAmount(args, key, minVal, maxVal)
     minVal = minVal or 0
     maxVal = maxVal or 999999999
-    local v = tonumber(args and args[key or "amount"])
+    local v = IKST.parseNumberOptional(args and args[key or "amount"])
     if v == nil then
         return nil
     end
@@ -95,7 +98,7 @@ function IKST_Args.readVehicleId(args, key)
     if not args then
         return nil
     end
-    local id = tonumber(args[key or "vehicleId"])
+    local id = IKST.parseNumberOptional(args[key or "vehicleId"])
     if id == nil or id < 0 or id > 2147483647 then
         return nil
     end
@@ -177,8 +180,8 @@ function IKST_Args.actorNearCoord(player, x, y, z, maxDist)
     if not player or x == nil or y == nil then
         return false
     end
-    maxDist = tonumber(maxDist) or 12
-    z = tonumber(z) or 0
+    maxDist = IKST.parseNumberOptional(maxDist) or 12
+    z = IKST.parseNumberOptional(z) or 0
     local px = player:getX()
     local py = player:getY()
     local pz = player:getZ() or 0

@@ -1,0 +1,19 @@
+IKappaID Suite Tools — v0.3.2.4 BETA (Build 42.20)
+
+Requires IKappaID UI Framework v0.1.0.3+ (Mod ID: IKappaID_UI). Upload both together.
+
+CHANGED
+• One control panel — claims, briefing, shops, and help stay in the hub (Ctrl+Shift+W).
+• Claim Permissions from the hub or from a world/radial manage action open the hub, not a second window.
+• Action log no longer pops up beside the hub.
+• Help → Tickets tells staff to use F1 Admin (vanilla tickets).
+• Pause Server Briefing opens Help → Rules in the hub.
+• World ATM / Browse shop / Manage shop prices open Economy in the hub.
+• Detach economy window uses the same dark + orange chrome as the hub (not the old vanilla exchange window).
+
+FIXED
+• Stuck hover tooltips on truncated hub buttons (needs IKappaID_UI v0.1.0.3).
+
+NOTE
+• Dedicated Mods= must include IKappaID_UI then IKappaIDSuiteTools (and the addons you use).
+• Keep StaffRemoteAdmin off on public hosts.

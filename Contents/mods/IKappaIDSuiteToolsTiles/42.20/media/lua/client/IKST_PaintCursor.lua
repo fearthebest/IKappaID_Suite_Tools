@@ -61,8 +61,8 @@ function IKST_PaintCursorManager.arm(player, mode)
         getCell():setDrag(IKST_PaintCursorManager.cursor, player:getPlayerNum())
     end
     IKST.notify(player, IKST.text("IGUI_IKST_ClickWorld", "Click a world square"), true)
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
     if IKST_HudChip and IKST_HudChip.sync then
         IKST_HudChip.sync(player)

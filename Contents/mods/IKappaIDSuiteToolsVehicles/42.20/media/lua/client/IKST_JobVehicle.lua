@@ -563,6 +563,9 @@ local function vehicleNeedId(panel)
 end
 
 function IKST_JobVehicle.buildOverview(panel)
+    if IKST_SoftTool_Vehicle and type(IKST_SoftTool_Vehicle.buildOverview) == "function" then
+        return IKST_SoftTool_Vehicle.buildOverview(panel)
+    end
     local p = panel.player
     if not p then
         return 8
@@ -570,7 +573,7 @@ function IKST_JobVehicle.buildOverview(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 3, gap, { 1, 1, 1 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -667,10 +670,16 @@ function IKST_JobVehicle.buildOverview(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 
 function IKST_JobVehicle.buildSpawnHand(panel)
+    if IKST_SoftTool_Vehicle and type(IKST_SoftTool_Vehicle.buildSpawn) == "function" then
+        return IKST_SoftTool_Vehicle.buildSpawn(panel)
+    end
     local p = panel.player
     if not p then
         return 8
@@ -691,7 +700,7 @@ function IKST_JobVehicle.buildSpawnHand(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 4, gap, { 1, 200, 1, 1 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -822,10 +831,16 @@ function IKST_JobVehicle.buildSpawnHand(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 
 function IKST_JobVehicle.buildRepairHand(panel)
+    if IKST_SoftTool_Vehicle and type(IKST_SoftTool_Vehicle.buildRepair) == "function" then
+        return IKST_SoftTool_Vehicle.buildRepair(panel)
+    end
     local p = panel.player
     if not p then
         return 8
@@ -836,23 +851,20 @@ function IKST_JobVehicle.buildRepairHand(panel)
     end
 
     local rect = IKST_JobLayout.toolContentRect(panel)
-    local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
 
-    local function openBand(band, title)
-        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+    local function openCol(col, title)
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, col.x, col.y, col.w, col.h, nil, title)
         local areaX = inner
-        local areaW = math.max(40, rect.w - inner * 2)
+        local areaW = math.max(40, col.w - inner * 2)
         local areaY = contentY + padY
-        local areaH = math.max(btnH, band.h - contentY - padY * 2)
+        local areaH = math.max(btnH, col.h - contentY - padY * 2)
         return card, areaX, areaY, areaW, areaH
     end
 
-    do
-        local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_VehiclePick", "Pick"))
+    local function fillPick(card, ax, ay, aw, ah)
         local list = IKST_JobVehicle.filteredList(panel)
         local rows = {}
         for i = 1, #list do
@@ -870,8 +882,7 @@ function IKST_JobVehicle.buildRepairHand(panel)
             empty:initialise()
             card:addChild(empty)
         else
-            local visible = math.max(4, math.floor(ah / math.max(18, IKST_JobLayout.listItemHeight())))
-            IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, IKST_JobLayout.selectListHeight(visible), rows, {
+            IKST_JobLayout.makeSelectList(panel, card, ax, ay, aw, ah, rows, {
                 selectedId = panel.selectedVehicleId,
                 onSelect = function(row)
                     panel.selectedVehicleId = row.id
@@ -881,8 +892,7 @@ function IKST_JobVehicle.buildRepairHand(panel)
         end
     end
 
-    do
-        local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_VehicleActions", "Actions"))
+    local function fillActions(card, ax, ay, aw, ah)
         IKST_JobLayout.placePillGroup(panel, card, ax, ay, aw, ah, {
             {
                 label = IKST.text("IGUI_IKST_VehicleFlip", "Flip"),
@@ -927,127 +937,30 @@ function IKST_JobVehicle.buildRepairHand(panel)
         })
     end
 
+    -- Soft-only: pick | actions (Aegis softMasterDetail). Dock splitBands removed.
+    local left, right = IKST_JobLayout.softMasterDetail(rect, 280, 12)
+    do
+        local card, ax, ay, aw, ah = openCol(left, IKST.text("IGUI_IKST_VehiclePick", "Pick"))
+        fillPick(card, ax, ay, aw, ah)
+    end
+    do
+        local card, ax, ay, aw, ah = openCol(right, IKST.text("IGUI_IKST_VehicleActions", "Actions"))
+        fillActions(card, ax, ay, aw, ah)
+    end
     panel._ikstToolFit = true
     return rect.y + rect.h
 end
 
 function IKST_JobVehicle.build(panel)
-    local state = IKST.getPlayerState(panel.player)
-    if not state then
-        return
+    if IKST_SoftTool_Vehicle and type(IKST_SoftTool_Vehicle.build) == "function" then
+        return IKST_SoftTool_Vehicle.build(panel)
     end
-    if state.navTool == "overview" or (panel.view == IKST.VIEW.vehicles and not state.navTool) then
-        state.navTool = state.navTool or "overview"
-        return IKST_JobVehicle.buildOverview(panel)
-    end
-    if panel.view == IKST.VIEW.vehicles and state.navTool == "spawn" then
-        return IKST_JobVehicle.buildSpawnHand(panel)
-    end
-    if panel.view == IKST.VIEW.vehicles and state.navTool == "repair" then
-        return IKST_JobVehicle.buildRepairHand(panel)
-    end
-    if not state.vehicleMode then
-        state.vehicleMode = "list"
-    end
-    if panel.spawnRepaired == nil then
-        panel.spawnRepaired = true
-    end
-    if panel.spawnWithKey == nil then
-        panel.spawnWithKey = true
-    end
-    if panel.pruneBurntOnly == nil then
-        panel.pruneBurntOnly = false
-    end
-    if not panel.vehicleScriptFilter then
-        panel.vehicleScriptFilter = ""
-    end
-    if not panel.vehicleScriptPage then
-        panel.vehicleScriptPage = 1
-    end
-
-    local y = 8
-    local modes
-    local navTool = state.navTool
-    local vehiclesWorkspace = panel.view == IKST.VIEW.vehicles
-
-    if vehiclesWorkspace and navTool == "prune" then
-        if state.vehicleMode ~= "prune" and state.vehicleMode ~= "delete" then
-            state.vehicleMode = "prune"
-        end
-        modes = { "prune", "delete" }
-    elseif panel.view == IKST.VIEW.server and state.navTool == "vehicles" then
-        modes = { "list", "spawn", "cleanup" }
-    else
-        modes = { "spawn", "list", "prune", "delete" }
-    end
-
-    if modes then
-        local x = 12
-        for i, mode in ipairs(modes) do
-            if i == 4 then
-                x = 12
-                y = y + 28
-            end
-            local label = IKST.text("IGUI_IKST_Vehicle_" .. mode, mode)
-            panel:makeJobButton(x, y, 72, 24, label, function()
-                state.vehicleMode = mode
-                if mode == "list" or mode == "delete" or mode == "cleanup" then
-                    IKST_JobVehicle.requestList(panel.player)
-                end
-                panel:refreshJobUI()
-            end, state.vehicleMode == mode)
-            x = x + 76
-        end
-        y = y + 36
-    end
-
-    if state.vehicleMode == "spawn" then
-        return IKST_JobVehicle.buildSpawnHand(panel)
-    elseif state.vehicleMode == "cleanup" then
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_Vehicle_cleanup", "Cleanup"), UIFont.Small)
-        y = y + 18
-        y = IKST_JobVehicle.buildPruneControls(panel, y)
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleDeleteNote", "Pick a vehicle below, or delete the nearest."), UIFont.Small)
-        y = y + 20
-        y = IKST_JobVehicle.buildDeleteToolbar(panel, y)
-        y = IKST_JobVehicle.buildVehiclePickList(panel, y, { visibleRows = 8 })
-    elseif state.vehicleMode == "list" then
-        return IKST_JobVehicle.buildRepairHand(panel)
-    elseif state.vehicleMode == "prune" then
-        y = IKST_JobVehicle.buildPruneControls(panel, y)
-    elseif state.vehicleMode == "delete" then
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_VehicleDeleteNote", "Pick a vehicle below, or delete the nearest."), UIFont.Small)
-        y = y + 20
-        y = IKST_JobVehicle.buildDeleteToolbar(panel, y)
-        y = IKST_JobVehicle.buildVehiclePickList(panel, y, { maxItems = 8, showEmpty = true })
-        panel:makeJobLabel(12, y, IKST.text("IGUI_IKST_WipeCellNote", "Wipe cell removes every vehicle in this map cell."), UIFont.Small)
-        y = y + 18
-        if not vehiclesWorkspace or navTool == "prune" then
-            y = IKST_JobLayout.flowRow(panel, y, {
-                {
-                    label = IKST.text("IGUI_IKST_WipeCell", "Wipe cell vehicles"),
-                    w = 160,
-                    fn = function()
-                        IKST_Confirm.showDestructive(IKST.text("IGUI_IKST_Confirm_Wipe", "Wipe all vehicles in this cell?"), function()
-                            local pl = panel.player
-                            IKST.dispatchCommand(pl, IKST.CMD.vehicleDeleteCell, {
-                                cellX = math.floor(pl:getX() / 300),
-                                cellY = math.floor(pl:getY() / 300),
-                            })
-                            IKST_JobVehicle.requestList(pl)
-                        end)
-                    end,
-                },
-            }, 6, 24)
-        end
-    end
-
-    return y
+    return 8
 end
 
 function IKST_JobVehicle.onListResult(vehicles)
     IKST_JobVehicle.listCache = vehicles or {}
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end

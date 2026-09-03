@@ -1,20 +1,16 @@
--- Redirect vanilla "Add Ticket" to IKST Everyone (user request, Wave 2).
--- Does not replace staff See Tickets (ISAdminTicketsUI). Idempotent wrap.
+-- Redirect vanilla "Add Ticket" to Everyone Help (report). Staff inbox stays F1 Admin.
 
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
 end
 
 require "ISUI/UserPanel/ISTicketsUI"
-require "ISUI/AdminPanel/ISAdminTicketsUI"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKST_JobsPanel"
 
 IKST_TicketsUI = IKST_TicketsUI or {}
 
--- Staff inbox is vanilla ISAdminTicketsUI (F1 Admin -> See Tickets).
--- IKST does not keep a second ticket list.
+-- Staff inbox stays vanilla F1 Admin -> See Tickets. Hub never opens that window.
 function IKST_TicketsUI.openInbox(player)
     player = IKST.resolvePlayer(player) or (getPlayer and getPlayer())
     if not player then
@@ -31,12 +27,8 @@ function IKST_TicketsUI.openInbox(player)
             "Staff tools are required to open the ticket inbox."), false)
         return
     end
-    if ISAdminTicketsUI.instance and type(ISAdminTicketsUI.instance.close) == "function" then
-        ISAdminTicketsUI.instance:close()
-    end
-    local ui = ISAdminTicketsUI:new(50, 50, 900, 600, player)
-    ui:initialise()
-    ui:addToUIManager()
+    IKST.notify(player, IKST.text("IGUI_IKST_SeeTickets_UseF1",
+        "Open tickets from F1 Admin -> See Tickets."), true)
 end
 
 function IKST_TicketsUI.openReport(player)
@@ -44,12 +36,13 @@ function IKST_TicketsUI.openReport(player)
     if not player then
         return
     end
-    if IKST_JobsPanel and type(IKST_JobsPanel.open) == "function" then
-        IKST_JobsPanel.open(player)
-    end
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if panel and type(panel.enterNav) == "function" then
-        panel:enterNav(IKST.VIEW.everyone, nil)
+    if IKST_Hub and type(IKST_Hub.openWorkspace) == "function" then
+        IKST_Hub.openWorkspace(player, IKST.VIEW.everyone, nil)
+    elseif IKST_Hub and type(IKST_Hub.open) == "function" then
+        IKST_Hub.open(player)
+        if type(IKST_Hub.switchWorkspace) == "function" then
+            IKST_Hub.switchWorkspace(IKST.VIEW.everyone, nil)
+        end
     end
     IKST.notify(player, IKST.text("IGUI_IKST_Everyone_ReportHint",
         "Use Report player. Type who and why in the box, then send."), true)

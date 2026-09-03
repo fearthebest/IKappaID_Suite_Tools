@@ -56,6 +56,9 @@ function IKST_JobCleanup.describeState(state)
 end
 
 function IKST_JobCleanup.build(panel)
+    if IKST_SoftTool_Tiles and type(IKST_SoftTool_Tiles.buildRemove) == "function" then
+        return IKST_SoftTool_Tiles.buildRemove(panel)
+    end
     local state = IKST.getPlayerState(panel.player)
     if not state then
         return 8
@@ -63,7 +66,7 @@ function IKST_JobCleanup.build(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 4, gap, { 3, 2, 1, 1 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -192,6 +195,9 @@ function IKST_JobCleanup.build(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 

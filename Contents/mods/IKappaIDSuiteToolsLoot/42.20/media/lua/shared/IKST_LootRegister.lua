@@ -2,6 +2,10 @@ require "IKST_Plugins"
 require "IKST_Access"
 require "IKST_Loot"
 
+if not (type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient()) then
+    require "IKST_SoftTool_Loot"
+end
+
 local ADMIN_COMMANDS = {
     lootRepopulateContainer = true,
     lootRepopulateZone = true,
@@ -58,6 +62,9 @@ IKST.Plugins.register("loot", {
     },
     jobTool = "loot",
     buildJob = function(panel)
+        if IKST_SoftTool_Loot and IKST_SoftTool_Loot.build then
+            return IKST_SoftTool_Loot.build(panel)
+        end
         if IKST_JobLoot and IKST_JobLoot.build then
             return IKST_JobLoot.build(panel)
         end

@@ -1,5 +1,6 @@
 -- Live ground preview while a player walks claim-request corner A to B.
 -- Vanilla addAreaHighlightForPlayer expires immediately; refresh every tick while active.
+-- Staff preview: highlight a pending request zone after TP/select.
 
 if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
     return
@@ -13,6 +14,7 @@ IKST_ClaimRequestDraw = IKST_ClaimRequestDraw or {}
 
 local FILL_R, FILL_G, FILL_B, FILL_A = 0.20, 0.75, 0.95, 0.28
 local BAD_R, BAD_G, BAD_B, BAD_A = 0.95, 0.35, 0.25, 0.32
+local STAFF_R, STAFF_G, STAFF_B, STAFF_A = 0.95, 0.55, 0.15, 0.35
 local HUD_W, HUD_H = 340, 28
 
 local function playerNum(player)
@@ -62,6 +64,37 @@ function IKST_ClaimRequestDraw.start(player, cornerA)
     }
     state.claimReqDraw = { w = 1, h = 1, ok = false }
     IKST_ClaimRequestDraw.ensureHud(player)
+end
+
+function IKST_ClaimRequestDraw.clearStaffPreview()
+    IKST_ClaimRequestDraw._staffPreview = nil
+end
+
+function IKST_ClaimRequestDraw.setStaffPreview(rect)
+    if type(rect) ~= "table" or rect.x == nil or rect.y == nil then
+        IKST_ClaimRequestDraw.clearStaffPreview()
+        return
+    end
+    local w = math.max(1, math.floor(tonumber(rect.w) or 1))
+    local h = math.max(1, math.floor(tonumber(rect.h) or 1))
+    IKST_ClaimRequestDraw._staffPreview = {
+        x = math.floor(tonumber(rect.x) or 0),
+        y = math.floor(tonumber(rect.y) or 0),
+        z = math.floor(tonumber(rect.z) or 0),
+        w = w,
+        h = h,
+    }
+end
+
+function IKST_ClaimRequestDraw.paintStaffPreview(player)
+    local preview = IKST_ClaimRequestDraw._staffPreview
+    if not preview or not player or type(addAreaHighlightForPlayer) ~= "function" then
+        return
+    end
+    local pn = playerNum(player)
+    local x2 = preview.x + preview.w
+    local y2 = preview.y + preview.h
+    addAreaHighlightForPlayer(pn, preview.x, preview.y, x2, y2, preview.z, STAFF_R, STAFF_G, STAFF_B, STAFF_A)
 end
 
 local ClaimReqHud = ISUIElement:derive("IKST_ClaimReqHud")
@@ -161,8 +194,18 @@ function IKST_ClaimRequestDraw.paint(player)
     state.claimReqDraw = { w = w, h = h, ok = ok, reason = reason, x = x, y = y, z = a.z or here.z }
     IKST_ClaimRequestDraw.ensureHud(player)
 
+    local sig = tostring(w) .. "x" .. tostring(h) .. ":" .. tostring(ok)
+    if IKST_ClaimRequestDraw._uiSig ~= sig then
+        IKST_ClaimRequestDraw._uiSig = sig
+        IKST_ClaimRequestDraw._uiRefreshTick = (IKST_ClaimRequestDraw._uiRefreshTick or 0) + 1
+        if IKST_ClaimRequestDraw._uiRefreshTick % 12 == 0 then
+            if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+                IKST_Hub.refreshActive()
+            end
+        end
+    end
+
     local z = a.z or here.z
-    -- Highlight API uses exclusive max corner; keep rect stable while walking.
     local x2 = x + w
     local y2 = y + h
     local pn = playerNum(player)
@@ -177,8 +220,8 @@ local function onTick()
     if type(getSpecificPlayer) ~= "function" then
         return
     end
-    -- Early out when nobody is drawing (FPS: no per-tick paint cost).
     local anyActive = false
+    local anyStaff = IKST_ClaimRequestDraw._staffPreview ~= nil
     for i = 0, 3 do
         local player = getSpecificPlayer(i)
         if player and IKST_ClaimRequestDraw.isActive(player) then
@@ -186,18 +229,22 @@ local function onTick()
             break
         end
     end
-    if not anyActive then
+    if not anyActive and not anyStaff then
         if IKST_ClaimRequestDraw._hud then
             IKST_ClaimRequestDraw._hud:removeFromUIManager()
             IKST_ClaimRequestDraw._hud = nil
         end
         return
     end
-    -- Vanilla highlight expires almost immediately; refresh every tick while drawing.
     for i = 0, 3 do
         local player = getSpecificPlayer(i)
         if player then
-            IKST_ClaimRequestDraw.paint(player)
+            if anyActive then
+                IKST_ClaimRequestDraw.paint(player)
+            end
+            if anyStaff then
+                IKST_ClaimRequestDraw.paintStaffPreview(player)
+            end
         end
     end
 end

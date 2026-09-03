@@ -117,8 +117,8 @@ function IKST_SidebarIcon:onClicked()
     if IKST_Joypad then
         IKST_Joypad._wantFocus = true
     end
-    if IKST_JobsPanel and type(IKST_JobsPanel.toggle) == "function" then
-        IKST_JobsPanel.toggle(player)
+    if IKST_Hub and type(IKST_Hub.toggle) == "function" then
+        IKST_Hub.toggle(player)
     end
 end
 

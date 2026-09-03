@@ -1,6 +1,10 @@
 require "IKST_Plugins"
 require "IKST_Access"
 
+if not (type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient()) then
+    require "IKST_SoftTool_Vehicle"
+end
+
 local ADMIN_COMMANDS = {
     vehicleList = true,
     vehicleSpawn = true,
@@ -75,6 +79,9 @@ local VEHICLE_TOOLS = {
 }
 
 local function buildVehicleOverview(panel)
+    if IKST_SoftTool_Vehicle and IKST_SoftTool_Vehicle.buildOverview then
+        return IKST_SoftTool_Vehicle.buildOverview(panel)
+    end
     if IKST_JobVehicle and IKST_JobVehicle.buildOverview then
         return IKST_JobVehicle.buildOverview(panel)
     end
@@ -82,6 +89,9 @@ local function buildVehicleOverview(panel)
 end
 
 local function buildVehicleJob(panel)
+    if IKST_SoftTool_Vehicle and IKST_SoftTool_Vehicle.build then
+        return IKST_SoftTool_Vehicle.build(panel)
+    end
     if IKST_JobVehicle and IKST_JobVehicle.build then
         return IKST_JobVehicle.build(panel)
     end
@@ -144,8 +154,8 @@ IKST.Plugins.register("vehicles", {
             if IKST_JobVehicle and IKST_JobVehicle.onBackupListResult then
                 IKST_JobVehicle.onBackupListResult(args and args.backups)
             end
-            if IKST_JobsPanel and IKST_JobsPanel.instance then
-                IKST_JobsPanel.instance:refreshJobUI()
+            if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+                IKST_Hub.refreshActive()
             end
             return true
         end

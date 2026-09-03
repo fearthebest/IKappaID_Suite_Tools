@@ -94,18 +94,9 @@ function IKST_DashboardServer.buildSnapshot(viewer)
     IKST_DashboardServer.ensureBootTime()
 
     local online = 0
-    local admins = 0
-    local adminNames = {}
     IKST_ServerPlayers.foreachOnlinePlayer(function(p)
         if IKST_ServerPlayers.playerInWorld(p) then
             online = online + 1
-            if IKST_Access.canUseStaffTools(p) then
-                admins = admins + 1
-                local name = IKST_ServerPlayers.playerKey(p)
-                if name then
-                    adminNames[#adminNames + 1] = name
-                end
-            end
         end
     end)
 
@@ -152,8 +143,6 @@ function IKST_DashboardServer.buildSnapshot(viewer)
         vehicleClaims = IKST_DashboardServer.countVehicleClaims(),
         uptimeSec = uptimeSec,
         uptimeSince = "",
-        activeAdmins = staffView and admins or 0,
-        adminNames = staffView and table.concat(adminNames, ", ") or "",
         pendingHelp = staffView and pendingHelp or 0,
         pendingClaimRequests = staffView and pendingClaims or 0,
         helpOldestMin = staffView and helpOldestMin or 0,

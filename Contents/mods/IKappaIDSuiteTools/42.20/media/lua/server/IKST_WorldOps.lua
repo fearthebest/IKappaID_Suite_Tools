@@ -112,9 +112,14 @@ function IKST_WorldOps.sendResult(player, ok, message, x, y, z, mode, extra)
         line = line .. " - " .. tostring(payload.message)
         IKST.pushLog(player, line)
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:onServerResult(payload)
-    elseif message and IKST.shouldNotifyResult and IKST.shouldNotifyResult(mode) then
+    if IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" then
+        local panel = IKST_Hub.activeJobPanel()
+        if panel and type(panel.onServerResult) == "function" then
+            panel:onServerResult(payload)
+            return
+        end
+    end
+    if message and IKST.shouldNotifyResult and IKST.shouldNotifyResult(mode) then
         IKST.notify(player, tostring(message), ok == true)
     end
 end
@@ -125,7 +130,10 @@ function IKST_WorldOps.sendInspect(player, x, y, z, items)
         IKST.deliverClientCommand(player, IKST.CMD.inspectResult, payload)
         return
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance and IKST_JobsPanel.instance.onInspectResult then
-        IKST_JobsPanel.instance:onInspectResult(payload)
+    if IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" then
+        local panel = IKST_Hub.activeJobPanel()
+        if panel and type(panel.onInspectResult) == "function" then
+            panel:onInspectResult(payload)
+        end
     end
 end

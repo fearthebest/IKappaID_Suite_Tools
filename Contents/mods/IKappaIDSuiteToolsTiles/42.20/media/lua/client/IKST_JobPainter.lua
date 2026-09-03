@@ -6,6 +6,7 @@ require "ISUI/ISTextEntryBox"
 require "ISUI/ISLabel"
 require "IKST_Shared"
 require "IKappaID_UI/IKUI_Chrome"
+require "IKST_UI_Layout"
 require "IKST_TileIndex"
 require "IKST_SpriteGrid"
 require "IKST_JobLayout"
@@ -60,6 +61,47 @@ function IKST_JobPainter.loadSelectedPack(panel)
     panel.spriteGridPage = 1
 end
 
+function IKST_JobPainter.spritePageCount(panel)
+    local sprites = IKST_JobPainter.getGridSprites(panel)
+    local per = math.max(1, tonumber(panel._spriteGridPerPage) or 8)
+    if #sprites < 1 then
+        return 1
+    end
+    return math.max(1, math.ceil(#sprites / per))
+end
+
+function IKST_JobPainter.shiftSpritePage(panel, delta)
+    local pages = IKST_JobPainter.spritePageCount(panel)
+    local page = (panel.spriteGridPage or 1) + (tonumber(delta) or 0)
+    if page < 1 then
+        page = 1
+    elseif page > pages then
+        page = pages
+    end
+    panel.spriteGridPage = page
+    panel:refreshJobUI()
+end
+
+function IKST_JobPainter.packPageCount(panel)
+    local names = panel.packNames or {}
+    if #names < 1 then
+        return 1
+    end
+    return math.max(1, math.ceil(#names / 4))
+end
+
+function IKST_JobPainter.shiftPackPage(panel, delta)
+    local pages = IKST_JobPainter.packPageCount(panel)
+    local page = (panel.packPage or 1) + (tonumber(delta) or 0)
+    if page < 1 then
+        page = 1
+    elseif page > pages then
+        page = pages
+    end
+    panel.packPage = page
+    panel:refreshJobUI()
+end
+
 function IKST_JobPainter.getGridSprites(panel)
     local sprites = panel.packSprites or {}
     panel.spriteFilter = IKST_JobPainter.readEntryText(panel.spriteFilterEntry)
@@ -104,6 +146,9 @@ function IKST_JobPainter.ensureState(panel)
 end
 
 function IKST_JobPainter.build(panel)
+    if IKST_SoftTool_Tiles and type(IKST_SoftTool_Tiles.buildPaint) == "function" then
+        return IKST_SoftTool_Tiles.buildPaint(panel)
+    end
     local state = IKST_JobPainter.ensureState(panel)
     if not state then
         return 8
@@ -111,15 +156,28 @@ function IKST_JobPainter.build(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    -- Soft-only: Modes | Pack (flex) | Search — Pack gets leftover height.
+    local L = IKST_UI_Layout
+    local page = L.box(rect.x, rect.y, rect.w, rect.h)
+    local searchH = IKST_JobLayout.fieldActionBandH(1)
+    local modeH = IKST_JobLayout.compactPillBandH(2)
+    local bands = L.columnIn(page, {
+        { h = modeH },
+        { flex = 1 },
+        { h = searchH },
+    }, { gap = gap, pad = 0 })
+    local stackBottom = rect.y + rect.h
+    local soft = true
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
 
     local function openBand(band, title)
-        local card, contentY = IKST_JobLayout.placeSectionCard(panel, rect.x, band.y, rect.w, band.h, nil, title)
+        local bx = band.x or rect.x
+        local bw = band.w or rect.w
+        local card, contentY = IKST_JobLayout.placeSectionCard(panel, bx, band.y, bw, band.h, nil, title)
         local areaX = inner
-        local areaW = math.max(40, rect.w - inner * 2)
+        local areaW = math.max(40, bw - inner * 2)
         local areaY = contentY + padY
         local areaH = math.max(btnH, band.h - contentY - padY * 2)
         return card, areaX, areaY, areaW, areaH
@@ -156,84 +214,170 @@ function IKST_JobPainter.build(panel)
 
     do
         local card, ax, ay, aw, ah = openBand(bands[2], IKST.text("IGUI_IKST_SectionPack", "Pack"))
-        local btnWStd = select(1, IKST_JobLayout.standardPillSize(panel))
-        local _, navRows, _, navGridH = IKST_JobLayout.pillGridMetrics(aw, 4, btnWStd, btnH)
-        local listH, pillH, gapLP = IKST_JobLayout.listPillSplit(ah, math.max(1, navRows))
-        local pillY = ay + listH + gapLP
-        local pillAreaH = math.max(btnH, pillH, navGridH)
-
-        local pickLabel = pick and pick.sprite or IKST.text("IGUI_IKST_NoPick", "No sprite selected")
-        local info = ISLabel:new(ax, ay, 16, pickLabel, 1, 1, 1, 1, UIFont.Small, true)
-        info:initialise()
-        card:addChild(info)
-
+        local L = IKST_UI_Layout
+        local area = L.box(ax, ay, aw, ah)
+        local btnWStd, btnHStd = IKST_JobLayout.standardPillSize(panel, aw)
         local names = panel.packNames or {}
         local pageStart = ((panel.packPage or 1) - 1) * 4 + 1
         local packItems = {}
         for i = pageStart, math.min(pageStart + 3, #names) do
             local name = names[i]
-            local short = string.sub(name, 1, 18)
             packItems[#packItems + 1] = {
-                label = short,
+                label = string.sub(name, 1, 18),
                 primary = panel.selectedPack == name,
                 onClick = function()
                     panel.selectedPack = name
+                    panel.spriteGridPage = 1
+                    IKST_JobPainter.loadSelectedPack(panel)
                     panel:refreshJobUI()
                 end,
             }
         end
-        local packRowH = 0
+        local packH = btnHStd
         if #packItems > 0 then
-            local _, pr, _, pgH = IKST_JobLayout.pillGridMetrics(aw, #packItems, btnWStd, btnH)
-            packRowH = pgH
-            IKST_JobLayout.placePillGroup(panel, card, ax, ay + 18, aw, packRowH, packItems)
+            local _, _, _, pgH = IKST_JobLayout.pillGridMetrics(aw, #packItems, btnWStd, btnHStd)
+            packH = math.max(btnHStd, pgH)
+        end
+        local _, _, _, actListH = IKST_JobLayout.pillGridMetrics(aw, 2, btnWStd, btnHStd)
+        actListH = math.max(btnHStd, actListH)
+        local _, _, _, actPackNavH = IKST_JobLayout.pillGridMetrics(aw, 3, btnWStd, btnHStd)
+        actPackNavH = math.max(btnHStd, actPackNavH)
+        local _, _, _, actTileNavH = IKST_JobLayout.pillGridMetrics(aw, 3, btnWStd, btnHStd)
+        actTileNavH = math.max(btnHStd, actTileNavH)
+        local labelH = 16
+        local slotGap = 6
+        local fixedGaps = slotGap * 5
+        local budget = math.max(btnHStd * 4, ah - labelH - fixedGaps)
+        local fixedActs = actListH + actPackNavH + actTileNavH
+        if packH + fixedActs > budget then
+            actListH = math.min(actListH, math.max(btnHStd, budget - btnHStd * 3))
+            actPackNavH = math.min(actPackNavH, math.max(btnHStd, budget - actListH - btnHStd * 2))
+            actTileNavH = math.min(actTileNavH, math.max(btnHStd, budget - actListH - actPackNavH - btnHStd))
+            packH = math.max(btnHStd, budget - actListH - actPackNavH - actTileNavH)
+        end
+        local slots = L.columnIn(area, {
+            { h = labelH },
+            { h = packH },
+            { h = actListH },
+            { h = actPackNavH },
+            { h = actTileNavH },
+            { flex = 1 },
+        }, { gap = slotGap, pad = 0 })
+
+        local pickLabel = pick and pick.sprite or IKST.text("IGUI_IKST_NoPick", "No sprite selected")
+        local info = ISLabel:new(slots[1].x, slots[1].y, labelH, pickLabel, 1, 1, 1, 1, UIFont.Small, true)
+        info:initialise()
+        card:addChild(info)
+
+        if #packItems > 0 and slots[2] and L.contains(area, slots[2]) then
+            IKST_JobLayout.placePillGroup(panel, card, slots[2].x, slots[2].y, slots[2].w, slots[2].h, packItems)
         end
 
-        local gridTop = ay + 18 + packRowH + (packRowH > 0 and 6 or 0)
-        local gridH = math.max(36, listH - (gridTop - ay))
-        if gridTop + gridH > ay + listH then
-            gridH = math.max(36, ay + listH - gridTop)
+        if slots[3] and L.contains(area, slots[3]) then
+            IKST_JobLayout.placePillGroup(panel, card, slots[3].x, slots[3].y, slots[3].w, slots[3].h, {
+                {
+                    label = IKST.text("IGUI_IKST_ListPacks", "List packs"),
+                    onClick = function()
+                        IKST_JobPainter.listPacks(panel)
+                        panel:refreshJobUI()
+                    end,
+                },
+                {
+                    label = IKST.text("IGUI_IKST_LoadPack", "Load"),
+                    primary = true,
+                    onClick = function()
+                        IKST_JobPainter.loadSelectedPack(panel)
+                        panel:refreshJobUI()
+                    end,
+                },
+            })
         end
-        local sprites = IKST_JobPainter.getGridSprites(panel)
-        local grid = IKST_SpriteGrid:new(ax, gridTop, aw, gridH, sprites, function(sprite)
-            IKST_JobPainter.onSpritePicked(panel, sprite)
-        end)
-        grid.page = panel.spriteGridPage
-        grid:initialise()
-        IKST_JobLayout.attachToolWidget(panel, card, grid)
 
-        IKST_JobLayout.placePillGroup(panel, card, ax, pillY, aw, pillAreaH, {
-            {
-                label = IKST.text("IGUI_IKST_ListPacks", "List packs"),
-                onClick = function()
-                    IKST_JobPainter.listPacks(panel)
-                    panel:refreshJobUI()
-                end,
-            },
-            {
-                label = IKST.text("IGUI_IKST_LoadPack", "Load"),
-                primary = true,
-                onClick = function()
-                    IKST_JobPainter.loadSelectedPack(panel)
-                    panel:refreshJobUI()
-                end,
-            },
-            {
-                label = "<",
-                onClick = function()
-                    panel.packPage = math.max(1, (panel.packPage or 1) - 1)
-                    panel:refreshJobUI()
-                end,
-            },
-            {
-                label = ">",
-                onClick = function()
-                    local pages = math.max(1, math.ceil(#(panel.packNames or {}) / 4))
-                    panel.packPage = math.min(pages, (panel.packPage or 1) + 1)
-                    panel:refreshJobUI()
-                end,
-            },
-        })
+        if slots[4] and L.contains(area, slots[4]) then
+            local packPage = panel.packPage or 1
+            local packPages = IKST_JobPainter.packPageCount(panel)
+            IKST_JobLayout.placeNavPillGroup(panel, card, slots[4].x, slots[4].y, slots[4].w, slots[4].h, {
+                {
+                    label = IKST.text("IGUI_IKST_PackPrev", "<"),
+                    onClick = function()
+                        IKST_JobPainter.shiftPackPage(panel, -1)
+                    end,
+                },
+                {
+                    label = string.format("%d / %d", packPage, packPages),
+                    primary = "chip",
+                    onClick = function()
+                    end,
+                },
+                {
+                    label = IKST.text("IGUI_IKST_PackNext", ">"),
+                    onClick = function()
+                        IKST_JobPainter.shiftPackPage(panel, 1)
+                    end,
+                },
+            })
+        end
+
+        if slots[5] and L.contains(area, slots[5]) then
+            -- Estimate tiles/page from the grid slot before the grid exists (for the page label).
+            if slots[6] and slots[6].h >= 36 then
+                local cols = math.max(1, math.floor((slots[6].w - 4) / 52))
+                local rows = math.max(1, math.floor((slots[6].h - 20) / 52))
+                panel._spriteGridPerPage = cols * rows
+            end
+            local tilePage = panel.spriteGridPage or 1
+            local tilePages = IKST_JobPainter.spritePageCount(panel)
+            IKST_JobLayout.placeNavPillGroup(panel, card, slots[5].x, slots[5].y, slots[5].w, slots[5].h, {
+                {
+                    label = IKST.text("IGUI_IKST_TilesPrev", "<"),
+                    onClick = function()
+                        IKST_JobPainter.shiftSpritePage(panel, -1)
+                    end,
+                },
+                {
+                    label = string.format("%d / %d", tilePage, tilePages),
+                    primary = "chip",
+                    onClick = function()
+                    end,
+                },
+                {
+                    label = IKST.text("IGUI_IKST_TilesNext", ">"),
+                    onClick = function()
+                        IKST_JobPainter.shiftSpritePage(panel, 1)
+                    end,
+                },
+            })
+        end
+
+        if slots[6] and slots[6].h >= 36 and L.contains(area, slots[6]) then
+            local sprites = IKST_JobPainter.getGridSprites(panel)
+            local grid = IKST_SpriteGrid:new(slots[6].x, slots[6].y, slots[6].w, slots[6].h, sprites, function(sprite)
+                IKST_JobPainter.onSpritePicked(panel, sprite)
+            end)
+            if type(grid.layoutMetrics) == "function" then
+                grid:layoutMetrics()
+            end
+            panel._spriteGridPerPage = math.max(1, grid.perPage or 8)
+            local pages = math.max(1, math.ceil(math.max(1, #sprites) / panel._spriteGridPerPage))
+            if (panel.spriteGridPage or 1) > pages then
+                panel.spriteGridPage = pages
+            end
+            grid.page = panel.spriteGridPage or 1
+            grid.onPageChange = function(page)
+                panel.spriteGridPage = page
+            end
+            if grid.clipping ~= nil then
+                grid.clipping = true
+            end
+            grid:initialise()
+            if type(grid.layoutMetrics) == "function" then
+                grid:layoutMetrics()
+            end
+            IKST_JobLayout.attachToolWidget(panel, card, grid)
+            -- Soft host steals wheel for page scroll; register grid so tile pages advance under the cursor.
+            panel._ikstSelectLists = panel._ikstSelectLists or {}
+            panel._ikstSelectLists[#panel._ikstSelectLists + 1] = grid
+        end
     end
 
     do
@@ -254,5 +398,8 @@ function IKST_JobPainter.build(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end

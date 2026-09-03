@@ -17,33 +17,20 @@ IKST_HubNav = IKST_HubNav or {}
 IKST_HubNav.SIDEBAR_W = IKST_UI_Layout.sidebarWidth()
 
 IKST_HubNav.WORKSPACES = {
+    -- Order mirrors Aegis: player-facing → claims/zones → staff utilities → world tools → vehicles → extras → moderation.
     {
-        id = IKST.VIEW.utilities,
-        titleKey = "IGUI_IKST_WS_Utilities",
-        title = "Utilities",
-        icon = "media/ui/ikst/ws_utilities.png",
-        descKey = "IGUI_IKST_WS_Utilities_Desc",
-        desc = "Server tools: self, items, players, zombies, world, teleport",
-        adminOnly = true,
+        id = IKST.VIEW.everyone,
+        titleKey = "IGUI_IKST_WS_Everyone",
+        title = "Everyone",
+        icon = "media/ui/ikst/ws_everyone.png",
+        descKey = "IGUI_IKST_WS_Everyone_Desc",
+        desc = "Server info, claims list, events, and help",
         tools = {
-            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", order = 10 },
-            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", order = 20 },
-            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", order = 30 },
-            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", order = 40 },
-            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "Server tools", order = 50 },
-            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", order = 60 },
+            { id = "overview", titleKey = "IGUI_IKST_Everyone_Overview", title = "Overview", order = 10 },
+            { id = "claims", titleKey = "IGUI_IKST_EveryoneTile_SectionClaims", title = "Claims", order = 20 },
+            { id = "events", titleKey = "IGUI_IKST_EveryoneTile_SectionEvents", title = "Events", order = 30 },
+            { id = "help", titleKey = "IGUI_IKST_EveryoneTile_SectionQuick", title = "Help", order = 40 },
         },
-    },
-    {
-        id = IKST.VIEW.admin,
-        titleKey = "IGUI_IKST_WS_Admin",
-        title = "Admin",
-        icon = "media/ui/ikst/ws_admin.png",
-        descKey = "IGUI_IKST_WS_Admin_Desc",
-        desc = "Spectator, kick, and ban - vanilla server commands",
-        pluginId = "admin",
-        adminOnly = true,
-        tools = nil,
     },
     {
         id = IKST.VIEW.claim,
@@ -61,6 +48,24 @@ IKST_HubNav.WORKSPACES = {
         },
     },
     {
+        id = IKST.VIEW.utilities,
+        titleKey = "IGUI_IKST_WS_Utilities",
+        title = "Utilities",
+        icon = "media/ui/ikst/ws_utilities.png",
+        descKey = "IGUI_IKST_WS_Utilities_Desc",
+        desc = "Self powers, items, players, zombies, world, teleport",
+        adminOnly = true,
+        tools = {
+            { id = "self", titleKey = "IGUI_IKST_Util_Self", title = "Self", order = 10 },
+            { id = "items", titleKey = "IGUI_IKST_Util_Items", title = "Items", order = 20 },
+            { id = "players", titleKey = "IGUI_IKST_Util_Players", title = "Players", order = 30 },
+            { id = "zombies", titleKey = "IGUI_IKST_Util_Zombies", title = "Zombies", order = 40 },
+            { id = "servertools", titleKey = "IGUI_IKST_Util_ServerTools", title = "World", order = 50 },
+            { id = "teleport", titleKey = "IGUI_IKST_Util_Teleport", title = "Teleport", order = 60 },
+            { id = "batch", titleKey = "IGUI_IKST_Staff_batch", title = "Batch", order = 70, adminOnly = true },
+        },
+    },
+    {
         id = IKST.VIEW.tiles,
         titleKey = "IGUI_IKST_WS_World",
         title = "Tiles",
@@ -69,7 +74,15 @@ IKST_HubNav.WORKSPACES = {
         desc = "Remove, paint, inspect, blueprints, protection",
         pluginId = "tiles",
         adminOnly = true,
-        tools = nil,
+        tools = {
+            { id = "overview", titleKey = "IGUI_IKST_Tiles_Overview", title = "Overview", order = 5 },
+            { id = "remove", titleKey = "IGUI_IKST_Job_Cleanup", title = "Remove", order = 10 },
+            { id = "paint", titleKey = "IGUI_IKST_Job_Painter", title = "Paint tiles", order = 20 },
+            { id = "inspect", titleKey = "IGUI_IKST_Job_Inspector", title = "Inspect tile", order = 30 },
+            { id = "blueprints", titleKey = "IGUI_IKST_Gadget_blueprints", title = "Copy build", order = 40 },
+            { id = "area", titleKey = "IGUI_IKST_Job_Automation", title = "Area jobs", order = 45 },
+            { id = "protect", titleKey = "IGUI_IKST_Tool_Protect", title = "Protection", order = 50 },
+        },
     },
     {
         id = IKST.VIEW.vehicles,
@@ -80,16 +93,12 @@ IKST_HubNav.WORKSPACES = {
         desc = "Spawn, repair, prune - admin vehicle tools",
         pluginId = "vehicles",
         adminOnly = true,
-        tools = nil,
-    },
-    {
-        id = IKST.VIEW.everyone,
-        titleKey = "IGUI_IKST_WS_Everyone",
-        title = "Everyone",
-        icon = "media/ui/ikst/ws_everyone.png",
-        descKey = "IGUI_IKST_WS_Everyone_Desc",
-        desc = "Useful info and claim lists for everyday play",
-        tools = nil,
+        tools = {
+            { id = "overview", titleKey = "IGUI_IKST_Vehicles_Overview", title = "Overview", order = 5 },
+            { id = "spawn", titleKey = "IGUI_IKST_VehicleTool_Spawn", title = "Spawn", order = 10 },
+            { id = "repair", titleKey = "IGUI_IKST_VehicleTool_Repair", title = "Repair", order = 20 },
+            { id = "prune", titleKey = "IGUI_IKST_VehicleTool_Prune", title = "Prune", order = 30 },
+        },
     },
     {
         id = IKST.VIEW.economy,
@@ -99,7 +108,12 @@ IKST_HubNav.WORKSPACES = {
         descKey = "IGUI_IKST_WS_Economy_Desc",
         desc = "Balances, vending, and transfers",
         pluginId = "economy",
-        tools = nil,
+        tools = {
+            { id = "money", titleKey = "IGUI_IKST_Economy_Tab_Money", title = "Money", order = 10 },
+            { id = "shop", titleKey = "IGUI_IKST_Economy_Tab_Shop", title = "Shops", order = 20 },
+            { id = "valuables", titleKey = "IGUI_IKST_Economy_Tab_Values", title = "Valuables", order = 30 },
+            { id = "admin", titleKey = "IGUI_IKST_Economy_Tab_Admin", title = "Admin", order = 40, adminOnly = true },
+        },
     },
     {
         id = IKST.VIEW.loot,
@@ -110,7 +124,24 @@ IKST_HubNav.WORKSPACES = {
         desc = "Repopulate containers with vanilla loot",
         pluginId = "loot",
         adminOnly = true,
-        tools = nil,
+        tools = {
+            { id = "loot", titleKey = "IGUI_IKST_WS_Loot", title = "Loot", order = 10 },
+        },
+    },
+    {
+        id = IKST.VIEW.admin,
+        titleKey = "IGUI_IKST_WS_Admin",
+        title = "Admin",
+        icon = "media/ui/ikst/ws_admin.png",
+        descKey = "IGUI_IKST_WS_Admin_Desc",
+        desc = "Ghost, kick, and ban",
+        pluginId = "admin",
+        adminOnly = true,
+        tools = {
+            { id = "ghost", titleKey = "IGUI_IKST_AdminGhostSelf", title = "Ghost", order = 10 },
+            { id = "kick", titleKey = "IGUI_IKST_UtilTile_KickPlayer", title = "Kick", order = 20 },
+            { id = "ban", titleKey = "IGUI_IKST_UtilTile_BanPlayer", title = "Ban", order = 30 },
+        },
     },
 }
 
@@ -123,7 +154,7 @@ IKST_HubNav.LEGACY_VIEW = {
     [IKST.VIEW.guard] = { mode = IKST.VIEW.claim, tool = "safehouses" },
     [IKST.VIEW.protect] = { mode = IKST.VIEW.tiles, tool = "protect" },
     [IKST.VIEW.vehicle] = { mode = IKST.VIEW.vehicles, tool = "spawn" },
-    [IKST.VIEW.economy] = { mode = IKST.VIEW.economy, tool = "economy" },
+    [IKST.VIEW.economy] = { mode = IKST.VIEW.economy, tool = "money" },
     [IKST.VIEW.threat] = { mode = IKST.VIEW.utilities, tool = "zombies" },
     [IKST.VIEW.loot] = { mode = IKST.VIEW.loot, tool = "loot" },
     [IKST.VIEW.worldedit] = { mode = IKST.VIEW.tiles, tool = "remove" },
@@ -261,13 +292,22 @@ function IKST_HubNav.defaultTool(modeId)
         return pluginTools[1].id
     end
     if modeId == IKST.VIEW.economy then
-        return "economy"
+        return "money"
     end
     if modeId == IKST.VIEW.loot then
         return "loot"
     end
     if modeId == IKST.VIEW.admin then
-        return "admin"
+        return "ghost"
+    end
+    if modeId == IKST.VIEW.everyone then
+        return "overview"
+    end
+    if modeId == IKST.VIEW.tiles then
+        return "overview"
+    end
+    if modeId == IKST.VIEW.vehicles then
+        return "overview"
     end
     return nil
 end
@@ -282,16 +322,19 @@ function IKST_HubNav.getNav(state)
         return IKST.VIEW.favorites, nil
     end
     if mode == IKST.VIEW.everyone then
-        return IKST.VIEW.everyone, nil
+        if not tool then
+            tool = "overview"
+        end
+        return IKST.VIEW.everyone, tool
     end
     if mode == IKST.VIEW.economy and not tool then
-        tool = "economy"
+        tool = "money"
     end
     if mode == IKST.VIEW.loot and not tool then
         tool = "loot"
     end
     if mode == IKST.VIEW.admin and not tool then
-        tool = "admin"
+        tool = "ghost"
     end
     if not tool then
         tool = IKST_HubNav.defaultTool(mode)
@@ -314,10 +357,6 @@ function IKST_HubNav.applyNav(state, modeId, toolId)
     state.navMode = modeId
     state.view = modeId
     state.job = modeId
-    if modeId == IKST.VIEW.everyone then
-        state.navTool = nil
-        return
-    end
     if not toolId then
         toolId = IKST_HubNav.defaultTool(modeId)
     end
@@ -342,6 +381,8 @@ function IKST_HubNav.applyToolState(state, modeId, toolId)
             state.staffMode = "world"
         elseif toolId == "teleport" then
             state.staffMode = "waypoints"
+        elseif toolId == "batch" then
+            state.staffMode = "batch"
         end
     elseif modeId == IKST.VIEW.claim then
         if toolId == "overview" then
@@ -379,6 +420,16 @@ function IKST_HubNav.applyToolState(state, modeId, toolId)
         end
     elseif modeId == IKST.VIEW.loot then
         state.lootScope = state.lootScope or IKST.CLEANUP_SCOPES.single
+    elseif modeId == IKST.VIEW.economy then
+        if toolId == "money" or toolId == "shop" or toolId == "valuables" or toolId == "admin" then
+            state.economyMode = toolId
+        elseif toolId == "economy" then
+            state.economyMode = state.economyMode or "money"
+        end
+    elseif modeId == IKST.VIEW.everyone then
+        state.everyoneTool = toolId
+    elseif modeId == IKST.VIEW.admin then
+        state.adminTool = toolId
     end
 end
 
@@ -573,7 +624,19 @@ function IKST_HubNav.toolsForWorkspace(workspaceId, player)
         end
     end
     for _, tool in ipairs(IKST.Plugins.hubToolsForMode(workspaceId)) do
-        tools[#tools + 1] = tool
+        local id = tool and tool.id
+        local dup = false
+        if id then
+            for i = 1, #tools do
+                if tools[i].id == id then
+                    dup = true
+                    break
+                end
+            end
+        end
+        if not dup then
+            tools[#tools + 1] = tool
+        end
     end
     table.sort(tools, function(a, b)
         return (tonumber(a.order) or 50) < (tonumber(b.order) or 50)
@@ -582,7 +645,7 @@ function IKST_HubNav.toolsForWorkspace(workspaceId, player)
 end
 
 function IKST_HubNav.hasSidebar(view, player)
-    if IKST_HubNav.isHomeView(view) or view == IKST.VIEW.everyone then
+    if IKST_HubNav.isHomeView(view) then
         return false
     end
     return #IKST_HubNav.toolsForWorkspace(view, player) > 0
@@ -607,6 +670,33 @@ function IKST_HubNav.buildSidebar(panel)
     local itemH = math.max(32, IKST_UI_Layout.s(40))
     local gap = IKST_UI_Layout.s(8)
 
+    -- Aegis: on tight height, pack rows then scroll — never paint through the floor.
+    local q1H = panel.q1Panel.height or 0
+    local visibleCount = #tools
+    local space = math.max(0, q1H - pad * 2)
+    local need = visibleCount * (itemH + gap)
+    local navScroll = panel._hubNavScroll or 0
+    if visibleCount > 0 and need > space and space > 0 then
+        local perEntry = math.max(24, math.floor(space / visibleCount))
+        gap = math.max(2, math.min(gap, perEntry - 22))
+        itemH = math.max(22, perEntry - gap)
+        need = visibleCount * (itemH + gap)
+    end
+    local maxScroll = math.max(0, need - space)
+    if navScroll > maxScroll then
+        navScroll = maxScroll
+    end
+    if navScroll < 0 then
+        navScroll = 0
+    end
+    panel._hubNavScroll = navScroll
+    panel._hubNavMaxScroll = maxScroll
+    y = pad - navScroll
+
+    if panel.q1Panel.clipping ~= nil then
+        panel.q1Panel.clipping = true
+    end
+
     -- Home lives on the chrome Home button; do not duplicate Dashboard in the sidebar.
     for _, tool in ipairs(tools) do
         local label = IKST_HubNav.toolLabel(tool)
@@ -614,6 +704,7 @@ function IKST_HubNav.buildSidebar(panel)
             panel:enterNav(panel.view, tool.id)
         end)
         btn:initialise()
+        btn._ikstHubSatellite = true
         IKUI_Chrome.styleNavPill(btn, activeTool == tool.id)
         local tip = label
         if tool.descKey or tool.desc then

@@ -146,13 +146,19 @@ end
 
 function IKST_VehicleRelocateBackup.vehicleAtOrigin(oldId, origin)
 
-    if oldId == nil or type(origin) ~= "table" or not getVehicleById then
+    if oldId == nil or type(origin) ~= "table" or type(getVehicleById) ~= "function" then
 
         return nil
 
     end
 
-    local existing = getVehicleById(oldId)
+    local nid = tonumber(oldId)
+    if nid == nil then
+        return nil
+    end
+    nid = math.floor(nid)
+
+    local existing = getVehicleById(nid)
 
     if not existing or not existing.getX or not existing.getY then
 

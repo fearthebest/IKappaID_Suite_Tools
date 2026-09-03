@@ -328,7 +328,18 @@ function IKST_Server.handleCommand(moduleName, command, playerObj, args)
     end
 
     if command == IKST.CMD.claimRequestApprove then
-        ok, msg = IKST_ClaimRequestQueue.approve(playerObj, args and args.id)
+        ok, msg = IKST_ClaimRequestQueue.approve(playerObj, args and args.id, args)
+        IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
+        if ok then
+            IKST.deliverClientCommand(playerObj, IKST.CMD.claimRequestListResult, {
+                pending = IKST_ClaimRequestQueue.list(),
+            })
+        end
+        return
+    end
+
+    if command == IKST.CMD.claimRequestSetBounds then
+        ok, msg = IKST_ClaimRequestQueue.setBounds(playerObj, args and args.id, args)
         IKST_WorldOps.sendResult(playerObj, ok, msg, nil, nil, nil, command)
         if ok then
             IKST.deliverClientCommand(playerObj, IKST.CMD.claimRequestListResult, {

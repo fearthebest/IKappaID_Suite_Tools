@@ -7,7 +7,6 @@ require "IKST_Grid"
 require "IKST_Claim"
 require "IKST_PreviewOverlay"
 require "IKST_JobGuard"
-require "IKST_JobsPanel"
 
 IKST_Preview = IKST_Preview or {}
 
@@ -244,12 +243,12 @@ local function previewMoveKey(panel)
 end
 
 local function onPreviewTick()
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if not panel or not panel.getIsVisible or not panel:getIsVisible() then
+    local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+    if not panel or type(panel.getIsVisible) ~= "function" or not panel:getIsVisible() then
         _previewMoveKey = ""
         return
     end
-    if IKST_HubNav and IKST_HubNav.isFavoritesView(panel.view) then
+    if IKST_HubNav and type(IKST_HubNav.isFavoritesView) == "function" and IKST_HubNav.isFavoritesView(panel.view) then
         return
     end
     local key = previewMoveKey(panel)

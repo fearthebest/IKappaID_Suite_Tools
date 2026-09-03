@@ -2,6 +2,10 @@ require "IKST_Plugins"
 require "IKST_ClaimPolicy"
 require "IKST_Access"
 
+if not (type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient()) then
+    require "IKST_SoftTool_Tiles"
+end
+
 local ADMIN_COMMANDS = {
     inspectSquare = true,
     cleanupObject = true,
@@ -122,50 +126,50 @@ local BUILD_TOOLS = {
 }
 
 local function buildOverview(panel)
-    if IKST_JobWorldEdit and IKST_JobWorldEdit.buildOverview then
-        return IKST_JobWorldEdit.buildOverview(panel)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildOverview then
+        return IKST_SoftTool_Tiles.buildOverview(panel)
     end
     return 8
 end
 
 local function buildRemove(panel)
-    if IKST_JobCleanup and IKST_JobCleanup.build then
-        return IKST_JobCleanup.build(panel)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildRemove then
+        return IKST_SoftTool_Tiles.buildRemove(panel)
     end
     return 8
 end
 
 local function buildPaint(panel)
-    if IKST_JobPainter and IKST_JobPainter.build then
-        return IKST_JobPainter.build(panel)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildPaint then
+        return IKST_SoftTool_Tiles.buildPaint(panel)
     end
     return 8
 end
 
 local function buildInspect(panel)
-    if IKST_JobInspector and IKST_JobInspector.build then
-        return IKST_JobInspector.build(panel)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildInspect then
+        return IKST_SoftTool_Tiles.buildInspect(panel)
     end
     return 8
 end
 
 local function buildBlueprints(panel)
-    if IKST_JobTilesGuard and IKST_JobTilesGuard.buildBlueprints then
-        return IKST_JobTilesGuard.buildBlueprints(panel, 8)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildBlueprints then
+        return IKST_SoftTool_Tiles.buildBlueprints(panel)
     end
     return 8
 end
 
 local function buildArea(panel)
-    if IKST_JobAutomation and IKST_JobAutomation.build then
-        return IKST_JobAutomation.build(panel)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildArea then
+        return IKST_SoftTool_Tiles.buildArea(panel)
     end
     return 8
 end
 
 local function buildProtect(panel)
-    if IKST_JobTilesGuard and IKST_JobTilesGuard.buildProtect then
-        return IKST_JobTilesGuard.buildProtect(panel, 8)
+    if IKST_SoftTool_Tiles and IKST_SoftTool_Tiles.buildProtect then
+        return IKST_SoftTool_Tiles.buildProtect(panel)
     end
     return 8
 end

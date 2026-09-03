@@ -1,5 +1,27 @@
 # IKST UI guardrails
 
+## Suite architecture (mandatory — follow strictly)
+
+**One approach only.** The old dock / dual-window mod is gone. Entire suite = Aegis soft hub (HyperOS chrome). **No hybrids.**
+
+**Aegis structure for all of IKST.** Read and obey [`docs/AEGIS-SUITE-LAW.md`](AEGIS-SUITE-LAW.md) before any UI work — total soft refactor, not parallel paths.  
+**Claim / safehouse domain UX** (inside that shell): also [`docs/CLAIM-UX-LAW.md`](CLAIM-UX-LAW.md) (Survivors Edge patterns only — `Desktop\3789778974`). Gate: box model (`IKUI_Layout` / `IKST_UI_Layout`) → soft layout helpers → `contains` before place. Overlap = ship blocker. No soft `splitBands`. Primary actions stay in soft; floating = optional Open window only.
+
+## Staff sandbox (document)
+
+| Option | Default | Note |
+|--------|---------|------|
+| `StaffRemoteAdmin` | **false** | DANGER when on: map-wide staff tools. Keep off on public hosts. |
+| `EnableCatchJail` / `EnableThreatTools` / `EnableUtilitiesToggle` | true | Admin-gated features; non-admins still denied by Access. Intentional admin-on. |
+
+## Vanilla wraps (inventory)
+
+Documented intentional wraps (do not add new ones): SafehouseContext, Enforcement, EconomyShopHooks, AdminChat, TicketsUI, BriefingPause. Unstable load-order risk — see ENFORCEMENT.md if present.
+
+## Locks
+
+`IKST_Locks.hashPassword` is salt+digest server-side; clients only see public locked flags.
+
 ## Framework dependency
 
 Suite Tools requires **IKappaID UI Framework** (`mod.info`: `require=\IKappaID_UI`).

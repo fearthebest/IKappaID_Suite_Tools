@@ -11,6 +11,9 @@ IKST_JobThreat = IKST_JobThreat or {}
 IKST_JobThreat.stats = { total = 0, sprinters = 0 }
 
 function IKST_JobThreat.build(panel)
+    if IKST_SoftTool_Utilities and type(IKST_SoftTool_Utilities.buildZombies) == "function" then
+        return IKST_SoftTool_Utilities.buildZombies(panel)
+    end
     if not panel.threatRadius then
         panel.threatRadius = IKST.RADIUS_PRESETS.M
     end
@@ -18,7 +21,7 @@ function IKST_JobThreat.build(panel)
     local p = panel.player
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 2, gap, { 1, 2 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -108,6 +111,9 @@ function IKST_JobThreat.build(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 
@@ -136,7 +142,7 @@ function IKST_JobThreat.onResult(args)
             IKST.notify(player, "Removed " .. tostring(args.removed) .. " zombies", true)
         end
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end

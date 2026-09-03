@@ -39,4 +39,21 @@ module IKST
             item 1 IKST.ShopTerminalKit,
         }
     }
+
+    craftRecipe ikst_craft_wallet
+    {
+        timedAction = Making,
+        time = 40,
+        Tags = InHandCraft,
+        category = Miscellaneous,
+        inputs
+        {
+            item 1 [Base.LeatherStrips],
+            item 1 [Base.Thread],
+        }
+        outputs
+        {
+            item 1 Base.Wallet,
+        }
+    }
 }

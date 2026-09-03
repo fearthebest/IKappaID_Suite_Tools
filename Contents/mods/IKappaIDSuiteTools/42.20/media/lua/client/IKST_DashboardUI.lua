@@ -5,7 +5,6 @@ end
 
 require "IKappaID_UI/IKUI_Config"
 require "IKappaID_UI/IKUI_Chrome"
-require "IKappaID_UI/IKUI_Chrome"
 require "IKST_ClaimIcons"
 require "IKST_DashboardQuick"
 
@@ -27,7 +26,7 @@ IKST_DashboardUI.STATS = {
     { id = "safehouse", titleKey = "IGUI_IKST_Dashboard_Stat_Safehouse", title = "Safehouse claims" },
     { id = "vehicle", titleKey = "IGUI_IKST_Dashboard_Stat_Vehicle", title = "Vehicle claims" },
     { id = "uptime", titleKey = "IGUI_IKST_Dashboard_Stat_Uptime", title = "Server uptime" },
-    { id = "admins", titleKey = "IGUI_IKST_Dashboard_Stat_Admins", title = "Active admins" },
+    { id = "claims", titleKey = "IGUI_IKST_Dashboard_Stat_Claims", title = "Claim requests" },
     { id = "help", titleKey = "IGUI_IKST_Dashboard_Stat_Help", title = "Pending help requests" },
 }
 
@@ -46,12 +45,18 @@ function IKST_DashboardUI.metrics(panel)
     local pad = IKST_DashboardUI.PAD
     local hint = IKUI_Config.hintStripH
     local grip = IKUI_Config.resizeGrip
+    local alertOffset = tonumber(panel and panel._homeAlertOffset) or 0
     local bodyBottom = panel.height - hint - grip
     local areaX = pad
-    local areaY = top + pad
+    local areaY = top + pad + alertOffset
     local areaW = math.max(120, panel.width - (pad * 2))
     local areaH = math.max(200, bodyBottom - areaY - pad)
-    local midY = areaY + math.floor(areaH / 2)
+    local midY
+    if panel and panel._homeStatsCollapsed then
+        midY = areaY + IKST_DashboardUI.HEADER_H
+    else
+        midY = areaY + math.floor(areaH / 2)
+    end
     return {
         pad = pad,
         top = top,
@@ -166,6 +171,21 @@ function IKST_DashboardUI.buildHeader(panel, sec)
     local refreshW = IKUI_Config.buttonWidth(refreshLabel, UIFont.Small, 74)
     local btnY = sec.headerY + math.floor((sec.headerH - btnH) / 2)
     local refreshX = m.infoX + m.infoW - refreshW - 4
+
+    local collapseLabel
+    if panel and panel._homeStatsCollapsed then
+        collapseLabel = IKST.text("IGUI_IKST_Dashboard_ExpandStats", "Show stats")
+    else
+        collapseLabel = IKST.text("IGUI_IKST_Dashboard_CollapseStats", "Hide stats")
+    end
+    local collapseW = IKUI_Config.buttonWidth(collapseLabel, UIFont.Small, 88)
+    local collapseX = refreshX - collapseW - 6
+    local collapseBtn = IKUI_Chrome.newActionButton(collapseX, btnY, collapseW, btnH, collapseLabel, panel, function()
+        if type(panel.toggleStatsCollapsed) == "function" then
+            panel:toggleStatsCollapsed()
+        end
+    end, "ghost")
+    panel:addHomeWidget(collapseBtn)
 
     local refreshBtn = IKUI_Chrome.newActionButton(refreshX, btnY, refreshW, btnH, refreshLabel, panel, function()
         if IKST_Dashboard and type(IKST_Dashboard.request) == "function" then
@@ -291,9 +311,11 @@ function IKST_DashboardUI.draw(panel, _bodyY)
         cc.textPrimary.r, cc.textPrimary.g, cc.textPrimary.b, 1, font)
 
     local statsH = m.midY - sec.statsY
-    IKST_DashboardUI.drawGridLines(panel, m.infoX, sec.statsY, m.infoW, statsH,
-        IKST_DashboardUI.STAT_COLS, IKST_DashboardUI.STAT_ROWS)
-    IKST_DashboardUI.drawStats(panel, sec)
+    if not (panel and panel._homeStatsCollapsed) and statsH > 8 then
+        IKST_DashboardUI.drawGridLines(panel, m.infoX, sec.statsY, m.infoW, statsH,
+            IKST_DashboardUI.STAT_COLS, IKST_DashboardUI.STAT_ROWS)
+        IKST_DashboardUI.drawStats(panel, sec)
+    end
 
     panel:drawRect(m.infoX, m.midY - 1, m.infoW, 2, cc.accent.a, cc.accent.r, cc.accent.g, cc.accent.b)
 

@@ -10,7 +10,7 @@ function IKST_Economy.objectSpriteName(obj)
     if not obj then
         return nil
     end
-    if obj.getSpriteName then
+    if type(obj.getSpriteName) == "function" then
         local name = obj:getSpriteName()
         if name then
             name = tostring(name)
@@ -19,9 +19,9 @@ function IKST_Economy.objectSpriteName(obj)
             end
         end
     end
-    if obj.getSprite then
+    if type(obj.getSprite) == "function" then
         local sprite = obj:getSprite()
-        if sprite and sprite.getName then
+        if sprite and type(sprite.getName) == "function" then
             local name = sprite:getName()
             if name then
                 name = tostring(name)
@@ -224,30 +224,127 @@ function IKST_Economy.atmTerminalSprite()
 end
 
 function IKST_Economy.atmTerminalSpriteCandidates()
-    return IKST_Economy.spawnSpriteCandidates(
+    local list = {}
+    local seen = {}
+    local vanilla = IKST_Economy.ATM_VANILLA_SPRITES
+    if vanilla then
+        for i = 1, #vanilla do
+            IKST_Economy._appendSpawnCandidate(list, seen, vanilla[i])
+        end
+    end
+    local rest = IKST_Economy.spawnSpriteCandidates(
         IKST_Economy.atmTerminalSprite(),
         IKST_Economy.ATM_TERMINAL_SPRITE_FALLBACKS,
         IKST_Economy.loadAtmTiles(),
         "ikst_",
         false
     )
+    for i = 1, #rest do
+        local sprite = rest[i]
+        if not seen[sprite] then
+            seen[sprite] = true
+            list[#list + 1] = sprite
+        end
+    end
+    return list
+end
+
+function IKST_Economy.squareHasAtm(sq)
+    if not sq then
+        return false
+    end
+    local sx = type(sq.getX) == "function" and sq:getX()
+    local sy = type(sq.getY) == "function" and sq:getY()
+    local sz = type(sq.getZ) == "function" and sq:getZ()
+    if sx and sy and sz and IKST_Economy.getAtm(sx, sy, sz) then
+        return true
+    end
+    if type(sq.getObjects) ~= "function" then
+        return false
+    end
+    for i = 0, sq:getObjects():size() - 1 do
+        local obj = sq:getObjects():get(i)
+        if IKST_Economy.isAtmEnabledObject(obj) or IKST_Economy.isAtmTileObject(obj) then
+            return true
+        end
+    end
+    return false
+end
+
+function IKST_Economy.findAtmCoordsNear(px, py, pz, maxDist)
+    px = math.floor(tonumber(px) or 0)
+    py = math.floor(tonumber(py) or 0)
+    pz = tonumber(pz) or 0
+    maxDist = tonumber(maxDist) or 4
+    if IKST_Economy.isAtmSquare(px, py, pz) then
+        return px, py, pz
+    end
+    if not IKST_Grid or type(IKST_Grid.getSquare) ~= "function" then
+        return nil
+    end
+    local bestDist = maxDist * maxDist + 1
+    local bestX, bestY, bestZ = nil, nil, nil
+    for dx = -maxDist, maxDist do
+        for dy = -maxDist, maxDist do
+            local distSq = dx * dx + dy * dy
+            if distSq <= maxDist * maxDist then
+                local sx = px + dx
+                local sy = py + dy
+                local sq = IKST_Grid.getSquare(sx, sy, pz)
+                if sq and IKST_Economy.squareHasAtm(sq) then
+                    if distSq < bestDist then
+                        bestDist = distSq
+                        bestX, bestY, bestZ = sx, sy, pz
+                    end
+                end
+            end
+        end
+    end
+    return bestX, bestY, bestZ
+end
+
+function IKST_Economy.resolveAtmCoord(player, x, y, z)
+    local maxDist = IKST_Economy.shopMaxDistance() + 2
+    local ax = tonumber(x)
+    local ay = tonumber(y)
+    local az = tonumber(z) or 0
+    if ax and ay and IKST_Economy.isAtmSquare(ax, ay, az) then
+        return ax, ay, az
+    end
+    if player then
+        return IKST_Economy.findAtmCoordsNear(player:getX(), player:getY(), player:getZ(), maxDist)
+    end
+    return nil
+end
+
+-- Client command hint: nearest ATM square, else player tile (server re-validates).
+function IKST_Economy.commandAtmCoords(player, x, y, z)
+    local ax, ay, az = IKST_Economy.resolveAtmCoord(player, x, y, z)
+    if ax then
+        return ax, ay, az
+    end
+    player = IKST.resolvePlayer(player)
+    if not player then
+        return math.floor(tonumber(x) or 0), math.floor(tonumber(y) or 0), tonumber(z) or 0
+    end
+    return math.floor(player:getX()), math.floor(player:getY()), player:getZ()
 end
 
 function IKST_Economy.isAtmEnabledObject(obj)
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return false
     end
     local md = obj:getModData()
     return md and md[IKST_Economy.ATM_TAG] == true
 end
 
--- Vanilla bank ATM prop sprite (decorative in vanilla — not enabled until admin places or marks).
+-- Vanilla standing ATM kiosk sprite (map gas stations / banks).
 function IKST_Economy.isAtmTileObject(obj)
     return IKST_Economy.isAtmTileSprite(IKST_Economy.objectSpriteName(obj))
 end
 
 function IKST_Economy.findAtmObjectOnSquare(sq)
-    if not sq or not sq.getObjects then
+    if not sq or type(sq.getObjects) ~= "function" then
         return nil
     end
     for i = 0, sq:getObjects():size() - 1 do
@@ -278,7 +375,7 @@ function IKST_Economy.shopTerminalSpriteCandidates()
 end
 
 function IKST_Economy.isBuiltShopTerminal(obj)
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return false
     end
     local md = obj:getModData()
@@ -306,7 +403,10 @@ function IKST_Economy.isShopTileSprite(spriteName)
 end
 
 function IKST_Economy.isShopTileObject(obj)
-    if not obj or not obj.getContainer or not obj:getContainer() then
+    if not obj or type(obj.getContainer) ~= "function" then
+        return false
+    end
+    if not obj:getContainer() then
         return false
     end
     if IKST_Economy.isBuiltShopTerminal(obj) then
@@ -316,7 +416,7 @@ function IKST_Economy.isShopTileObject(obj)
 end
 
 function IKST_Economy.isVendObject(obj)
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return false
     end
     local md = obj:getModData()
@@ -324,7 +424,7 @@ function IKST_Economy.isVendObject(obj)
 end
 
 function IKST_Economy.vendOwnerOfObject(obj)
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return nil
     end
     local md = obj:getModData()
@@ -360,7 +460,7 @@ function IKST_Economy.isProtectedShopObject(obj)
 end
 
 function IKST_Economy.shopPlacerOfObject(obj)
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return nil
     end
     local md = obj:getModData()

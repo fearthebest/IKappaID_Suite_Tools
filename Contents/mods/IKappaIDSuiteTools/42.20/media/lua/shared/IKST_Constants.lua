@@ -2,7 +2,7 @@
 IKST = IKST or {}
 
 IKST.MODULE = "IKST"
-IKST.VERSION = "0.3.2.1"
+IKST.VERSION = "0.3.2.3"
 
 IKST.STAFF_ECONOMY_GIVE_MAX = 500000
 IKST.RESTORE_MAX_PERK_LEVEL = 10
@@ -166,6 +166,11 @@ IKST.CMD = {
     vehicleClaimNearby = "vehicleClaimNearby",
     safehouseAddMember = "safehouseAddMember",
     safehouseRemoveMember = "safehouseRemoveMember",
+    safehouseInvite = "safehouseInvite",
+    safehouseInviteRespond = "safehouseInviteRespond",
+    safehouseInviteList = "safehouseInviteList",
+    safehouseInviteListResult = "safehouseInviteListResult",
+    safehouseInviteNotify = "safehouseInviteNotify",
     safehouseClaimSetPerms = "safehouseClaimSetPerms",
     safehouseSetRespawn = "safehouseSetRespawn",
     journalRecord = "journalRecord",
@@ -231,6 +236,7 @@ IKST.CMD = {
     claimRequestListResult = "claimRequestListResult",
     claimRequestApprove = "claimRequestApprove",
     claimRequestDeny = "claimRequestDeny",
+    claimRequestSetBounds = "claimRequestSetBounds",
     helpList = "helpList",
     helpResolve = "helpResolve",
     helpListResult = "helpListResult",
@@ -298,6 +304,9 @@ IKST.GUARD_COMMANDS = {
     vehicleClaimNearby = true,
     safehouseAddMember = true,
     safehouseRemoveMember = true,
+    safehouseInvite = true,
+    safehouseInviteRespond = true,
+    safehouseInviteList = true,
     safehouseClaimSetPerms = true,
     safehouseSetRespawn = true,
 }
@@ -314,6 +323,9 @@ IKST.PLAYER_CLAIM_COMMANDS = {
     safehouseRelease = true,
     safehouseAddMember = true,
     safehouseRemoveMember = true,
+    safehouseInvite = true,
+    safehouseInviteRespond = true,
+    safehouseInviteList = true,
     safehouseClaimSetPerms = true,
     safehouseSetRespawn = true,
     journalRecord = true,
@@ -339,6 +351,9 @@ IKST.PLAYER_CLAIM_MANAGE = {
     safehouseRelease = true,
     safehouseAddMember = true,
     safehouseRemoveMember = true,
+    safehouseInvite = true,
+    safehouseInviteRespond = true,
+    safehouseInviteList = true,
     safehouseClaimSetPerms = true,
     safehouseSetRespawn = true,
 }
@@ -400,6 +415,7 @@ IKST.STAFF_COMMANDS = {
     claimRequestList = true,
     claimRequestApprove = true,
     claimRequestDeny = true,
+    claimRequestSetBounds = true,
     staffHistoryList = true,
 }
 

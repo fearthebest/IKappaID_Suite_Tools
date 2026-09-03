@@ -17,6 +17,33 @@ require "IKST_EconomyOps_Place"
 
 IKST_EconomyOps = IKST_EconomyOps or {}
 
+local function requireAtm(player, x, y, z)
+    if not IKST_Economy.atmRequiredForBank() then
+        return tonumber(x), tonumber(y), tonumber(z) or 0, nil
+    end
+    local ax, ay, az = IKST_Economy.resolveAtmCoord(player, x, y, z)
+    if not ax then
+        return nil, nil, nil, "use an ATM"
+    end
+    if not IKST_Economy.playerNearCoord(player, ax, ay, az, IKST_Economy.shopMaxDistance() + 2) then
+        return nil, nil, nil, "too far"
+    end
+    return ax, ay, az, nil
+end
+
+local function atmActionDeniedMessage(action)
+    if action == "valuables" then
+        return "ATM cannot exchange valuables"
+    end
+    if action == "deposit" then
+        return "ATM cannot accept deposits"
+    end
+    if action == "withdraw" then
+        return "ATM cannot dispense cash"
+    end
+    return "ATM action disabled"
+end
+
 function IKST_EconomyOps.placementBlocked(player, x, y, z)
     if not player then
         return false, nil
@@ -108,13 +135,18 @@ function IKST_EconomyOps.sendVendList(player, x, y, z, entries)
 end
 
 function IKST_EconomyOps.bankGate(player, x, y, z, action)
-    if IKST_Economy.atmRequiredForBank() and not IKST_Economy.isAtmSquare(x, y, z) then
-        return false, "use an ATM"
+    local ax, ay, az, err = requireAtm(player, x, y, z)
+    if err then
+        return false, err
+    end
+    if ax then
+        x, y, z = ax, ay, az
     end
     if IKST_Economy.isAtmSquare(x, y, z) and not IKST_Economy.atmAllows(x, y, z, action) then
-        return false, "ATM action disabled"
+        return false, atmActionDeniedMessage(action)
     end
-    if not IKST_Economy.playerNearCoord(player, x, y, z, IKST_Economy.shopMaxDistance() + 2) then
+    if not IKST_Economy.atmRequiredForBank()
+        and not IKST_Economy.playerNearCoord(player, x, y, z, IKST_Economy.shopMaxDistance() + 2) then
         return false, "too far"
     end
     if IKST_Economy.idCardBanking and IKST_Economy.idCardBanking() then
@@ -740,9 +772,14 @@ function IKST_EconomyOps.playerIdCardReissue(player, x, y, z)
     end
     local staffBypass = IKST_Access and IKST_Access.canUseTools and IKST_Access.canUseTools(player)
     if not staffBypass then
-        if not IKST_Economy.isAtmSquare(x, y, z) then
-            return false, "use an ATM to replace your bank ID"
+        local ax, ay, az, err = requireAtm(player, x, y, z)
+        if err then
+            if err == "use an ATM" then
+                err = "use an ATM to replace your bank ID"
+            end
+            return false, err
         end
+        x, y, z = ax, ay, az
         if not IKST_Economy.atmAllows(x, y, z, "deposit") and not IKST_Economy.atmAllows(x, y, z, "withdraw") then
             return false, "ATM cannot replace bank ID"
         end
@@ -780,26 +817,7 @@ function IKST_EconomyOps.playerIdCardReissue(player, x, y, z)
 end
 
 function IKST_EconomyOps.exchangeGate(player, x, y, z)
-    if IKST_Economy.atmRequiredForBank() and not IKST_Economy.isAtmSquare(x, y, z) then
-        return false, "use an ATM"
-    end
-    if not IKST_Economy.atmAllows(x, y, z, "valuables") then
-        return false, "ATM cannot exchange valuables"
-    end
-    if IKST_Economy.idCardBanking and IKST_Economy.idCardBanking() then
-        local ok, status = IKST_EconomyIdentity.authorizeBankId(player, { repair = true })
-        if ok then
-            return true
-        end
-        if status == "invalid" then
-            return false, "bank ID not linked"
-        end
-        if status == "expired" then
-            return false, "bank ID expired"
-        end
-        return false, "present your bank ID card"
-    end
-    return true
+    return IKST_EconomyOps.bankGate(player, x, y, z, "valuables")
 end
 
 function IKST_EconomyOps.exchange(player, itemType, x, y, z, args)
@@ -814,10 +832,10 @@ function IKST_EconomyOps.exchange(player, itemType, x, y, z, args)
     if not entry then
         return false, "not a valuable"
     end
-    if not PhoneShop.findItem or not IKST_EconomyBridge.giveCash then
-        return false, "PhoneShop missing"
+    if not IKST_EconomyBridge.giveCash then
+        return false, "economy payout unavailable"
     end
-    local inv, item = PhoneShop.findItem(player, itemType)
+    local inv, item = IKST_Economy.findPlayerItem(player, itemType)
     if not inv or not item then
         return false, "item not found"
     end
@@ -853,7 +871,7 @@ function IKST_EconomyOps.exchangeAll(player, x, y, z, args)
         return false, gateMsg
     end
     if not IKST_EconomyBridge.giveCash then
-        return false, "PhoneShop missing"
+        return false, "economy payout unavailable"
     end
     local data = IKST_Economy.loadValuables()
     local snapshot = IKST_EconomyOps.snapshotPlayerValuables(player)
@@ -1198,7 +1216,7 @@ end
 
 function IKST_EconomyOps.handle(command, player, args)
     if not IKST_Economy.isEnabled() then
-        return false, "economy disabled or PhoneShop missing"
+        return false, "economy disabled or unavailable"
     end
     args = args or {}
     local x = math.floor(tonumber(args.x) or player:getX())

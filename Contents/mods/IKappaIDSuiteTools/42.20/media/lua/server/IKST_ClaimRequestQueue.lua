@@ -23,6 +23,7 @@ IKST_ClaimRequestQueue = IKST_ClaimRequestQueue or {}
 IKST_ClaimRequestQueue.KEY = "IKST_ClaimRequestQueue"
 IKST_ClaimRequestQueue.MAX = 40
 IKST_ClaimRequestQueue.REASON_MAX = 120
+IKST_ClaimRequestQueue.DIM_MAX = 200
 
 local COORD_ABS_MAX = 100000
 
@@ -140,9 +141,22 @@ local function validateVehicleSelfClaimRules(player, vehicle)
     return true, nil
 end
 
+-- Claim requests: any land (open ground, any building). Staff decide. Soft gates only.
 local function validateSafehouseRequestRect(player, x, y, z, w, h)
     if x == nil or y == nil or not w or not h or z == nil then
         return false, "invalid zone"
+    end
+    w = math.floor(IKST.parseNumberOptional(w) or 0)
+    h = math.floor(IKST.parseNumberOptional(h) or 0)
+    if w < 1 or h < 1 then
+        return false, "invalid zone"
+    end
+    local dimMax = IKST_ClaimRequestQueue.DIM_MAX
+    if IKST_Claim and IKST_Claim.MAX_DIM then
+        dimMax = IKST_Claim.MAX_DIM
+    end
+    if w > dimMax or h > dimMax then
+        return false, "zone too large"
     end
     local probeX = x + math.floor(w / 2)
     local probeY = y + math.floor(h / 2)
@@ -156,15 +170,7 @@ local function validateSafehouseRequestRect(player, x, y, z, w, h)
     if not square then
         return false, "invalid square"
     end
-    if IKST_Access and type(IKST_Access.canUseTools) == "function" and not IKST_Access.canUseTools(player) then
-        local building = nil
-        if type(square.getBuilding) == "function" then
-            building = square:getBuilding()
-        end
-        if not IKST_Claim.isResidentialBuilding(building) then
-            return false, "residential buildings only"
-        end
-    end
+    -- No residential / building requirement (DOTD planner pattern).
     if IKST_PhunZones and type(IKST_PhunZones.claimAllowed) == "function" then
         local allowed, blockMsg = IKST_PhunZones.claimAllowed(x, y, z, w, h, square)
         if not allowed then
@@ -186,13 +192,65 @@ local function validateSafehouseRequestRect(player, x, y, z, w, h)
     return true, nil
 end
 
+function IKST_ClaimRequestQueue.setBounds(staff, requestId, args)
+    if IKST_Authority and not IKST_Authority.guardServerMutate() then
+        return false, "server only"
+    end
+    if not staff then
+        return false, "no player"
+    end
+    local entry, index = IKST_ClaimRequestQueue.find(requestId)
+    if not entry then
+        return false, "request not found"
+    end
+    if (entry.kind or "safehouse") == "vehicle" then
+        return false, "vehicle request has no land borders"
+    end
+    local x = IKST_Args.readCoord(args, "x")
+    local y = IKST_Args.readCoord(args, "y")
+    local z = IKST_Args.readCoord(args, "z")
+    local w = IKST.parseNumberOptional(args and args.w)
+    local h = IKST.parseNumberOptional(args and args.h)
+    if x == nil then
+        x = entry.x
+    end
+    if y == nil then
+        y = entry.y
+    end
+    if z == nil then
+        z = entry.z or 0
+    end
+    if w == nil then
+        w = entry.w
+    end
+    if h == nil then
+        h = entry.h
+    end
+    w = math.floor(w or 0)
+    h = math.floor(h or 0)
+    if not coordInRange(x) or not coordInRange(y) or z == nil or w < 1 or h < 1 then
+        return false, "invalid zone"
+    end
+    local rectOk, rectErr = validateSafehouseRequestRect(staff, x, y, z, w, h)
+    if not rectOk then
+        return false, rectErr or "invalid zone"
+    end
+    entry.x = x
+    entry.y = y
+    entry.z = z
+    entry.w = w
+    entry.h = h
+    if IKST_StaffHistory and type(IKST_StaffHistory.record) == "function" then
+        IKST_StaffHistory.record(staff, "claim-request-bounds",
+            string.format("%s %dx%d @ %d,%d", tostring(entry.user), w, h, x, y), true)
+    end
+    return true, "borders updated"
+end
+
 -- Walk-draw corners -> pending staff review. Does not create a safehouse.
 function IKST_ClaimRequestQueue.submit(player, args)
     if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false, "server only"
-    end
-    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
-        return false, "multiplayer only"
     end
     if not player then
         return false, "no player"
@@ -269,9 +327,6 @@ end
 function IKST_ClaimRequestQueue.submitVehicle(player, args)
     if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false, "server only"
-    end
-    if not IKST.isMultiplayerSession or not IKST.isMultiplayerSession() then
-        return false, "multiplayer only"
     end
     if not player then
         return false, "no player"
@@ -403,7 +458,7 @@ function IKST_ClaimRequestQueue.approveVehicle(staff, entry, index)
     return true, "approved vehicle for " .. tostring(entry.user)
 end
 
-function IKST_ClaimRequestQueue.approve(staff, requestId)
+function IKST_ClaimRequestQueue.approve(staff, requestId, args)
     if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false, "server only"
     end
@@ -417,6 +472,17 @@ function IKST_ClaimRequestQueue.approve(staff, requestId)
     local kind = entry.kind or "safehouse"
     if kind == "vehicle" then
         return IKST_ClaimRequestQueue.approveVehicle(staff, entry, index)
+    end
+    -- Optional staff border edit on approve (same payload as setBounds).
+    if args and (args.w ~= nil or args.h ~= nil or args.x ~= nil or args.y ~= nil) then
+        local okBounds, boundsMsg = IKST_ClaimRequestQueue.setBounds(staff, requestId, args)
+        if not okBounds then
+            return false, boundsMsg or "invalid zone"
+        end
+        entry, index = IKST_ClaimRequestQueue.find(requestId)
+        if not entry then
+            return false, "request not found"
+        end
     end
     local ok, msg = IKST_GuardOps.claimSafehouse(
         staff,

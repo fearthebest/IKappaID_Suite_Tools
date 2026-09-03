@@ -6,7 +6,7 @@ description=Vehicle list, repair, and cleanup for IKappaID Suite Tools. Requires
 
 author=IKappaID
 
-modversion=0.3.2.1
+modversion=0.3.2.4
 
 versionMin=42.20
 
@@ -15,4 +15,3 @@ require=IKappaIDSuiteTools,IKappaIDSuiteToolsTiles
 category=Admin
 
 tags=Build 42;Admin;Vehicles;Multiplayer
-

@@ -31,6 +31,9 @@ function IKST_JobAutomation.dispatchRadius(panel, command)
 end
 
 function IKST_JobAutomation.build(panel)
+    if IKST_SoftTool_Tiles and type(IKST_SoftTool_Tiles.buildArea) == "function" then
+        return IKST_SoftTool_Tiles.buildArea(panel)
+    end
     local state = IKST.getPlayerState(panel.player)
     if not state then
         return 8
@@ -41,7 +44,7 @@ function IKST_JobAutomation.build(panel)
 
     local rect = IKST_JobLayout.toolContentRect(panel)
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 2, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 2, gap, { 1, 3 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -101,5 +104,8 @@ function IKST_JobAutomation.build(panel)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end

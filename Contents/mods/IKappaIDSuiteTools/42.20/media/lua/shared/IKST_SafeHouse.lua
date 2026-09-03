@@ -166,41 +166,8 @@ function IKST_SafeHouse.find(entry, actor)
     if byRect then
         return byRect
     end
-    actor = IKST.resolvePlayer(actor)
-    if actor and actor.getCurrentSquare then
-        local atPlayer = IKST_SafeHouse.atSquare(actor:getCurrentSquare())
-        if atPlayer then
-            local owner = entry.owner
-            if not owner or owner == "" then
-                return atPlayer
-            end
-            local shOwner = type(atPlayer.getOwner) == "function" and atPlayer:getOwner()
-            if IKST_ClaimPolicy and IKST_ClaimPolicy.usernamesEqual(shOwner, owner) then
-                return atPlayer
-            end
-        end
-    end
-    local owner = entry.owner
-    if owner and owner ~= "" and IKST_ClaimPolicy then
-        local found = nil
-        IKST_SafeHouse.iter(function(sh)
-            if found then
-                return
-            end
-            local shOwner = type(sh.getOwner) == "function" and sh:getOwner()
-            if not IKST_ClaimPolicy.usernamesEqual(shOwner, owner) then
-                return
-            end
-            local sx, sy, sw, shh = IKST_SafeHouse.bounds(sh)
-            if sx and sy and sw and shh and IKST_SafehouseClaim
-                and IKST_SafehouseClaim.pointInside(x, y, sx, sy, sw, shh) then
-                found = sh
-            elseif not found then
-                found = sh
-            end
-        end)
-        return found
-    end
+    -- C4: fail closed — never bind "first house for owner" or player square without a rect match.
+    -- Id + rect lookups above are the only resolve paths.
     return nil
 end
 

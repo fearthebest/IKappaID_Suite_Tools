@@ -1,5 +1,6 @@
 require "IKST_Shared"
 require "IKST_Identity"
+require "IKST_EconomyCash"
 
 IKST_EconomyBridge = IKST_EconomyBridge or {}
 
@@ -45,17 +46,22 @@ function IKST_EconomyBridge.getCash(player)
     if virtualBanking() then
         return 0
     end
-    if not IKST_EconomyBridge.hasCashProvider() then
-        return 0
-    end
     player = IKST.resolvePlayer(player)
     if not player then
         return 0
     end
-    if PhoneShop.getCashOnly then
-        return PhoneShop.getCashOnly(player) or 0
+    if IKST_EconomyBridge.hasCashProvider() then
+        if PhoneShop.getCashOnly then
+            return PhoneShop.getCashOnly(player) or 0
+        end
+        if PhoneShop.getMoney then
+            return PhoneShop.getMoney(player) or 0
+        end
     end
-    return PhoneShop.getMoney(player) or 0
+    if IKST_EconomyCash and type(IKST_EconomyCash.countPhysicalCash) == "function" then
+        return IKST_EconomyCash.countPhysicalCash(player, false)
+    end
+    return 0
 end
 
 function IKST_EconomyBridge.getBank(player)
@@ -93,7 +99,7 @@ function IKST_EconomyBridge.payCash(player, amount)
         return false, "not enough in bank"
     end
     if not IKST_EconomyBridge.hasCashProvider() then
-        return false, "PhoneShop not loaded"
+        return false, "cash provider unavailable"
     end
     player = IKST.resolvePlayer(player)
     amount = IKST.parseAmount(amount)
@@ -158,7 +164,7 @@ function IKST_EconomyBridge.giveCash(player, amount)
         return true, "Credited " .. formatAmount(amount)
     end
     if not IKST_EconomyBridge.hasCashProvider() then
-        return false, "PhoneShop not loaded"
+        return false, "cash provider unavailable"
     end
     player = IKST.resolvePlayer(player)
     amount = IKST.parseAmount(amount)

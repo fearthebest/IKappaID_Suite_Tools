@@ -28,6 +28,8 @@ end
 
 require "IKST_Shared"
 require "IKST_Access"
+require "IKappaID_UI/IKUI_Shell"
+require "IKST_Hub"
 
 IKST_Joypad = IKST_Joypad or {}
 IKST_Joypad._wantFocus = false
@@ -135,7 +137,7 @@ end
 
 function IKST_Joypad.focusHub(player)
     player = IKST_Joypad.resolvePlayer(player)
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
+    local panel = IKUI_Shell and IKUI_Shell.instance
     if not panel then
         return false
     end
@@ -653,15 +655,18 @@ function IKST_Joypad.toggleHubFromWorld(player)
     if not IKST_Joypad.canOpen(player) then
         return false
     end
-    if not IKST_JobsPanel or type(IKST_JobsPanel.toggle) ~= "function" then
+    if not IKST_Hub or type(IKST_Hub.toggle) ~= "function" then
         return false
     end
-    local panel = IKST_JobsPanel.instance
+    local panel = IKUI_Shell and IKUI_Shell.instance
     local wasVis = panel and type(panel.getIsVisible) == "function" and panel:getIsVisible()
+        and not (panel.minimized == true)
     IKST_Joypad._wantFocus = not wasVis
-    IKST_JobsPanel.toggle(player)
-    panel = IKST_JobsPanel.instance
-    if panel and type(panel.getIsVisible) == "function" and panel:getIsVisible() then
+    IKST_Hub.toggle(player)
+    panel = IKUI_Shell and IKUI_Shell.instance
+    local vis = panel and type(panel.getIsVisible) == "function" and panel:getIsVisible()
+        and not (panel.minimized == true)
+    if vis and IKST_Joypad._wantFocus then
         IKST_Joypad.focusHub(player)
     else
         IKST_Joypad.restorePlayerFocus(player)
@@ -670,93 +675,51 @@ function IKST_Joypad.toggleHubFromWorld(player)
 end
 
 function IKST_Joypad.installHub()
-    if IKST_Joypad._hubHooks or not IKST_JobsPanel then
+    if IKST_Joypad._hubHooks then
         return
     end
     IKST_Joypad._hubHooks = true
 
-    local oldRefresh = IKST_JobsPanel.refreshJobUI
-    function IKST_JobsPanel:refreshJobUI(preserveScroll)
-        if oldRefresh then
-            oldRefresh(self, preserveScroll)
+    if IKST_Hub and type(IKST_Hub.open) == "function" then
+        local oldOpen = IKST_Hub.open
+        function IKST_Hub.open(player)
+            local win = oldOpen(player)
+            if IKST_Joypad._wantFocus then
+                IKST_Joypad.focusHub(player)
+            end
+            return win
         end
-        if self._flushRefresh then
-            IKST_Joypad.rebuildFocusList(self)
-            if self._ikstJoypadOn then
-                IKST_Joypad.applyFocus(self)
+    end
+
+    if IKST_Hub and type(IKST_Hub.toggle) == "function" then
+        local oldToggle = IKST_Hub.toggle
+        function IKST_Hub.toggle(player)
+            local win = oldToggle(player)
+            local panel = IKUI_Shell and IKUI_Shell.instance
+            local vis = panel and type(panel.getIsVisible) == "function" and panel:getIsVisible()
+                and not (panel.minimized == true)
+            if vis and IKST_Joypad._wantFocus then
+                IKST_Joypad.focusHub(player)
+            elseif not vis then
+                IKST_Joypad.restorePlayerFocus(player)
+            end
+            return win
+        end
+    end
+
+    if IKST_SoftPageHost then
+        local oldRefresh = IKST_SoftPageHost.refreshJobUI
+        function IKST_SoftPageHost:refreshJobUI(preserveScroll)
+            if oldRefresh then
+                oldRefresh(self, preserveScroll)
+            end
+            if self._flushRefresh then
+                IKST_Joypad.rebuildFocusList(self)
+                if self._ikstJoypadOn then
+                    IKST_Joypad.applyFocus(self)
+                end
             end
         end
-    end
-
-    local oldRender = IKST_JobsPanel.render
-    function IKST_JobsPanel:render()
-        if oldRender then
-            oldRender(self)
-        elseif ISCollapsableWindow and ISCollapsableWindow.render then
-            ISCollapsableWindow.render(self)
-        end
-        IKST_Joypad.paintFocusRing(self)
-    end
-
-    local oldClose = IKST_JobsPanel.close
-    function IKST_JobsPanel:close()
-        local player = self.player
-        if oldClose then
-            oldClose(self)
-        end
-        IKST_Joypad.restorePlayerFocus(player)
-    end
-
-    local oldOpen = IKST_JobsPanel.open
-    function IKST_JobsPanel.open(player)
-        if oldOpen then
-            oldOpen(player)
-        end
-        if IKST_Joypad._wantFocus then
-            IKST_Joypad.focusHub(player)
-        end
-    end
-
-    local oldToggle = IKST_JobsPanel.toggle
-    function IKST_JobsPanel.toggle(player)
-        if oldToggle then
-            oldToggle(player)
-        end
-        local panel = IKST_JobsPanel.instance
-        local vis = panel and type(panel.getIsVisible) == "function" and panel:getIsVisible()
-        if vis and IKST_Joypad._wantFocus then
-            IKST_Joypad.focusHub(player)
-        elseif not vis then
-            IKST_Joypad.restorePlayerFocus(player)
-        end
-    end
-
-    function IKST_JobsPanel:setJoypadFocused(focused, joypadData)
-        self.joypadFocused = focused == true
-        if focused then
-            self.joyfocus = joypadData
-            self._ikstJoypadOn = true
-            IKST_Joypad.rebuildFocusList(self)
-            IKST_Joypad.applyFocus(self)
-        else
-            self.joyfocus = nil
-            self._ikstJoypadOn = false
-            IKST_Joypad.clearFocusFlags(self)
-        end
-    end
-
-    function IKST_JobsPanel:onGainJoypadFocus(joypadData)
-        if ISCollapsableWindow and type(ISCollapsableWindow.onGainJoypadFocus) == "function" then
-            ISCollapsableWindow.onGainJoypadFocus(self, joypadData)
-        end
-        self:setJoypadFocused(true, joypadData)
-    end
-
-    function IKST_JobsPanel:onLoseJoypadFocus(joypadData)
-        if ISCollapsableWindow and type(ISCollapsableWindow.onLoseJoypadFocus) == "function" then
-            ISCollapsableWindow.onLoseJoypadFocus(self, joypadData)
-        end
-        self:setJoypadFocused(false, joypadData)
     end
 end
 

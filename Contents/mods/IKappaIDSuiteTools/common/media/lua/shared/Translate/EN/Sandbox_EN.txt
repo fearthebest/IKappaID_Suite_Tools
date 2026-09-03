@@ -124,7 +124,7 @@ Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle = Enable water / power toggle
 Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle_tooltip = Staff can turn global water and power on or off. Multiplayer uses the server.
 
 Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin = Allow remote admin tools
-Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip = Use protect-radius and similar tools from far away. Not recommended on public servers.
+Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip = DANGER: When enabled, protect-radius and similar tools work map-wide from any distance. Not recommended on public servers.
 
 Sandbox_IKappaIDSuiteTools_CatchMaxDistance = Catch max distance
 Sandbox_IKappaIDSuiteTools_CatchMaxDistance_tooltip = How far Catch can reach (tiles). Remote admin bypasses this.

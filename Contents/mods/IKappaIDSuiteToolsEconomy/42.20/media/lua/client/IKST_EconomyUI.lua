@@ -14,7 +14,7 @@ require "IKST_EconomyBridge"
 require "IKST_Identity"
 require "IKST_Access"
 require "IKappaID_UI/IKUI_Chrome"
-require "IKST_ScrollArea"
+require "IKappaID_UI/IKUI_Config"
 require "IKST_EconomyIcons"
 
 IKST_EconomyUI = IKST_EconomyUI or {}
@@ -23,14 +23,22 @@ IKST_EconomyUI.VendWindow = nil
 IKST_EconomyUI._snap = { cash = 0, bank = 0, pending = 0, autoAccept = true, payReq = nil, history = {} }
 IKST_EconomyUI._texCache = {}
 
-local WIN_W, WIN_H = 520, 640
-local MIN_W, MIN_H = 440, 520
+local WIN_W, WIN_H = 520, 660
+local MIN_W, MIN_H = 440, 540
 local MARGIN = 16
 local ROW_H = 32
 local FOOTER_BTN_H = 30
 local FOOTER_STATUS_H = 44
 local ICON_SZ = 22
 local ICON_GAP = 6
+
+local function chromeBodyY(panel)
+    local top = 36
+    if IKUI_Chrome and type(IKUI_Chrome.chromeTitleH) == "function" then
+        top = IKUI_Chrome.chromeTitleH(panel)
+    end
+    return top + 8
+end
 
 local ATM_ICON_CANDIDATES = { "Base.CreditCard", "Base.MoneyBundle", "Base.ElectronicsScrap" }
 local SHOP_ICON_CANDIDATES = { "IKST.ShopTerminalKit", "Base.Pop", "Base.Wood_Crate_Lvl1" }
@@ -181,9 +189,13 @@ function IKST_EconomyUI.addJobIconLabel(panel, x, y, itemType, text, font, tall,
     if not panel or not panel.addJobWidget then
         return nil
     end
-    tall = tall or 24
+    -- Coerce: a Boolean tall (bad call sites) must never reach ISPanel:new height.
+    tall = tonumber(tall) or 24
+    x = tonumber(x) or 0
+    y = tonumber(y) or 0
     local w = IKST_JobLayout and IKST_JobLayout.clampWidth(panel, x, panel.contentW or (panel.width - 24))
         or (panel.contentW or (panel.width - 24))
+    w = tonumber(w) or 100
     local label = ISPanel:new(x, y, w, tall)
     label.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     label.borderColor = { r = 0, g = 0, b = 0, a = 0 }
@@ -206,19 +218,33 @@ function IKST_EconomyUI.applyIconButton(btn, itemType, label)
     if not btn then
         return
     end
-    btn:setTitle("")
-    local btnLabel = label
-    local iconType = itemType
-    btn.render = function(b)
-        ISButton.render(b)
-        if b.enable and type(b.isMouseOver) == "function" and b:isMouseOver() then
-            b:drawRect(0, 0, b.width, b.height, 0.12, 1, 1, 1)
+    local title = label or ""
+    if btn._ikuiRoundKind ~= nil then
+        btn._ikuiTitle = title
+        if type(btn.setTitle) == "function" then
+            btn:setTitle("")
+        else
+            btn.title = ""
         end
-        local tr, tg, tb = 0.95, 0.95, 0.95
-        if not b.enable then
-            tr, tg, tb = 0.55, 0.55, 0.55
+    elseif type(btn.setTitle) == "function" then
+        btn:setTitle(title)
+    else
+        btn.title = title
+    end
+    local tex = nil
+    if IKST_EconomyUI.isShopIconType(itemType) then
+        tex = IKST_EconomyUI.shopTexture()
+    else
+        tex = IKST_EconomyUI.itemTexture(itemType)
+    end
+    if tex then
+        btn.image = tex
+        if type(btn.setImage) == "function" then
+            btn:setImage(tex)
         end
-        IKST_EconomyUI.drawIconText(b, 4, math.max(2, math.floor((b.height - 18) / 2)), iconType, btnLabel, UIFont.Small, tr, tg, tb, 1, 16)
+    end
+    if btn._ikuiRoundKind == nil and IKUI_Chrome and type(IKUI_Chrome.styleSecondaryButton) == "function" then
+        IKUI_Chrome.styleSecondaryButton(btn)
     end
 end
 function IKST_EconomyUI.addJobIconButton(panel, x, y, w, h, itemType, label, onClick, primary)
@@ -384,8 +410,20 @@ function IKST_EconomyPanel:new(x, y, w, h)
     o.player = nil
     o.atmX, o.atmY, o.atmZ = 0, 0, 0
     o.statusText = ""
+    o.clipping = true
+    o.background = false
+    o.drawFrame = false
+    o.dragging = false
+    o._ikuiChromeBarH = IKUI_Config.s(36)
     IKUI_Chrome.applyPanelColors(o)
     return o
+end
+
+function IKST_EconomyPanel:titleBarHeight()
+    if type(self._ikuiChromeBarH) == "number" then
+        return self._ikuiChromeBarH
+    end
+    return IKUI_Config.s(36)
 end
 
 function IKST_EconomyPanel:initialise()
@@ -394,6 +432,90 @@ function IKST_EconomyPanel:initialise()
         self:setResizable(true)
     end
     self:buildUI()
+    IKUI_Chrome.attachWindowChrome(self, {
+        onClose = function(panel)
+            if panel and type(panel.close) == "function" then
+                panel:close()
+            end
+        end,
+        onMinimize = function(panel)
+            if panel and type(panel.setVisible) == "function" then
+                panel:setVisible(false)
+            end
+        end,
+    })
+end
+
+function IKST_EconomyPanel:prerender()
+    IKUI_Chrome.suppressVanillaWindowButtons(self)
+    IKUI_Chrome.applyPanelColors(self)
+    if type(ISPanel.prerender) == "function" then
+        ISPanel.prerender(self)
+    end
+    IKUI_Chrome.drawSoftShell(self)
+    IKUI_Chrome.drawWindowTitle(self, self.title)
+    IKUI_Chrome.layoutWindowChrome(self)
+    if self.amountEntry and type(IKUI_Chrome.styleInput) == "function" then
+        local focused = type(self.amountEntry.isFocused) == "function" and self.amountEntry:isFocused()
+        IKUI_Chrome.styleInput(self.amountEntry, focused == true)
+    end
+end
+
+function IKST_EconomyPanel:render()
+    if type(ISPanel.render) == "function" then
+        ISPanel.render(self)
+    end
+end
+
+function IKST_EconomyPanel:close()
+    self.dragging = false
+    if type(ISCollapsableWindow.close) == "function" then
+        ISCollapsableWindow.close(self)
+    elseif type(self.removeFromUIManager) == "function" then
+        self:removeFromUIManager()
+    end
+    if IKST_EconomyUI.Window == self then
+        IKST_EconomyUI.Window = nil
+    end
+end
+
+function IKST_EconomyPanel:onMouseDown(x, y)
+    local titleH = IKUI_Chrome.chromeTitleH(self)
+    local reserve = IKUI_Chrome.chromeTitleReserve()
+    if y >= 0 and y < titleH and x < (self.width or 0) - reserve then
+        self.dragging = true
+        self.dragX = x
+        self.dragY = y
+        return true
+    end
+    if type(ISPanel.onMouseDown) == "function" then
+        return ISPanel.onMouseDown(self, x, y)
+    end
+    return false
+end
+
+function IKST_EconomyPanel:onMouseMove(dx, dy)
+    if self.dragging then
+        self:setX(self.x + dx)
+        self:setY(self.y + dy)
+        return
+    end
+    if type(ISPanel.onMouseMove) == "function" then
+        ISPanel.onMouseMove(self, dx, dy)
+    end
+end
+
+function IKST_EconomyPanel:onMouseMoveOutside(dx, dy)
+    self:onMouseMove(dx, dy)
+end
+
+function IKST_EconomyPanel:onMouseUp(_x, _y)
+    self.dragging = false
+    IKUI_Chrome.clampPanelPosition(self)
+end
+
+function IKST_EconomyPanel:onMouseUpOutside(x, y)
+    self:onMouseUp(x, y)
 end
 
 function IKST_EconomyPanel:selectedValuableRow()
@@ -415,7 +537,7 @@ function IKST_EconomyPanel:relayout()
     local w = self.width
     local innerW = w - MARGIN * 2
     local rightBtnX = w - MARGIN - 80
-    local y = 34
+    local y = chromeBodyY(self)
 
     self.balancePanel:setX(MARGIN)
     self.balancePanel:setY(y)
@@ -458,39 +580,54 @@ function IKST_EconomyPanel:relayout()
     self.lblVal:setWidth(innerW)
     y = y + 24
 
-    self._listTopY = y
-    local footerH = FOOTER_BTN_H + 8 + FOOTER_STATUS_H + MARGIN
-    local listH = math.max(96, self.height - y - footerH)
-    if self.valScroll then
-        self.valScroll:setX(MARGIN)
-        self.valScroll:setY(y)
-        self.valScroll:setWidth(innerW)
-        self.valScroll:setHeight(listH)
-    end
+    local listTop = y
+    self._listTopY = listTop
+    local statusY = self.height - MARGIN - FOOTER_STATUS_H
+    local btnY = statusY - FOOTER_BTN_H - 8
+    local listH = math.max(48, btnY - listTop - 8)
+
     if self.valList then
-        self.valList:setX(0)
-        self.valList:setY(0)
+        self.valList:setX(MARGIN)
+        self.valList:setY(listTop)
         self.valList:setWidth(innerW)
         self.valList:setHeight(listH)
+        if self.valList.clipping ~= nil then
+            self.valList.clipping = true
+        end
     end
-    y = y + listH + 8
 
     self.btnSell:setX(MARGIN)
-    self.btnSell:setY(y)
-    self.btnSell:setWidth(100)
-    self.btnSellAll:setX(MARGIN + 106)
-    self.btnSellAll:setY(y)
+    self.btnSell:setY(btnY)
+    self.btnSell:setWidth(110)
+    self.btnSell:setHeight(FOOTER_BTN_H)
+    self.btnSellAll:setX(MARGIN + 118)
+    self.btnSellAll:setY(btnY)
     self.btnSellAll:setWidth(120)
-    local replaceW = math.min(150, math.max(110, innerW - 232))
-    self.btnReplaceId:setX(MARGIN + 232)
-    self.btnReplaceId:setY(y)
+    self.btnSellAll:setHeight(FOOTER_BTN_H)
+    local replaceW = math.min(150, math.max(110, innerW - 250))
+    self.btnReplaceId:setX(MARGIN + 246)
+    self.btnReplaceId:setY(btnY)
     self.btnReplaceId:setWidth(replaceW)
-    y = y + FOOTER_BTN_H + 8
+    self.btnReplaceId:setHeight(FOOTER_BTN_H)
 
     self.statusPanel:setX(MARGIN)
-    self.statusPanel:setY(math.max(y, self.height - FOOTER_STATUS_H - MARGIN))
+    self.statusPanel:setY(statusY)
     self.statusPanel:setWidth(innerW)
     self.statusPanel:setHeight(FOOTER_STATUS_H)
+
+    -- Keep footer actions above the list paint order.
+    if type(self.btnSell.bringToTop) == "function" then
+        self.btnSell:bringToTop()
+    end
+    if type(self.btnSellAll.bringToTop) == "function" then
+        self.btnSellAll:bringToTop()
+    end
+    if type(self.btnReplaceId.bringToTop) == "function" then
+        self.btnReplaceId:bringToTop()
+    end
+    if type(self.statusPanel.bringToTop) == "function" then
+        self.statusPanel:bringToTop()
+    end
 end
 
 function IKST_EconomyPanel:onResize()
@@ -499,7 +636,7 @@ function IKST_EconomyPanel:onResize()
 end
 
 function IKST_EconomyPanel:buildUI()
-    local y = 34
+    local y = chromeBodyY(self)
 
     self.balancePanel = ISPanel:new(12, y, self.width - 24, 58)
     self.balancePanel.backgroundColor = IKUI_Chrome.colors.bgCard
@@ -546,6 +683,9 @@ function IKST_EconomyPanel:buildUI()
     self.amountEntry = ISTextEntryBox:new("100", 40, y, 52, 22)
     self.amountEntry:initialise()
     self.amountEntry:instantiate()
+    if type(IKUI_Chrome.styleInput) == "function" then
+        IKUI_Chrome.styleInput(self.amountEntry, false)
+    end
     self:addChild(self.amountEntry)
 
     self.btnDeposit = ISButton:new(100, y, 88, 22, "", self, IKST_EconomyPanel.onDeposit)
@@ -564,7 +704,7 @@ function IKST_EconomyPanel:buildUI()
     self.lblWire = IKST_EconomyNote:new(12, y, self.width - 24, 22, IKST_EconomyUI.cashItemType())
     self.lblWire.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     self.lblWire.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    self.lblWire:setNote(IKST.text("IGUI_IKST_Economy_WireHelp", "Wire — send physical cash to a nearby player (within range)."))
+    self.lblWire:setNote(IKST.text("IGUI_IKST_Economy_WireTitle", "Wire — nearby players"))
     self.lblWire:initialise()
     self:addChild(self.lblWire)
     y = y + 24
@@ -573,7 +713,7 @@ function IKST_EconomyPanel:buildUI()
     self.wireCombo:initialise()
     self:addChild(self.wireCombo)
 
-    self.btnWire = ISButton:new(self.width - 92, y, 80, 22, "", self, IKST_EconomyPanel.onWire)
+    self.btnWire = ISButton:new(self.width - 92, y, 80, 22, IKST.text("IGUI_IKST_Economy_WireBtn", "Wire"), self, IKST_EconomyPanel.onWire)
     self.btnWire:initialise()
     IKUI_Chrome.stylePrimaryButton(self.btnWire)
     IKST_EconomyUI.applyIconButton(self.btnWire, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_WireBtn", "Wire"))
@@ -583,44 +723,47 @@ function IKST_EconomyPanel:buildUI()
     self.lblVal = IKST_EconomyNote:new(12, y, self.width - 24, 22, IKST_EconomyUI.atmItemType())
     self.lblVal.backgroundColor = { r = 0, g = 0, b = 0, a = 0 }
     self.lblVal.borderColor = { r = 0, g = 0, b = 0, a = 0 }
-    self.lblVal:setNote(IKST.text("IGUI_IKST_Economy_ValuableHelp", "Exchange — sell junk for cash (at ATM when required)."))
+    self.lblVal:setNote(IKST.text("IGUI_IKST_Economy_ExchangeTitle", "Exchange — sell valuables"))
     self.lblVal:initialise()
     self:addChild(self.lblVal)
     y = y + 24
 
-    self.valScroll = IKST_ScrollArea:new(MARGIN, y, self.width - MARGIN * 2, 120)
-    self.valScroll:initialise()
-    self.valScroll:instantiate()
-    self:addChild(self.valScroll)
-    self.valList = ISScrollingListBox:new(0, 0, self.width - MARGIN * 2, 120)
+    self.valList = ISScrollingListBox:new(MARGIN, y, self.width - MARGIN * 2, 120)
     self.valList:initialise()
     self.valList:instantiate()
     self.valList.itemheight = ROW_H
     self.valList.font = UIFont.Small
     self.valList.drawBorder = true
-    self.valList.backgroundColor = IKUI_Chrome.colors.bgCard
-    self.valList.borderColor = IKUI_Chrome.colors.accentDim
-    self.valScroll:addScrollChild(self.valList)
+    if IKUI_Chrome and type(IKUI_Chrome.styleListBox) == "function" then
+        IKUI_Chrome.styleListBox(self.valList)
+    else
+        self.valList.backgroundColor = IKUI_Chrome.colors.bgCard
+        self.valList.borderColor = IKUI_Chrome.colors.accentDim
+    end
+    if self.valList.clipping ~= nil then
+        self.valList.clipping = true
+    end
+    self:addChild(self.valList)
 
-    self.btnSell = ISButton:new(MARGIN, y, 100, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onExchange)
+    self.btnSell = ISButton:new(MARGIN, 0, 110, FOOTER_BTN_H, IKST.text("IGUI_IKST_Economy_Exchange", "Sell one"), self, IKST_EconomyPanel.onExchange)
     self.btnSell:initialise()
     IKUI_Chrome.styleSecondaryButton(self.btnSell)
-    IKST_EconomyUI.applyIconButton(self.btnSell, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_Exchange", "Sell 1"))
+    IKST_EconomyUI.applyIconButton(self.btnSell, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_Exchange", "Sell one"))
     self:addChild(self.btnSell)
 
-    self.btnSellAll = ISButton:new(MARGIN + 106, y, 120, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onExchangeAll)
+    self.btnSellAll = ISButton:new(MARGIN + 118, 0, 120, FOOTER_BTN_H, IKST.text("IGUI_IKST_Economy_SellAll", "Sell all"), self, IKST_EconomyPanel.onExchangeAll)
     self.btnSellAll:initialise()
     IKUI_Chrome.stylePrimaryButton(self.btnSellAll)
     IKST_EconomyUI.applyIconButton(self.btnSellAll, IKST_EconomyUI.cashItemType(), IKST.text("IGUI_IKST_Economy_SellAll", "Sell all"))
     self:addChild(self.btnSellAll)
 
-    self.btnReplaceId = ISButton:new(MARGIN + 232, y, 130, FOOTER_BTN_H, "", self, IKST_EconomyPanel.onReplaceIdCard)
+    self.btnReplaceId = ISButton:new(MARGIN + 246, 0, 130, FOOTER_BTN_H, IKST.text("IGUI_IKST_Economy_ReplaceId", "Replace bank ID"), self, IKST_EconomyPanel.onReplaceIdCard)
     self.btnReplaceId:initialise()
     IKUI_Chrome.styleSecondaryButton(self.btnReplaceId)
     IKST_EconomyUI.applyIconButton(self.btnReplaceId, "Base.IDcard", IKST.text("IGUI_IKST_Economy_ReplaceId", "Replace bank ID"))
     self:addChild(self.btnReplaceId)
 
-    self.statusPanel = ISPanel:new(MARGIN, y, self.width - MARGIN * 2, FOOTER_STATUS_H)
+    self.statusPanel = ISPanel:new(MARGIN, 0, self.width - MARGIN * 2, FOOTER_STATUS_H)
     self.statusPanel.backgroundColor = IKUI_Chrome.colors.bgCard
     self.statusPanel.borderColor = IKUI_Chrome.colors.accentDim
     self.statusPanel:initialise()
@@ -724,6 +867,9 @@ function IKST_EconomyPanel:refreshValuables()
     end
     if #rows == 0 then
         self.valList:addItem(IKST.text("IGUI_IKST_Economy_NoValuables", "No valuables configured."), nil)
+    end
+    if type(self.relayout) == "function" then
+        self:relayout()
     end
 end
 
@@ -829,14 +975,18 @@ function IKST_EconomyUI.onSnapshot(args)
         IKST_EconomyUI.Window:refreshBalances()
         IKST_EconomyUI.Window:setStatus(IKST.text("IGUI_IKST_Economy_BalancesUpdated", "Balances updated."))
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        local panel = IKST_JobsPanel.instance
+    local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+    if panel then
         local savedAmount = nil
-        if panel.economyAmount and panel.economyAmount.getText then
+        if panel.economyAmount and type(panel.economyAmount.getText) == "function" then
             savedAmount = panel.economyAmount:getText()
         end
-        panel:refreshJobUI(true)
-        if savedAmount and panel.economyAmount and panel.economyAmount.setText then
+        if type(panel.refreshJobUI) == "function" then
+            panel:refreshJobUI(true)
+        elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive(true)
+        end
+        if savedAmount and panel.economyAmount and type(panel.economyAmount.setText) == "function" then
             panel.economyAmount:setText(savedAmount)
         end
     end
@@ -851,6 +1001,10 @@ function IKST_EconomyUI.open(player, atmX, atmY, atmZ)
     atmX = math.floor(tonumber(atmX) or player:getX())
     atmY = math.floor(tonumber(atmY) or player:getY())
     atmZ = math.floor(tonumber(atmZ) or player:getZ())
+    local ax, ay, az = IKST_Economy.resolveAtmCoord(player, atmX, atmY, atmZ)
+    if ax then
+        atmX, atmY, atmZ = ax, ay, az
+    end
     if IKST_EconomyUI.Window then
         IKST_EconomyUI.Window.player = player
         IKST_EconomyUI.Window.atmX = atmX
@@ -858,6 +1012,9 @@ function IKST_EconomyUI.open(player, atmX, atmY, atmZ)
         IKST_EconomyUI.Window.atmZ = atmZ
         IKST_EconomyUI.Window:setVisible(true)
         IKST_EconomyUI.Window:bringToTop()
+        if type(IKST_EconomyUI.Window.relayout) == "function" then
+            IKST_EconomyUI.Window:relayout()
+        end
         IKST_EconomyUI.Window:refreshAll()
         return
     end
@@ -1157,9 +1314,16 @@ function IKST_EconomyUI.onServerResult(args)
             IKST_EconomyUI.VendWindow:requestList()
         end
     end
-    if shopCmd and args.success and IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobEconomy.requestVendList(IKST_JobsPanel.instance)
-        IKST_JobsPanel.instance:refreshJobUI()
+    if shopCmd and args.success then
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel then
+            IKST_JobEconomy.requestVendList(panel)
+            if type(panel.refreshJobUI) == "function" then
+                panel:refreshJobUI()
+            elseif IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+                IKST_Hub.refreshActive()
+            end
+        end
     end
 end
 

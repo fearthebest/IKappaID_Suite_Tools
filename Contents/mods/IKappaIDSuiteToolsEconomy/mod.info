@@ -6,7 +6,7 @@ description=Bank accounts, money transfers, and player shops for IKappaID Suite 
 
 author=IKappaID
 
-modversion=0.3.2.1
+modversion=0.3.2.4
 
 versionMin=42.20
 
@@ -15,4 +15,3 @@ require=IKappaIDSuiteTools
 category=Admin
 
 tags=Build 42;Admin;Economy;Multiplayer
-

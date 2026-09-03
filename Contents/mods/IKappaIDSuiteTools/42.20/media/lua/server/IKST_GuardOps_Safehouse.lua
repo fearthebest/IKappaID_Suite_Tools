@@ -15,10 +15,12 @@ require "IKST_WorldOps"
 require "IKST_StaffOps"
 require "IKST_SafehouseClaim"
 require "IKST_SafehousePermissions"
+require "IKST_SafehouseInvite"
 require "IKST_PhunZones"
 require "IKST_SafeHouse"
 require "IKST_ModDataSync"
 require "IKST_Policy"
+require "IKST_ClaimLandRules"
 
 IKST_GuardOps = IKST_GuardOps or {}
 
@@ -468,6 +470,108 @@ function IKST_GuardOps.removeSafehouseMember(actor, args)
     return false, "removePlayer unavailable"
 end
 
+function IKST_GuardOps.inviteSafehouseMember(actor, args)
+    local sh = IKST_GuardOps.findSafehouseEntry(args, actor)
+    if not sh then
+        return false, "safehouse not found"
+    end
+    if not IKST_GuardOps.actorIsAdmin(actor) then
+        local x, y, w, h = IKST_SafehouseClaim.boundsFromSafehouse(sh)
+        if x then
+            local entry = IKST_SafehouseClaim.get(x, y, w, h)
+            if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
+                if not IKST_SafehousePermissions.resolve(entry, actor, "invite", sh) then
+                    return false, "no invite permission"
+                end
+            elseif not IKST_GuardOps.safehouseOwnedByActor(sh, actor) then
+                return false, "not your safehouse"
+            end
+        elseif not IKST_GuardOps.safehouseOwnedByActor(sh, actor) then
+            return false, "not your safehouse"
+        end
+    end
+    local member = IKST_Args.readUsername(args, "member") or IKST_Args.readUsername(args, "username")
+    if not member then
+        return false, "no member name"
+    end
+    local x, y, w, h, owner = IKST_SafehouseClaim.boundsFromSafehouse(sh)
+    if not x then
+        return false, "safehouse not found"
+    end
+    local fromName = IKST_GuardOps.username(actor) or "?"
+    local invite = {
+        x = x, y = y, w = w, h = h,
+        owner = owner,
+        from = fromName,
+        at = getTimestamp and getTimestamp() or 0,
+        id = IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh),
+    }
+    local ok, msg = IKST_SafehouseInvite.addPending(member, invite)
+    if not ok then
+        return false, msg or "invite failed"
+    end
+    local targetPlayer = getPlayerFromUsername and getPlayerFromUsername(member) or nil
+    if targetPlayer and IKST.deliverClientCommand then
+        IKST.deliverClientCommand(targetPlayer, IKST.CMD.safehouseInviteNotify, { invite = invite })
+    end
+    return true, "invite sent"
+end
+
+function IKST_GuardOps.respondSafehouseInvite(actor, args)
+    local username = IKST_GuardOps.username(actor)
+    if not username or username == "" then
+        return false, "no username"
+    end
+    local accept = IKST_Args.readBool(args and args.accept) == true
+    local bounds = {
+        x = args and args.x, y = args and args.y, w = args and args.w, h = args and args.h,
+    }
+    local pending = IKST_SafehouseInvite.listForInvitee(username)
+    local match = nil
+    for i = 1, #pending do
+        if IKST_SafehouseInvite.boundsMatch(pending[i], bounds) then
+            match = pending[i]
+            break
+        end
+    end
+    if not match then
+        return false, "invite not found"
+    end
+    IKST_SafehouseInvite.removePending(username, bounds)
+    if not accept then
+        IKST.deliverClientCommand(actor, IKST.CMD.safehouseInviteListResult, {
+            invites = IKST_SafehouseInvite.listForInvitee(username),
+        })
+        return true, "invite declined"
+    end
+    local addArgs = {
+        x = match.x, y = match.y, w = match.w, h = match.h, id = match.id, owner = match.owner,
+        member = username,
+    }
+    -- Accept path: add as self using owner-of-invite authority via admin actor impersonation is wrong.
+    -- Re-resolve safehouse and addPlayer as the invitee after invite validated.
+    local sh = IKST_GuardOps.findSafehouseEntry(addArgs, actor)
+    if not sh then
+        return false, "safehouse not found"
+    end
+    if not sh.addPlayer then
+        return false, "addPlayer unavailable"
+    end
+    sh:addPlayer(username)
+    IKST_SafeHouse.afterMutation(sh, actor)
+    IKST.deliverClientCommand(actor, IKST.CMD.safehouseInviteListResult, {
+        invites = IKST_SafehouseInvite.listForInvitee(username),
+    })
+    return true, "invite accepted"
+end
+
+function IKST_GuardOps.listSafehouseInvites(actor)
+    local username = IKST_GuardOps.username(actor)
+    local invites = IKST_SafehouseInvite.listForInvitee(username)
+    IKST.deliverClientCommand(actor, IKST.CMD.safehouseInviteListResult, { invites = invites })
+    return true, "ok"
+end
+
 function IKST_GuardOps.claimBounds(cx, cy, size, w, h)
     if w ~= nil or h ~= nil then
         return IKST_Claim.claimBoundsRect(cx, cy, w, h)
@@ -597,10 +701,15 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
     if not user or user == "" or not ownerKey or ownerKey == "" then
         return false, "no username"
     end
-    local requireResidential = not IKST_GuardOps.actorIsAdmin(player)
-    if IKST_GuardOps.actorIsAdmin(player) and ownerName and ownerName ~= "" then
-        if not (claimPlayer and IKST_GuardOps.actorIsAdmin(claimPlayer)) then
-            requireResidential = true
+    -- Staff-approved request rects (honorRect): any land.
+    -- Self-claim building mode: residential house. Square size mode: land rules below.
+    local requireResidential = false
+    if not honorRect and claimMode == IKST_Claim.MODE.building then
+        requireResidential = not IKST_GuardOps.actorIsAdmin(player)
+        if IKST_GuardOps.actorIsAdmin(player) and ownerName and ownerName ~= "" then
+            if not (claimPlayer and IKST_GuardOps.actorIsAdmin(claimPlayer)) then
+                requireResidential = true
+            end
         end
     end
     if requireResidential then
@@ -611,9 +720,20 @@ function IKST_GuardOps.claimSafehouse(player, x, y, z, size, ownerName, claimMod
         if not IKST_Claim.isResidentialBuilding(building) then
             return false, "residential buildings only"
         end
-        -- Approved walk-draw keeps the drawn rect; do not snap to whole building.
         if not honorRect then
             useBuilding = true
+        end
+    end
+    if not honorRect and not IKST_GuardOps.actorIsAdmin(player) and not useBuilding then
+        if not IKST_ClaimLandRules then
+            require "IKST_ClaimLandRules"
+        end
+        if IKST_ClaimLandRules and type(IKST_ClaimLandRules.validateSelfClaimRect) == "function" then
+            local landOk, landErr = IKST_ClaimLandRules.validateSelfClaimRect(
+                claimX, claimY, z, claimW, claimH)
+            if not landOk then
+                return false, landErr or "claim blocked"
+            end
         end
     end
     if IKST_GuardOps.atMaxSafehouseClaims(claimPlayer or user) then

@@ -1,3 +1,4 @@
 Recipe_EN = {
     Recipe_ikst_craft_shop_terminal = Assemble Shop Terminal Kit,
+    Recipe_ikst_craft_wallet = Craft Simple Wallet,
 }

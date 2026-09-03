@@ -35,28 +35,77 @@ function IKST_SafehouseClaimClient.reindexSafehouses()
     end
 end
 
-function IKST_SafehouseClaimClient.syncFromMirroredStore()
-    if not IKST_SafehouseClaim or not IKST_SafehouseClaim.store then
+local function eachStoredClaimEntry(callback)
+    if not callback then
         return
     end
-    local data = IKST_SafehouseClaim.store()
-    local rows = {}
-    for _, entry in pairs(data.byKey or {}) do
-        if entry and entry.x and entry.y and entry.w and entry.h
-            and not IKST_SafehouseClaim.isEntryExpired(entry) then
-            rows[#rows + 1] = {
-                x = entry.x,
-                y = entry.y,
-                w = entry.w,
-                h = entry.h,
-                owner = entry.owner,
-                ownerLabel = IKST_Identity.labelForKey(entry.owner),
-                claimed = true,
-                hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt),
-                mirrored = true,
-            }
+    if IKST_SafehouseClaimMirror and type(IKST_SafehouseClaimMirror.usesMirror) == "function"
+        and IKST_SafehouseClaimMirror.usesMirror() then
+        for _, entry in pairs(IKST_SafehouseClaimMirror.byKey or {}) do
+            callback(entry)
+        end
+        return
+    end
+    if IKST_SafehouseClaim and type(IKST_SafehouseClaim.store) == "function" then
+        local data = IKST_SafehouseClaim.store()
+        for _, entry in pairs(data and data.byKey or {}) do
+            callback(entry)
         end
     end
+end
+
+function IKST_SafehouseClaimClient.rowFromMirrorEntry(entry, player)
+    if not entry or entry.x == nil or entry.y == nil or not entry.w or not entry.h then
+        return nil
+    end
+    if IKST_SafehouseClaim and IKST_SafehouseClaim.isEntryExpired(entry) then
+        return nil
+    end
+    local row = {
+        x = entry.x,
+        y = entry.y,
+        w = entry.w,
+        h = entry.h,
+        owner = entry.owner,
+        ownerLabel = IKST_Identity and IKST_Identity.labelForKey and IKST_Identity.labelForKey(entry.owner) or entry.owner,
+        claimed = true,
+        hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt),
+        mirrored = true,
+    }
+    return IKST_SafehouseClaimClient.finalizeUiState(row, player, entry.owner)
+end
+
+function IKST_SafehouseClaimClient.mergeMissingOwnedRows(player)
+    player = IKST.resolvePlayer(player)
+    if not player then
+        return
+    end
+    local added = false
+    eachStoredClaimEntry(function(entry)
+        if IKST_SafehouseClaimClient.rowForBounds(entry.x, entry.y, entry.w, entry.h) then
+            return
+        end
+        local row = IKST_SafehouseClaimClient.rowFromMirrorEntry(entry, player)
+        if not row or row.isMine ~= true then
+            return
+        end
+        IKST_SafehouseClaimClient.safehouses[#IKST_SafehouseClaimClient.safehouses + 1] = row
+        added = true
+    end)
+    if added then
+        IKST_SafehouseClaimClient.reindexSafehouses()
+    end
+end
+
+function IKST_SafehouseClaimClient.syncFromMirroredStore()
+    local player = getPlayer and getPlayer() or nil
+    local rows = {}
+    eachStoredClaimEntry(function(entry)
+        local row = IKST_SafehouseClaimClient.rowFromMirrorEntry(entry, player)
+        if row then
+            rows[#rows + 1] = row
+        end
+    end)
     IKST_SafehouseClaimClient.safehouses = rows
     IKST_SafehouseClaimClient.reindexSafehouses()
 end
@@ -72,8 +121,12 @@ function IKST_SafehouseClaimClient.onMirroredModData()
     if not hasServerRows then
         IKST_SafehouseClaimClient.syncFromMirroredStore()
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    local player = getPlayer and getPlayer() or nil
+    if player and type(IKST_SafehouseClaimClient.mergeMissingOwnedRows) == "function" then
+        IKST_SafehouseClaimClient.mergeMissingOwnedRows(player)
+    end
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
 
@@ -89,6 +142,11 @@ function IKST_SafehouseClaimClient.onSafehouseListResult(args)
     IKST_SafehouseClaimClient.safehouses = (args and args.safehouses) or {}
     IKST_SafehouseClaimClient.listBootstrapped = true
     IKST_SafehouseClaimClient.reindexSafehouses()
+    local player = getPlayer and getPlayer() or nil
+    IKST_SafehouseClaimClient.mergeMissingOwnedRows(player)
+    if #IKST_SafehouseClaimClient.safehouses == 0 then
+        IKST_SafehouseClaimClient.syncFromMirroredStore()
+    end
 end
 
 function IKST_SafehouseClaimClient.rowForBounds(x, y, w, h)
@@ -213,7 +271,7 @@ function IKST_SafehouseClaimClient.forceRefresh(args)
     if player and not mirrorReady and IKST.isMultiplayerSession and IKST.isMultiplayerSession() then
         IKST.dispatchCommand(player, IKST.CMD.safehouseList, {})
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end

@@ -9,12 +9,53 @@ require "IKST_Identity"
 require "IKST_Grid"
 require "IKST_EconomyUI"
 require "IKST_EconomyIcons"
-require "IKST_JobsPanel"
 require "IKST_EconomyShopKit"
 require "IKST_EconomyAtmKit"
 require "IKST_EconomyVendClient"
 
 IKST_EconomyContext = IKST_EconomyContext or {}
+
+-- Primary Economy UX is the soft hub. Floating EconomyUI is detach-only.
+function IKST_EconomyContext.openSoft(player, toolId)
+    player = IKST.resolvePlayer(player)
+    if not player then
+        return
+    end
+    if IKST_EconomyUI and IKST_EconomyUI.Window and type(IKST_EconomyUI.Window.setVisible) == "function" then
+        IKST_EconomyUI.Window:setVisible(false)
+    end
+    if IKST_Hub and type(IKST_Hub.openWorkspace) == "function" then
+        IKST_Hub.openWorkspace(player, IKST.VIEW.economy, toolId or "money")
+    end
+end
+
+function IKST_EconomyContext.openShopSoft(player, x, y, z)
+    player = IKST.resolvePlayer(player)
+    if not player then
+        return
+    end
+    if IKST_VendShop and IKST_VendShop.instance and type(IKST_VendShop.instance.close) == "function" then
+        IKST_VendShop.instance:close()
+    end
+    IKST_EconomyContext.openSoft(player, "shop")
+    local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+    if not panel then
+        return
+    end
+    panel.economyVendX = x
+    panel.economyVendY = y
+    panel.economyVendZ = z
+    local state = IKST.getPlayerState(player)
+    if state then
+        state.economyMode = "shop"
+    end
+    if IKST_JobEconomy and type(IKST_JobEconomy.requestVendList) == "function" then
+        IKST_JobEconomy.requestVendList(panel)
+    end
+    if type(panel.refreshJobUI) == "function" then
+        panel:refreshJobUI()
+    end
+end
 
 function IKST_EconomyContext.containerFromWorldObjects(worldobjects)
     if not worldobjects then
@@ -93,7 +134,7 @@ function IKST_EconomyContext.isVending(obj, player, x, y, z)
     if state then
         return state.isVending == true
     end
-    if not obj or not obj.getModData then
+    if not obj or type(obj.getModData) ~= "function" then
         return false
     end
     local md = obj:getModData()
@@ -153,12 +194,12 @@ function IKST_EconomyContext.fillEconomyMenu(sub, player, square, worldobjects)
     local z = square and square:getZ() or player:getZ()
 
     sub:addOption(IKST.text("IGUI_IKST_Economy_OpenWallet", "Open economy"), player, function()
-        IKST_EconomyUI.open(player, x, y, z)
+        IKST_EconomyContext.openSoft(player, "money")
     end)
 
     if IKST_Economy.isAtmSquare(x, y, z) then
         sub:addOption(IKST.text("IGUI_IKST_Economy_UseAtm", "Use ATM"), player, function()
-            IKST_EconomyUI.open(player, x, y, z)
+            IKST_EconomyContext.openSoft(player, "money")
         end)
     end
 
@@ -184,28 +225,11 @@ function IKST_EconomyContext.fillEconomyMenu(sub, player, square, worldobjects)
 
     if obj and IKST_EconomyContext.isVending(obj, player, x, y, z) then
         IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_BrowseShop", "Browse shop"), player, function()
-            IKST_EconomyUI.openVendShop(player, x, y, z)
+            IKST_EconomyContext.openShopSoft(player, x, y, z)
         end)
         if IKST_EconomyContext.isShopOwner(player, obj, x, y, z) or IKST_Access.canUseTools(player) then
             IKST_EconomyContext.addShopOption(sub, IKST.text("IGUI_IKST_Economy_ManageShop", "Manage shop prices"), player, function()
-                if IKST_Access.canUseTools(player) then
-                    IKST_JobsPanel.open(player)
-                    local panel = IKST_JobsPanel.instance
-                    if panel then
-                        panel:enterNav(IKST.VIEW.economy, "economy")
-                        panel.economyVendX = x
-                        panel.economyVendY = y
-                        panel.economyVendZ = z
-                        local state = IKST.getPlayerState(player)
-                        if state then
-                            state.economyMode = "shop"
-                        end
-                        panel:refreshJobUI()
-                        IKST_JobEconomy.requestVendList(panel)
-                    end
-                else
-                    IKST_EconomyUI.openVendShop(player, x, y, z, true)
-                end
+                IKST_EconomyContext.openShopSoft(player, x, y, z)
             end)
         end
         if IKST_EconomyContext.isShopOwner(player, obj, x, y, z) then

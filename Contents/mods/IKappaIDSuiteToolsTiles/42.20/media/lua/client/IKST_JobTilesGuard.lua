@@ -128,7 +128,10 @@ function IKST_JobTilesGuard.armSquarePick(panel, command, extra, notifyKey, afte
 end
 
 function IKST_JobTilesGuard.dispatchRadius(panel, cmd, extra)
-    local p = panel.player
+    local p = panel and panel.player
+    if not p or type(p.getX) ~= "function" or type(p.getY) ~= "function" or type(p.getZ) ~= "function" then
+        return
+    end
     local state = IKST.getPlayerState(p)
     local radius = state and state.guardRadius or IKST.RADIUS_PRESETS.M
     local args = { x = math.floor(p:getX()), y = math.floor(p:getY()), z = p:getZ(), radius = radius }
@@ -157,7 +160,7 @@ function IKST_JobTilesGuard.buildTiles(panel, contentTop)
         rect.h = math.max(80, rect.h - shrink)
     end
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 4, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 4, gap, { 1, 2, 2, 1 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -288,6 +291,9 @@ function IKST_JobTilesGuard.buildTiles(panel, contentTop)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 
@@ -350,6 +356,9 @@ function IKST_JobTilesGuard.buildFarming(panel, y)
 end
 
 function IKST_JobTilesGuard.buildBlueprints(panel, contentTop)
+    if IKST_SoftTool_Tiles and type(IKST_SoftTool_Tiles.buildBlueprints) == "function" then
+        return IKST_SoftTool_Tiles.buildBlueprints(panel)
+    end
     local p = panel.player
     local state = IKST.getPlayerState(p)
     local half = 5
@@ -361,7 +370,7 @@ function IKST_JobTilesGuard.buildBlueprints(panel, contentTop)
         rect.h = math.max(80, rect.h - shrink)
     end
     local gap = 6
-    local bands = IKST_JobLayout.splitBands(rect.y, rect.h, 3, gap)
+    local bands, stackBottom, soft = IKST_JobLayout.toolBands(panel, rect, 3, gap, { 1, 1, 180 })
     local inner = IKST_JobLayout.SECTION_INNER
     local padY = IKST_JobLayout.CONTENT_PAD_Y
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -484,13 +493,16 @@ function IKST_JobTilesGuard.buildBlueprints(panel, contentTop)
     end
 
     panel._ikstToolFit = true
+    if soft then
+        return stackBottom + gap
+    end
     return rect.y + rect.h
 end
 
 function IKST_JobTilesGuard.onBlueprintListResult(args)
     IKST_JobTilesGuard.blueprints = (args and args.blueprints) or {}
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
 
@@ -506,6 +518,9 @@ function IKST_JobTilesGuard.buildRestore(panel, y)
 end
 
 function IKST_JobTilesGuard.buildProtect(panel, y)
+    if IKST_SoftTool_Tiles and type(IKST_SoftTool_Tiles.buildProtect) == "function" then
+        return IKST_SoftTool_Tiles.buildProtect(panel)
+    end
     local state = IKST.getPlayerState(panel.player)
     if not state then
         return y or 8
@@ -557,7 +572,7 @@ function IKST_JobTilesGuard.onListResult(args)
     IKST_JobTilesGuard.tiles = (args and args.tiles) or {}
     IKST_JobTilesGuard.total = (args and args.total) or 0
     IKST_JobTilesGuard.readonlyTotal = (args and args.readonlyTotal) or 0
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end

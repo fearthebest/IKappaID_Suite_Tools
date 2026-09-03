@@ -176,7 +176,9 @@ function IKST_DashboardQuick.decorateToolButton(panel, btn, entryId)
         return
     end
     btn._ikstQuickEntry = entryId
+    btn._ikstHubSatellite = true
     local baseRender = btn.render
+    local baseMouseDown = btn.onMouseDown
     btn.render = function(b)
         if baseRender then
             baseRender(b)
@@ -188,7 +190,13 @@ function IKST_DashboardQuick.decorateToolButton(panel, btn, entryId)
             IKST_DashboardQuick.toggleFavorite(panel, b._ikstQuickEntry)
             return true
         end
-        if ISButton and ISButton.onMouseDown then
+        if baseMouseDown then
+            return baseMouseDown(b, mx, my)
+        end
+        if b.Type == "IKUI_Button" and IKUI_Button and type(IKUI_Button.onMouseDown) == "function" then
+            return IKUI_Button.onMouseDown(b, mx, my)
+        end
+        if ISButton and type(ISButton.onMouseDown) == "function" then
             return ISButton.onMouseDown(b, mx, my)
         end
         return false
@@ -346,9 +354,12 @@ function IKST_DashboardQuick.run(panel, slotIndex)
         return
     end
     if kind == "economy" and a == "open" then
-        local player = panel.player
-        if player and IKST_EconomyUI and type(IKST_EconomyUI.open) == "function" then
-            IKST_EconomyUI.open(player, math.floor(player:getX()), math.floor(player:getY()), player:getZ())
+        if type(panel.enterNav) == "function" then
+            panel:enterNav(IKST.VIEW.economy, "money")
+            return
+        end
+        if IKST_EconomyContext and type(IKST_EconomyContext.openSoft) == "function" then
+            IKST_EconomyContext.openSoft(panel.player, "money")
         end
         return
     end

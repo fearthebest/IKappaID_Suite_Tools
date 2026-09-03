@@ -55,3 +55,40 @@ end
 function IKST_UI_Layout.buttonMinH()
     return IKUI_Config.buttonMinH()
 end
+
+-- Box model (budgeted rects — same APIs as IKUI_Layout).
+function IKST_UI_Layout.box(x, y, w, h)
+    return IKUI_Layout.box(x, y, w, h)
+end
+
+function IKST_UI_Layout.boxFromPanel(panel, pad)
+    return IKUI_Layout.boxFromPanel(panel, pad)
+end
+
+function IKST_UI_Layout.inset(rect, pad)
+    return IKUI_Layout.inset(rect, pad)
+end
+
+function IKST_UI_Layout.contentRect(rect, pad)
+    return IKUI_Layout.contentRect(rect, pad)
+end
+
+function IKST_UI_Layout.contains(parent, child)
+    return IKUI_Layout.contains(parent, child)
+end
+
+function IKST_UI_Layout.clampTo(parent, child)
+    return IKUI_Layout.clampTo(parent, child)
+end
+
+function IKST_UI_Layout.applyGeometry(widget, rect)
+    return IKUI_Layout.applyGeometry(widget, rect)
+end
+
+function IKST_UI_Layout.columnIn(parent, children, opts)
+    return IKUI_Layout.columnIn(parent, children, opts)
+end
+
+function IKST_UI_Layout.rowIn(parent, children, opts)
+    return IKUI_Layout.rowIn(parent, children, opts)
+end

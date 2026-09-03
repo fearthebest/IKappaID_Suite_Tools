@@ -4,6 +4,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Grid"
+require "IKST_VehicleIdentity"
 require "IKappaID_UI/IKUI_Chrome"
 
 IKST_PreviewOverlay = IKST_PreviewOverlay or {}
@@ -302,15 +303,50 @@ function IKST_PreviewOverlay.findVehicleById(vehicleId)
     if vehicleId == nil then
         return nil
     end
-    local id = tonumber(vehicleId) or vehicleId
-    if getVehicleById then
-        local v = getVehicleById(id)
-        if v then
-            return v
+    -- B42 getVehicleById / getVehicleByID require a numeric short id — never pass a string
+    -- (claim rows use durable ikst: keys; tonumber(x) or x used to fall through and crash).
+    -- https://projectzomboid.com/modding/zombie/vehicles/VehicleManager.html
+    local id = tonumber(vehicleId)
+    if id ~= nil then
+        id = math.floor(id)
+        if type(getVehicleById) == "function" then
+            local v = getVehicleById(id)
+            if v then
+                return v
+            end
+        end
+        if VehicleManager and VehicleManager.instance
+            and type(VehicleManager.instance.getVehicleByID) == "function" then
+            local v = VehicleManager.instance:getVehicleByID(id)
+            if v then
+                return v
+            end
+        end
+        if VehicleManager and VehicleManager.instance
+            and type(VehicleManager.instance.getVehicleById) == "function" then
+            local v = VehicleManager.instance:getVehicleById(id)
+            if v then
+                return v
+            end
         end
     end
-    if VehicleManager and VehicleManager.instance and VehicleManager.instance.getVehicleByID then
-        return VehicleManager.instance:getVehicleByID(id)
+    if IKST_VehicleIdentity and type(IKST_VehicleIdentity.isDurableKey) == "function"
+        and IKST_VehicleIdentity.isDurableKey(vehicleId)
+        and type(getCell) == "function" then
+        local cell = getCell()
+        if cell and type(cell.getVehicles) == "function" then
+            local vehicles = cell:getVehicles()
+            if vehicles and type(vehicles.size) == "function" and type(vehicles.get) == "function" then
+                local want = tostring(vehicleId)
+                for i = 0, vehicles:size() - 1 do
+                    local v = vehicles:get(i)
+                    if v and type(IKST_VehicleIdentity.readKey) == "function"
+                        and IKST_VehicleIdentity.readKey(v) == want then
+                        return v
+                    end
+                end
+            end
+        end
     end
     return nil
 end

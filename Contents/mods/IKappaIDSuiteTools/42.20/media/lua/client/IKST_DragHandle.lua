@@ -47,8 +47,8 @@ end
 
 function IKST_DragHandle.ownerPanels()
     local list = {}
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        list[#list + 1] = IKST_JobsPanel.instance
+    if IKUI_Shell and IKUI_Shell.instance then
+        list[#list + 1] = IKUI_Shell.instance
     end
     if IKST_ActionLogWindow and IKST_ActionLogWindow.instance then
         list[#list + 1] = IKST_ActionLogWindow.instance

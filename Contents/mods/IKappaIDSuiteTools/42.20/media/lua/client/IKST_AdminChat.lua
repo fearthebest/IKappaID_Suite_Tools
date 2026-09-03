@@ -3,7 +3,6 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
-require "IKST_JobsPanel"
 require "IKST_Access"
 
 IKST_AdminChat = IKST_AdminChat or {}
@@ -48,7 +47,7 @@ IKST_AdminChat.COMMANDS = {
         IKST.dispatchCommand(player, IKST.CMD.restoreSafehouses, {})
     end },
     { cmds = { "ikst", "suite" }, fn = function(player)
-        IKST_JobsPanel.open(player)
+        IKST_Hub.open(player)
     end },
 }
 

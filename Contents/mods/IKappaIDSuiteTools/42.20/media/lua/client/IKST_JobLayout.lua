@@ -6,11 +6,16 @@ require "IKST_Shared"
 require "IKST_UI_Theme"
 require "IKST_UI_Layout"
 require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI/IKUI_SoftBody"
 require "ISUI/ISButton"
 require "ISUI/ISTextEntryBox"
 require "ISUI/ISScrollingListBox"
 
 IKST_JobLayout = IKST_JobLayout or {}
+
+local function softShellMode(panel)
+    return panel and panel._softShellMode == true
+end
 
 -- Fixed single-size shell: no drag-resize, no compact/spacious toggle.
 -- Puzzle-piece proportions (sidebar/content/log) still apply within that one size.
@@ -25,6 +30,9 @@ IKST_JobLayout.SCREEN_EDGE = 12
 -- Leave the vanilla left HUD strip (inventory / health / etc.) uncovered.
 IKST_JobLayout.LEFT_HUD_CLEARANCE = 48
 IKST_JobLayout.RESIZE_GRIP = 0
+-- Soft shell (IKUI_Shell host): fixed tool rail + scrollable design height.
+IKST_JobLayout.SOFT_TOOL_RAIL = 160
+IKST_JobLayout.SOFT_CONTENT_MIN_H = 520
 
 -- Left-dock shell: one vertical third of the monitor (Windows snap-style).
 -- Center + right thirds stay free for world clicks. Action log is not in this window.
@@ -115,7 +123,7 @@ function IKST_JobLayout.clampPanelEdges(panel)
     local sh = core:getScreenHeight()
     local dockW = IKST_JobLayout.dockColumnWidth(sw)
     local w = panel.width or (type(panel.getWidth) == "function" and panel:getWidth()) or dockW
-    local isHub = IKST_JobsPanel and IKST_JobsPanel.instance and panel == IKST_JobsPanel.instance
+    local isHub = IKUI_Shell and IKUI_Shell.instance and panel == IKUI_Shell.instance
     if isHub and w ~= dockW and type(panel.setWidth) == "function" then
         panel:setWidth(dockW)
         w = dockW
@@ -266,7 +274,15 @@ function IKST_JobLayout.compactMode(_panel)
 end
 
 -- Fixed three-pane puzzle: sidebar | content | log (same slots, proportional widths).
+-- Soft shell: fixed tool rail only — never JobsPanel proportional columns.
 function IKST_JobLayout.resolveColumns(panel)
+    if softShellMode(panel) then
+        if panel and IKST_HubNav and type(IKST_HubNav.hasSidebar) == "function"
+            and IKST_HubNav.hasSidebar(panel.view, panel.player) then
+            return IKST_JobLayout.SOFT_TOOL_RAIL or 160, 0, 0
+        end
+        return 0, 0, 0
+    end
     IKST_JobLayout.syncChromeMetrics(panel)
     local grip = IKST_JobLayout.RESIZE_GRIP
     local avail = math.max(0, (panel and panel.width or IKST_JobLayout.MIN_WIDTH) - grip)
@@ -362,7 +378,7 @@ function IKST_JobLayout.stampPuzzlePiece(widget)
 end
 
 function IKST_JobLayout.stretchPuzzlePieces(panel)
-    if not panel then
+    if not panel or softShellMode(panel) then
         return
     end
     local baseW = tonumber(panel._puzzleBaseContentW) or 0
@@ -404,10 +420,29 @@ function IKST_JobLayout.recordPuzzleBaseline(panel)
         IKST_JobLayout.stampPuzzlePiece(widgets[i])
     end
 end
+function IKST_JobLayout.softOwnsToolNav(panel)
+    return softShellMode(panel)
+end
+
+-- Soft shell pages fill the IKUI_Shell content area (no hub title/status/hint chrome).
+local function softHintHeight(panel)
+    if softShellMode(panel) then
+        return 0
+    end
+    return IKST_JobLayout.HINT_HEIGHT
+end
+
+local function softGripWidth(panel)
+    if softShellMode(panel) then
+        return 0
+    end
+    return IKST_JobLayout.RESIZE_GRIP
+end
+
 function IKST_JobLayout.q1Rect(panel)
     local sidebarW = IKST_JobLayout.resolveColumns(panel)
     local top = IKST_JobLayout.layerTop(panel)
-    local h = panel.height - top - IKST_JobLayout.HINT_HEIGHT - IKST_JobLayout.RESIZE_GRIP
+    local h = panel.height - top - softHintHeight(panel) - softGripWidth(panel)
     h = h - IKST_JobLayout.bottomLogReserve(panel)
     if h < 0 then
         h = 0
@@ -416,6 +451,9 @@ function IKST_JobLayout.q1Rect(panel)
 end
 
 function IKST_JobLayout.q2Height(panel)
+    if softShellMode(panel) then
+        return 0
+    end
     if panel and panel._q2HasContent == true then
         return IKST_JobLayout.Q2_H
     end
@@ -436,7 +474,7 @@ end
 function IKST_JobLayout.q2Rect(panel)
     local sidebarW = IKST_JobLayout.resolveColumns(panel)
     local x = sidebarW
-    local w = panel.width - x - IKST_JobLayout.RESIZE_GRIP
+    local w = panel.width - x - softGripWidth(panel)
     if w < 0 then
         w = 0
     end
@@ -449,17 +487,18 @@ end
 -- past the frame instead of floating inside it.
 function IKST_JobLayout.q4Rect(panel)
     local placement = IKST_JobLayout.logPlacement(panel)
+    local hintH = softHintHeight(panel)
+    local grip = softGripWidth(panel)
     if placement == "bottom" then
         local margin = IKST_JobLayout.MARGIN or 12
         local h = IKST_JobLayout.Q4_H
         local layerTop = IKST_JobLayout.layerTop(panel)
-        local layerH = panel.height - layerTop - IKST_JobLayout.HINT_HEIGHT - IKST_JobLayout.RESIZE_GRIP
+        local layerH = panel.height - layerTop - hintH - grip
         local y = layerH - h
         if y < 0 then
             y = 0
             h = layerH
         end
-        local grip = IKST_JobLayout.RESIZE_GRIP
         local w = panel.width - (margin * 2) - grip
         if w < 0 then
             w = 0
@@ -470,9 +509,9 @@ function IKST_JobLayout.q4Rect(panel)
     local reserved = logW or 0
     local margin = IKST_JobLayout.MARGIN or 0
     local w = reserved > 0 and math.max(0, reserved - margin) or 0
-    local x = panel.width - IKST_JobLayout.RESIZE_GRIP - margin - w
+    local x = panel.width - grip - margin - w
     local y = IKST_JobLayout.q2Height(panel)
-    local h = panel.height - IKST_JobLayout.layerTop(panel) - y - IKST_JobLayout.HINT_HEIGHT - IKST_JobLayout.RESIZE_GRIP
+    local h = panel.height - IKST_JobLayout.layerTop(panel) - y - hintH - grip
     if h < 0 then
         h = 0
     end
@@ -480,14 +519,16 @@ function IKST_JobLayout.q4Rect(panel)
 end
 
 function IKST_JobLayout.q3Rect(panel)
+    -- Soft shell: fill content area; keep Q1 via resolveColumns (utilities/claim tools).
     local sidebarW, logW = IKST_JobLayout.resolveColumns(panel)
     local x = sidebarW
     local y = IKST_JobLayout.q2Height(panel)
-    local w = panel.width - IKST_JobLayout.RESIZE_GRIP - (logW or 0) - x
+    local grip = softGripWidth(panel)
+    local w = panel.width - grip - (logW or 0) - x
     if w < 0 then
         w = 0
     end
-    local h = panel.height - IKST_JobLayout.layerTop(panel) - y - IKST_JobLayout.HINT_HEIGHT - IKST_JobLayout.RESIZE_GRIP
+    local h = panel.height - IKST_JobLayout.layerTop(panel) - y - softHintHeight(panel) - grip
     h = h - IKST_JobLayout.bottomLogReserve(panel)
     if h < 0 then
         h = 0
@@ -504,11 +545,17 @@ function IKST_JobLayout.logRect(panel)
 end
 
 function IKST_JobLayout.chromeContentTop(panel)
+    if softShellMode(panel) then
+        return 0
+    end
     local banner = IKST_JobLayout.armedBannerHeight(panel)
     return panel:titleBarHeight() + 2 + IKST_JobLayout.STATUS_HEIGHT + 4 + banner
 end
 
 function IKST_JobLayout.layerTop(panel)
+    if softShellMode(panel) then
+        return 0
+    end
     return IKST_JobLayout.chromeContentTop(panel)
 end
 
@@ -522,7 +569,7 @@ function IKST_JobLayout.relayoutJobLayer(panel)
     end
     IKST_JobLayout.syncChromeMetrics(panel)
     local top = IKST_JobLayout.layerTop(panel)
-    local grip = IKST_JobLayout.RESIZE_GRIP
+    local grip = softGripWidth(panel)
     panel.jobLayer:setX(0)
     panel.jobLayer:setY(top)
     panel.jobLayer:setWidth(math.max(0, panel.width - grip))
@@ -603,6 +650,15 @@ end
 
 function IKST_JobLayout.begin(panel, opts)
     opts = opts or {}
+    -- Soft shell owns chrome (Aegis page host). Do not run JobsPanel puzzle relayout.
+    if softShellMode(panel) then
+        if type(panel.placeChrome) == "function" then
+            panel:placeChrome({ preserveScroll = opts.preserveScroll == true })
+        end
+        panel._ikstToolFit = false
+        panel.bodyY = 0
+        return
+    end
     local savedYScroll = 0
     if opts.preserveScroll and panel.jobScroll and panel.jobScroll.getYScroll then
         savedYScroll = panel.jobScroll:getYScroll() or 0
@@ -685,6 +741,16 @@ IKST_JobLayout.LIST_PILL_GAP = 8
 IKST_JobLayout.QTY_FIELD_W = 48
 
 function IKST_JobLayout.toolContentRect(panel)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.contentRect) == "function" then
+        return IKUI_SoftBody.contentRect(panel)
+    end
+    if panel and type(panel._softContentRect) == "table" then
+        local r = panel._softContentRect
+        if type(r.x) == "number" and type(r.y) == "number"
+            and type(r.w) == "number" and type(r.h) == "number" then
+            return { x = r.x, y = r.y, w = r.w, h = r.h }
+        end
+    end
     local _, _, q3W, q3H = IKST_JobLayout.q3Rect(panel)
     local pad = IKST_JobLayout.TOOL_PAD
     local w = math.max(80, (q3W or 0) - (pad * 2))
@@ -692,10 +758,13 @@ function IKST_JobLayout.toolContentRect(panel)
     return { x = pad, y = pad, w = w, h = h }
 end
 
-function IKST_JobLayout.standardPillSize(panel)
-    local rect = IKST_JobLayout.toolContentRect(panel)
-    local inner = IKST_JobLayout.SECTION_INNER
-    local usable = math.max(40, rect.w - (inner * 2))
+function IKST_JobLayout.standardPillSize(panel, areaW)
+    local usable = tonumber(areaW)
+    if not usable or usable < 40 then
+        local rect = IKST_JobLayout.toolContentRect(panel)
+        local inner = IKST_JobLayout.SECTION_INNER
+        usable = math.max(40, rect.w - (inner * 2))
+    end
     local gap = IKST_JobLayout.BTN_GAP
     local cols = IKST_JobLayout.PACK_COLS
     local cellW = math.floor((usable - gap * (cols - 1)) / cols)
@@ -710,10 +779,120 @@ function IKST_JobLayout.sectionHeaderH()
     return 32
 end
 
+-- Soft page stack: one flex band + fixed trailing bands. Delegates to IKUI_SoftBody.
+function IKST_JobLayout.softPageBands(areaY, areaH, flexMinH, fixedHeights, gap)
+    if IKUI_SoftBody and type(IKUI_SoftBody.pageBands) == "function" then
+        return IKUI_SoftBody.pageBands(areaY, areaH, flexMinH, fixedHeights, gap)
+    end
+    gap = gap or 6
+    flexMinH = math.max(80, flexMinH or IKST_JobLayout.compactPillBandH(2))
+    fixedHeights = fixedHeights or {}
+    local nFixed = #fixedHeights
+    local fixedSum = 0
+    for i = 1, nFixed do
+        fixedSum = fixedSum + math.max(48, tonumber(fixedHeights[i]) or 48)
+    end
+    local gaps = gap * nFixed
+    local flexH = math.max(flexMinH, (areaH or 0) - fixedSum - gaps)
+    local bands = {}
+    local y = areaY
+    bands[1] = { y = y, h = flexH }
+    y = y + flexH + gap
+    for i = 1, nFixed do
+        local h = math.max(48, tonumber(fixedHeights[i]) or 48)
+        bands[i + 1] = { y = y, h = h }
+        y = y + h + gap
+    end
+    return bands, y - gap
+end
+
+-- Left master list + right detail. Soft delegates to IKUI_SoftBody.masterDetail.
+function IKST_JobLayout.softMasterDetail(rect, listW, gap)
+    if IKUI_SoftBody and type(IKUI_SoftBody.masterDetail) == "function" then
+        return IKUI_SoftBody.masterDetail(rect, listW, gap)
+    end
+    rect = rect or { x = 0, y = 0, w = 400, h = 400 }
+    gap = gap or 12
+    listW = tonumber(listW) or 280
+    local maxList = math.floor((rect.w or 400) * 0.42)
+    listW = math.min(listW, maxList)
+    listW = math.max(160, listW)
+    if listW + gap + 160 > (rect.w or 400) then
+        listW = math.max(140, (rect.w or 400) - gap - 160)
+    end
+    local left = { x = rect.x, y = rect.y, w = listW, h = rect.h }
+    local right = {
+        x = rect.x + listW + gap,
+        y = rect.y,
+        w = math.max(80, (rect.w or 400) - listW - gap),
+        h = rect.h,
+    }
+    return left, right
+end
+
+-- Soft stack band by pill-row count. Delegates to SoftBody.stack.
+function IKST_JobLayout.softStackBand(areaY, gap, pillRows)
+    if IKUI_SoftBody and type(IKUI_SoftBody.stack) == "function" then
+        local bands = IKUI_SoftBody.stack(areaY, gap, { math.max(1, pillRows or 1) })
+        local b = bands[1] or { y = areaY, h = 48 }
+        return b, b.h
+    end
+    gap = gap or 6
+    pillRows = math.max(1, pillRows or 1)
+    local h = IKST_JobLayout.compactPillBandH(pillRows)
+    return { y = areaY, h = h }, h
+end
+
+-- Soft natural-height stack. Soft tools must use SoftBody (via this or SoftTool modules).
+function IKST_JobLayout.softStackBands(areaY, gap, rowSpec)
+    if IKUI_SoftBody and type(IKUI_SoftBody.stack) == "function" then
+        return IKUI_SoftBody.stack(areaY, gap, rowSpec)
+    end
+    gap = gap or 6
+    rowSpec = rowSpec or { 2 }
+    local bands = {}
+    local y = areaY
+    for i = 1, #rowSpec do
+        local spec = tonumber(rowSpec[i]) or 2
+        local h
+        if spec > 20 then
+            h = math.max(48, spec)
+        else
+            h = IKST_JobLayout.compactPillBandH(math.max(1, spec))
+        end
+        bands[i] = { y = y, h = h }
+        y = y + h + gap
+    end
+    return bands, y - gap
+end
+
+-- Soft-aware band picker for Job builders.
+-- softRows: array for softStackBands when soft; ignored on dock.
+-- Returns bands, stackBottom, isSoft.
+function IKST_JobLayout.toolBands(panel, rect, dockCount, gap, softRows)
+    gap = gap or 6
+    dockCount = math.max(1, dockCount or 1)
+    local rows = softRows
+    if type(rows) ~= "table" or #rows < 1 then
+        rows = {}
+        for i = 1, dockCount do
+            rows[i] = 2
+        end
+    end
+    local bands, bottom = IKST_JobLayout.softStackBands(rect.y, gap, rows)
+    return bands, bottom, true
+end
+
 function IKST_JobLayout.splitBands(areaY, areaH, count, gap)
     gap = gap or 8
     count = math.max(1, count or 1)
+    -- Soft shell callers must use toolBands / softMasterDetail / softPageBands / softStackBands.
+    -- Equal viewport split is dock-only (crushes cards on soft).
     local bandH = math.floor((areaH - gap * (count - 1)) / count)
+    local minBand = IKST_JobLayout.compactSectionBandH()
+    if bandH < minBand then
+        bandH = minBand
+    end
     local bands = {}
     for i = 1, count do
         bands[i] = {
@@ -737,8 +916,25 @@ function IKST_JobLayout.compactSectionBandH()
     return header + (inner * 2) + btnH + 8
 end
 
--- Compact band for two pill rows (Self / Items overview cards).
+-- Soft band height for field(s) + action pill. SoftBody is source of truth.
+function IKST_JobLayout.fieldActionBandH(fieldRows)
+    if IKUI_SoftBody and type(IKUI_SoftBody.fieldActionBandH) == "function" then
+        return IKUI_SoftBody.fieldActionBandH(fieldRows)
+    end
+    fieldRows = math.max(1, fieldRows or 1)
+    local header = IKST_JobLayout.sectionHeaderH()
+    local inner = IKST_JobLayout.SECTION_INNER or 8
+    local fieldH = IKST_JobLayout.FIELD_H or 32
+    local btnH = IKST_JobLayout.STANDARD_BTN_H or 36
+    local gap = IKST_JobLayout.BTN_GAP or 6
+    return header + (inner * 2) + (fieldRows * fieldH) + gap + btnH + 8
+end
+
+-- Compact band for pill rows. SoftBody is source of truth.
 function IKST_JobLayout.compactPillBandH(rows)
+    if IKUI_SoftBody and type(IKUI_SoftBody.compactPillBandH) == "function" then
+        return IKUI_SoftBody.compactPillBandH(rows)
+    end
     rows = math.max(1, rows or 2)
     local header = IKST_JobLayout.sectionHeaderH()
     local inner = IKST_JobLayout.SECTION_INNER or 8
@@ -805,6 +1001,9 @@ function IKST_JobLayout.packFrame(areaX, areaW, btnW)
 end
 
 function IKST_JobLayout.attachToolWidget(panel, parent, widget)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.attach) == "function" then
+        return IKUI_SoftBody.attach(panel, parent, widget)
+    end
     if parent and parent ~= panel and type(parent.addChild) == "function" then
         parent:addChild(widget)
         return widget
@@ -813,6 +1012,9 @@ function IKST_JobLayout.attachToolWidget(panel, parent, widget)
 end
 
 function IKST_JobLayout.placePill(panel, parent, cell, label, onClick, primary)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.placePill) == "function" then
+        return IKUI_SoftBody.placePill(panel, parent, cell, label, onClick, primary)
+    end
     local kind = "outline"
     if primary == true then
         kind = "primary"
@@ -824,20 +1026,64 @@ function IKST_JobLayout.placePill(panel, parent, cell, label, onClick, primary)
 end
 
 -- items: { label=, onClick=, primary=true|false|"chip" }
+-- Soft → SoftBody.pillRow; dock keeps local pack.
 function IKST_JobLayout.placePillGroup(panel, parent, areaX, areaY, areaW, areaH, items)
-    local btnW, btnH = IKST_JobLayout.standardPillSize(panel)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.pillRow) == "function" then
+        return IKUI_SoftBody.pillRow(panel, parent, areaX, areaY, areaW, areaH, items)
+    end
+    local L = IKST_UI_Layout
+    local area = L and L.box and L.box(areaX, areaY, areaW, areaH) or nil
+    local btnW, btnH = IKST_JobLayout.standardPillSize(panel, areaW)
     local n = #(items or {})
     for i = 1, n do
         local item = items[i]
         local cell = IKST_JobLayout.pillCell(areaX, areaY, areaW, areaH, i - 1, n, btnW, btnH)
+        if area and L and type(L.contains) == "function" and type(L.box) == "function" then
+            local child = L.box(cell.x, cell.y, cell.w, cell.h)
+            if not L.contains(area, child) then
+                -- Budget too small for this cell — skip rather than overlap.
+            else
+                IKST_JobLayout.placePill(panel, parent, cell, item.label, item.onClick, item.primary)
+            end
+        else
+            IKST_JobLayout.placePill(panel, parent, cell, item.label, item.onClick, item.primary)
+        end
+    end
+end
+
+function IKST_JobLayout.placeNavPillGroup(panel, parent, areaX, areaY, areaW, areaH, items)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.pillNavRow) == "function" then
+        return IKUI_SoftBody.pillNavRow(panel, parent, areaX, areaY, areaW, areaH, items)
+    end
+    local n = #(items or {})
+    if n < 1 then
+        return
+    end
+    local gap = IKST_JobLayout.BTN_GAP
+    local btnH = math.min(areaH, IKST_JobLayout.STANDARD_BTN_H)
+    local minW = 36
+    local btnW = math.max(minW, math.floor((areaW - gap * (n - 1)) / n))
+    local gridW = n * btnW + (n - 1) * gap
+    local ox = areaX + math.max(0, math.floor((areaW - gridW) / 2))
+    local oy = areaY + math.max(0, math.floor((areaH - btnH) / 2))
+    for i = 1, n do
+        local item = items[i]
+        local cell = {
+            x = ox + (i - 1) * (btnW + gap),
+            y = oy,
+            w = btnW,
+            h = btnH,
+        }
         IKST_JobLayout.placePill(panel, parent, cell, item.label, item.onClick, item.primary)
     end
 end
 
 function IKST_JobLayout.placeSectionCard(panel, x, y, w, h, icon, title)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.section) == "function" then
+        return IKUI_SoftBody.section(panel, x, y, w, h, title)
+    end
     -- Drop custom section glyphs (soft when scaled); title text only.
     local card, contentY = IKUI_Chrome.newSectionCardPanel(x, y, w, h, nil, title)
-    -- Clip children so pills/lists never paint into the next band or hint strip.
     if card.clipping ~= nil then
         card.clipping = true
     end
@@ -864,6 +1110,9 @@ end
 -- withFilter=true reserves makeFilterEntry height so pills stay below the real list.
 -- listH is never larger than the remaining budget (no math.max inventing space).
 function IKST_JobLayout.listPillSplit(areaH, pillRows, withFilter)
+    if IKUI_SoftBody and type(IKUI_SoftBody.listPillSplit) == "function" then
+        return IKUI_SoftBody.listPillSplit(areaH, pillRows, withFilter)
+    end
     pillRows = math.max(1, pillRows or 1)
     local gap = IKST_JobLayout.LIST_PILL_GAP or IKST_JobLayout.BTN_GAP
     local btnH = IKST_JobLayout.STANDARD_BTN_H
@@ -876,125 +1125,128 @@ function IKST_JobLayout.listPillSplit(areaH, pillRows, withFilter)
     return listH, pillH, gap, filterH
 end
 
--- Fields top-left (wide enough to proofread), action pill bottom-right.
--- Side margins still match the 3-pill pack frame.
+-- Fields + action. Soft → SoftBody.fieldAction; dock keeps local budgeted boxes.
 function IKST_JobLayout.placeFieldActionCorner(panel, parent, areaX, areaY, areaW, areaH, fieldSpecs, actionLabel, onAction)
-    local btnW, btnH = IKST_JobLayout.standardPillSize(panel)
-    local ox, gridW = IKST_JobLayout.packFrame(areaX, areaW, btnW)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.fieldAction) == "function" then
+        return IKUI_SoftBody.fieldAction(panel, parent, areaX, areaY, areaW, areaH, fieldSpecs, actionLabel, onAction)
+    end
+    local L = IKST_UI_Layout
+    local area = L.box(areaX, areaY, areaW, areaH)
+    local btnW, btnH = IKST_JobLayout.standardPillSize(panel, areaW)
     local fieldH = IKST_JobLayout.FIELD_H
     local fieldGap = IKST_JobLayout.BTN_GAP
     local gutter = math.max(10, fieldGap + 4)
     local specs = fieldSpecs or {}
     local n = #specs
-    local minW = IKST_JobLayout.FIELD_MIN_W or 200
-    if getTextManager and type(getTextManager) == "function" then
-        local tm = getTextManager()
-        if tm and type(tm.MeasureStringX) == "function" then
-            local sample = "MMMMMMMMMMMMMMMMMMMMMMMMMMMM"
-            local measured = tm:MeasureStringX(UIFont.Small, sample)
-            if measured and measured > minW then
-                minW = measured
-            end
+
+    local function secondIsQty()
+        if n < 2 or not specs[2] then
+            return false
         end
+        local name = string.lower(tostring(specs[2].fieldName or ""))
+        return string.find(name, "qty", 1, true) ~= nil
+            or string.find(name, "count", 1, true) ~= nil
+            or string.find(name, "amount", 1, true) ~= nil
     end
 
-    -- Stack action under fields when the band is too short for a clear corner layout.
-    local needStack = areaH < (fieldH + btnH + gutter + 4)
-    local btnX = ox + gridW - btnW
-    local btnY = areaY + math.max(0, areaH - btnH)
-    if needStack then
-        btnY = areaY + fieldH + gutter
-        if btnY + btnH > areaY + areaH then
-            btnY = math.max(areaY, areaY + areaH - btnH)
-        end
-    end
-    -- Hard clamp: never place the action pill outside the content area.
-    if btnY < areaY then
-        btnY = areaY
-    end
-    if btnY + btnH > areaY + areaH then
-        btnY = math.max(areaY, areaY + areaH - btnH)
+    local fieldsNeedW = 72
+    if n == 1 then
+        fieldsNeedW = math.min(IKST_JobLayout.FIELD_MIN_W or 200, math.max(72, area.w - 8))
+    elseif n == 2 and secondIsQty() then
+        fieldsNeedW = 96 + fieldGap + (IKST_JobLayout.QTY_FIELD_W or 48)
+    elseif n >= 2 then
+        fieldsNeedW = math.max(120, math.floor(area.w * 0.45))
     end
 
-    -- Width left of the action column (same-row). When stacked, fields may use full pack width.
-    local sideRoom = math.max(72, gridW - btnW - gutter)
-    local fieldRowW = needStack and gridW or sideRoom
+    local sideOk = area.h >= btnH and (area.w - btnW - gutter) >= fieldsNeedW
+    local stackOk = area.h >= (fieldH + gutter + btnH)
+    local stack = not sideOk
+    if stack and not stackOk then
+        stack = true -- prefer overflow below (soft cards unclipped) over X overlap
+    end
+
+    local fieldBox, btnBox
+    if stack then
+        local bands = L.columnIn(area, {
+            { h = fieldH },
+            { h = btnH },
+        }, { gap = gutter, pad = 0 })
+        fieldBox = bands[1] or L.box(area.x, area.y, area.w, fieldH)
+        local actionRow = bands[2] or L.box(area.x, area.y + fieldH + gutter, area.w, btnH)
+        btnBox = L.box(actionRow.x + math.max(0, actionRow.w - btnW), actionRow.y, btnW, btnH)
+    else
+        local cols = L.rowIn(area, {
+            { flex = 1 },
+            { w = btnW },
+        }, { gap = gutter, pad = 0 })
+        fieldBox = cols[1] or L.box(area.x, area.y, math.max(72, area.w - btnW - gutter), area.h)
+        local actionCol = cols[2] or L.box(area.x + area.w - btnW, area.y, btnW, area.h)
+        local by = actionCol.y + math.max(0, math.floor((actionCol.h - btnH) / 2))
+        btnBox = L.box(actionCol.x, by, btnW, btnH)
+        btnBox = L.clampTo(area, btnBox)
+    end
+
     local entries = {}
-    local x = ox
     if n <= 0 then
-        IKST_JobLayout.placePill(panel, parent, { x = btnX, y = btnY, w = btnW, h = btnH }, actionLabel, onAction, true)
+        if L.contains(area, btnBox) then
+            IKST_JobLayout.placePill(panel, parent, btnBox, actionLabel, onAction, true)
+        end
         return entries
     end
 
-    if n == 1 then
-        local fieldW = math.min(fieldRowW, math.max(minW, fieldRowW))
-        fieldW = math.max(72, math.min(fieldW, fieldRowW))
-        local spec = specs[1]
-        local entry = ISTextEntryBox:new(tostring(spec.text or ""), ox, areaY, fieldW, fieldH)
+    local function makeEntry(spec, rect)
+        rect = L.clampTo(fieldBox, rect)
+        if not L.contains(area, rect) then
+            rect = L.clampTo(area, rect)
+        end
+        local entry = ISTextEntryBox:new(tostring(spec.text or ""), rect.x, rect.y, rect.w, rect.h)
         entry:initialise()
-        entry:instantiate()
         if IKUI_Chrome and type(IKUI_Chrome.styleInput) == "function" then
             IKUI_Chrome.styleInput(entry, false)
         end
-        IKST_JobLayout.attachToolWidget(panel, parent, entry)
-        entries[1] = entry
+        IKST_JobLayout.attachSelectChild(panel, parent, entry)
         if spec.fieldName then
             panel[spec.fieldName] = entry
         end
-    elseif n == 2 then
-        -- ID + qty: never let qty collide with Give - clamp into fieldRowW.
-        local qtyW = IKST_JobLayout.QTY_FIELD_W or 48
-        local primaryW = fieldRowW - qtyW - fieldGap
-        if primaryW < 96 then
-            qtyW = math.max(36, math.min(qtyW, fieldRowW - 96 - fieldGap))
-            primaryW = math.max(72, fieldRowW - qtyW - fieldGap)
-        end
-        if primaryW + qtyW + fieldGap > fieldRowW then
-            primaryW = math.max(72, fieldRowW - qtyW - fieldGap)
-        end
-        for i = 1, 2 do
-            local spec = specs[i]
-            local fw = (i == 1) and primaryW or qtyW
-            local entry = ISTextEntryBox:new(tostring(spec.text or ""), x, areaY, fw, fieldH)
-            entry:initialise()
-            entry:instantiate()
-            if IKUI_Chrome and type(IKUI_Chrome.styleInput) == "function" then
-                IKUI_Chrome.styleInput(entry, false)
-            end
-            IKST_JobLayout.attachToolWidget(panel, parent, entry)
-            entries[i] = entry
-            if spec.fieldName then
-                panel[spec.fieldName] = entry
-            end
-            x = x + fw + fieldGap
-        end
+        return entry
+    end
+
+    if n == 1 then
+        entries[1] = makeEntry(specs[1], L.box(fieldBox.x, fieldBox.y, fieldBox.w, fieldH))
+    elseif n == 2 and secondIsQty() then
+        local slots = L.rowIn(L.box(fieldBox.x, fieldBox.y, fieldBox.w, fieldH), {
+            { flex = 1 },
+            { w = IKST_JobLayout.QTY_FIELD_W or 48 },
+        }, { gap = fieldGap, pad = 0 })
+        entries[1] = makeEntry(specs[1], slots[1])
+        entries[2] = makeEntry(specs[2], slots[2])
     else
-        local share = math.floor((fieldRowW - fieldGap * (n - 1)) / n)
-        local fw = math.max(48, share)
-        if fw * n + fieldGap * (n - 1) > fieldRowW then
-            fw = math.max(40, math.floor((fieldRowW - fieldGap * (n - 1)) / n))
-        end
+        local kids = {}
         for i = 1, n do
-            local spec = specs[i]
-            local entry = ISTextEntryBox:new(tostring(spec.text or ""), ox + (i - 1) * (fw + fieldGap), areaY, fw, fieldH)
-            entry:initialise()
-            entry:instantiate()
-            if IKUI_Chrome and type(IKUI_Chrome.styleInput) == "function" then
-                IKUI_Chrome.styleInput(entry, false)
-            end
-            IKST_JobLayout.attachToolWidget(panel, parent, entry)
-            entries[i] = entry
-            if spec.fieldName then
-                panel[spec.fieldName] = entry
-            end
+            kids[i] = { flex = 1 }
+        end
+        local slots = L.rowIn(L.box(fieldBox.x, fieldBox.y, fieldBox.w, fieldH), kids, { gap = fieldGap, pad = 0 })
+        for i = 1, n do
+            entries[i] = makeEntry(specs[i], slots[i])
         end
     end
 
-    IKST_JobLayout.placePill(panel, parent, { x = btnX, y = btnY, w = btnW, h = btnH }, actionLabel, onAction, true)
+    btnBox = L.clampTo(area, btnBox)
+    if L.contains(area, btnBox) then
+        IKST_JobLayout.placePill(panel, parent, btnBox, actionLabel, onAction, true)
+    end
     return entries
 end
 
-function IKST_JobLayout.finishFit(panel)
+function IKST_JobLayout.finishFit(panel, contentBottomY)
+    -- Soft shell: SoftBody.finish sizes scroll to stacked content.
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.finish) == "function" then
+        IKUI_SoftBody.finish(panel, contentBottomY)
+        if IKUI_Chrome and IKUI_Chrome.syncArmedStopButton then
+            IKUI_Chrome.syncArmedStopButton(panel)
+        end
+        return
+    end
     local _, _, _, q3H = IKST_JobLayout.q3Rect(panel)
     local h = math.max(80, q3H or panel.scrollHeight or 80)
     panel._lastScrollContentH = h
@@ -1008,6 +1260,36 @@ function IKST_JobLayout.finishFit(panel)
         end
         if type(panel.jobScroll.setYScroll) == "function" then
             panel.jobScroll:setYScroll(0)
+        end
+    end
+    IKST_JobLayout.recordPuzzleBaseline(panel)
+    if IKUI_Chrome and IKUI_Chrome.syncArmedStopButton then
+        IKUI_Chrome.syncArmedStopButton(panel)
+    end
+end
+
+function IKST_JobLayout.finish(panel, contentBottomY)
+    if softShellMode(panel) and IKUI_SoftBody and type(IKUI_SoftBody.finish) == "function" then
+        panel._ikstToolFit = false
+        IKUI_SoftBody.finish(panel, contentBottomY)
+        if IKUI_Chrome and IKUI_Chrome.syncArmedStopButton then
+            IKUI_Chrome.syncArmedStopButton(panel)
+        end
+        return
+    end
+    if panel and panel._ikstToolFit == true then
+        panel._ikstToolFit = false
+        IKST_JobLayout.finishFit(panel, contentBottomY)
+        return
+    end
+    contentBottomY = contentBottomY or panel.bodyY or 0
+    panel._lastScrollContentH = contentBottomY + 12
+    if panel.jobScroll then
+        if panel.jobScroll.setContentHeight then
+            panel.jobScroll:setContentHeight(panel._lastScrollContentH)
+        end
+        if panel.jobScroll.setScrollHeight then
+            panel.jobScroll:setScrollHeight(math.max(panel._lastScrollContentH, panel.scrollHeight or 0))
         end
     end
     IKST_JobLayout.recordPuzzleBaseline(panel)
@@ -1086,10 +1368,17 @@ function IKST_JobLayout.refillSelectList(list, rows, selectedId)
 end
 
 function IKST_JobLayout.attachSelectChild(panel, parent, widget)
+    if not widget then
+        return
+    end
+    widget._ikstHubSatellite = true
     if parent and type(parent.addChild) == "function" then
         parent:addChild(widget)
     elseif panel and type(panel.addJobWidget) == "function" then
         panel:addJobWidget(widget)
+    end
+    if panel and type(panel.trackWidget) == "function" and parent and parent ~= panel then
+        panel:trackWidget(widget)
     end
 end
 
@@ -1101,7 +1390,6 @@ function IKST_JobLayout.makeFilterEntry(panel, parent, x, y, w, fieldName, onCha
     local h = math.max(22, IKST_UI_Layout.s(22))
     local entry = ISTextEntryBox:new(text, x, y, w, h)
     entry:initialise()
-    entry:instantiate()
     if IKUI_Chrome and type(IKUI_Chrome.styleInput) == "function" then
         IKUI_Chrome.styleInput(entry, false)
     end
@@ -1125,7 +1413,6 @@ function IKST_JobLayout.makeSelectList(panel, parent, x, y, w, h, rows, opts)
     opts = opts or {}
     local list = ISScrollingListBox:new(x, y, w, h)
     list:initialise()
-    list:instantiate()
     list.itemheight = opts.itemHeight or IKST_JobLayout.listItemHeight()
     list.font = UIFont.Small
     list.drawBorder = true
@@ -1145,28 +1432,6 @@ function IKST_JobLayout.makeSelectList(panel, parent, x, y, w, h, rows, opts)
         end)
     end
     return list, y + h
-end
-
-function IKST_JobLayout.finish(panel, contentBottomY)
-    if panel and panel._ikstToolFit == true then
-        panel._ikstToolFit = false
-        IKST_JobLayout.finishFit(panel)
-        return
-    end
-    contentBottomY = contentBottomY or panel.bodyY or 0
-    panel._lastScrollContentH = contentBottomY + 12
-    if panel.jobScroll then
-        if panel.jobScroll.setContentHeight then
-            panel.jobScroll:setContentHeight(panel._lastScrollContentH)
-        end
-        if panel.jobScroll.setScrollHeight then
-            panel.jobScroll:setScrollHeight(math.max(panel._lastScrollContentH, panel.scrollHeight or 0))
-        end
-    end
-    IKST_JobLayout.recordPuzzleBaseline(panel)
-    if IKUI_Chrome and IKUI_Chrome.syncArmedStopButton then
-        IKUI_Chrome.syncArmedStopButton(panel)
-    end
 end
 
 function IKST_JobLayout.relayoutChrome(panel, opts)

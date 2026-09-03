@@ -74,8 +74,11 @@ function IKST_WorldPick.syncHoverPreview()
         return
     end
     IKST_WorldPick._hoverKey = key
-    if IKST_Preview and IKST_Preview.syncForPanel and IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_Preview.syncForPanel(IKST_JobsPanel.instance)
+    if IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel then
+            IKST_Preview.syncForPanel(panel)
+        end
     end
 end
 
@@ -583,8 +586,8 @@ function IKST_WorldPick.armInspect(player, silent, audit)
     IKST_WorldPick.activePlayer = player
     IKST_WorldPick.batchScope = nil
     IKST_WorldPick.clearHover()
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
     if not silent then
         IKST.notify(player, IKST.text("IGUI_IKST_ClickWorld", "Click a world square"), true)
@@ -634,11 +637,14 @@ function IKST_WorldPick.armCommand(player, viewJob, command, extra, opts)
     IKST_WorldPick.activePlayer = player
     IKST_WorldPick.batchScope = nil
     IKST_WorldPick.clearHover()
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
-    if IKST_Preview and IKST_Preview.syncForPanel and IKST_JobsPanel.instance then
-        IKST_Preview.syncForPanel(IKST_JobsPanel.instance)
+    if IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel then
+            IKST_Preview.syncForPanel(panel)
+        end
     end
     if not opts.silent then
         local notifyKey = opts.notifyKey or "IGUI_IKST_ClickWorld"
@@ -682,11 +688,14 @@ function IKST_WorldPick.arm(player, action, scope, silent)
     IKST_WorldPick.activePlayer = player
     IKST_WorldPick.batchScope = nil
     IKST_WorldPick.clearHover()
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
-    if IKST_Preview and IKST_Preview.syncForPanel and IKST_JobsPanel.instance then
-        IKST_Preview.syncForPanel(IKST_JobsPanel.instance)
+    if IKST_Preview and type(IKST_Preview.syncForPanel) == "function" then
+        local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
+        if panel then
+            IKST_Preview.syncForPanel(panel)
+        end
     end
     if not silent and not same then
         IKST.notify(player, IKST.text("IGUI_IKST_ClickWorld", "Click a world square"), true)

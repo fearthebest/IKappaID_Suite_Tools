@@ -172,7 +172,7 @@ function IKST_EconomyOps.replaceShopContainer(obj, targetCap, migrateItems)
 end
 
 function IKST_EconomyOps.ensureShopContainerCapacity(obj)
-    if not obj or not obj.getContainer then
+    if not obj or type(obj.getContainer) ~= "function" then
         return false
     end
     local md = obj:getModData() or {}
@@ -209,7 +209,7 @@ function IKST_EconomyOps.hasShopSignOnSquare(square)
     end
     for i = 0, square:getObjects():size() - 1 do
         local obj = square:getObjects():get(i)
-        if obj and obj.getModData then
+        if obj and type(obj.getModData) == "function" then
             local md = obj:getModData()
             if md and md[IKST_Economy.SHOP_SIGN_TAG] then
                 return true
@@ -279,10 +279,10 @@ function IKST_EconomyOps.enableAtmAt(player, x, y, z, cfg)
     if sq and sq.getObjects then
         for i = 0, sq:getObjects():size() - 1 do
             local obj = sq:getObjects():get(i)
-            if obj and IKST_Economy.isAtmTileObject(obj) and obj.getModData then
+            if obj and IKST_Economy.isAtmTileObject(obj) and type(obj.getModData) == "function" then
                 local md = obj:getModData()
                 md[IKST_Economy.ATM_TAG] = true
-                if obj.transmitModData then
+                if type(obj.transmitModData) == "function" then
                     obj:transmitModData()
                 end
             end
@@ -310,7 +310,7 @@ function IKST_EconomyOps.spawnAtmFixtureObject(square, placerName, player)
     end
     if not obj then
         IKST_EconomyOps.shopPlaceDebug(player,
-            "atm place: failed — enable IKappaID Suite Tools - World Edit (Tiles) so ikst_economy_01 sprites load")
+            "atm place: failed — could not spawn vanilla ATM sprite")
         return nil
     end
     local md = obj:getModData()

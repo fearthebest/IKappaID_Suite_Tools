@@ -56,7 +56,7 @@ function IKST_EconomyVendClient.uiState(player, x, y, z, obj)
             stale = true,
         }
     end
-    if not obj or not obj.getModData or not IKST_Economy then
+    if not obj or type(obj.getModData) ~= "function" or not IKST_Economy then
         return nil
     end
     local md = obj:getModData()

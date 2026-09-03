@@ -1,0 +1,14 @@
+IKappaID Suite Tools — v0.3.2.3 BETA (Build 42.20)
+
+Requires IKappaID UI Framework v0.1.0.2+ (Mod ID: IKappaID_UI).
+
+FIXED
+• SP claim sandbox — self-claim vs request now follow each save’s sandbox toggles (host no longer auto bypasses player claim modes in single player).
+• SP house requests — walk-draw submit and staff review queue work in single player for playtesting request-only saves.
+• World Edit paint — pack page row shows < | page | > ; the right (>) scroll control no longer clips off on narrow panels.
+
+CHANGED
+• Paint tiles pack UI — List/Load on their own row; pack and tile page nav use compact prev/next rows.
+
+NOTE
+• Sync this pack and IKappaID_UI v0.1.0.2 before playtest. Dedicated Mods= must include both.

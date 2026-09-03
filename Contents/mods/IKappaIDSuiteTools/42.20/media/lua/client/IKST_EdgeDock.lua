@@ -378,23 +378,14 @@ function IKST_EdgeDock.isShown()
 end
 
 function IKST_EdgeDock.minimizeHub()
-    local panel = IKST_JobsPanel and IKST_JobsPanel.instance
-    if panel then
-        if IKST_UIPrefs and type(IKST_UIPrefs.savePanelGeometry) == "function" then
-            IKST_UIPrefs.savePanelGeometry(panel)
-        end
-        if IKST_DragHandle and type(IKST_DragHandle.hidePanel) == "function" then
-            IKST_DragHandle.hidePanel(panel)
-        elseif type(panel.setVisible) == "function" then
-            panel:setVisible(false)
-        end
+    if IKST_Hub and type(IKST_Hub.minimize) == "function" then
+        IKST_Hub.minimize()
     end
     if IKST_ActionLogWindow and type(IKST_ActionLogWindow.close) == "function" then
         IKST_ActionLogWindow.close()
     end
     IKST_EdgeDock.show()
 end
-
 function IKST_EdgeDock.expandHub()
     IKST_EdgeDock.hide()
     local player = getPlayer and getPlayer() or nil
@@ -404,8 +395,8 @@ function IKST_EdgeDock.expandHub()
     if IKST_Joypad then
         IKST_Joypad._wantFocus = true
     end
-    if IKST_JobsPanel and type(IKST_JobsPanel.open) == "function" then
-        IKST_JobsPanel.open(player)
+    if IKST_Hub and type(IKST_Hub.open) == "function" then
+        IKST_Hub.open(player)
     end
 end
 

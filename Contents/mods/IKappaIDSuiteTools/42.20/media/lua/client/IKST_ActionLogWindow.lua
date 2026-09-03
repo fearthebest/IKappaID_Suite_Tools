@@ -12,12 +12,25 @@ require "IKST_JobLayout"
 require "IKST_ActionLog"
 require "IKST_DragHandle"
 require "IKST_UIPrefs"
+require "IKappaID_UI/IKUI_Controls"
 
 local prevInstance = IKST_ActionLogWindow and IKST_ActionLogWindow.instance or nil
 
 IKST_ActionLogWindow = ISPanel:derive("IKST_ActionLogWindow")
 IKST_ActionLogWindow.instance = prevInstance
 IKST_ActionLogWindow._ensuring = false
+IKST_ActionLogWindow.COLLAPSED_H = 36
+
+local function logCollapsedPref()
+    local v = IKST_UIPrefs and IKST_UIPrefs.getNumber("logCollapsed")
+    return v == 1
+end
+
+local function setLogCollapsedPref(collapsed)
+    if IKST_UIPrefs and type(IKST_UIPrefs.set) == "function" then
+        IKST_UIPrefs.set("logCollapsed", collapsed and 1 or 0)
+    end
+end
 
 function IKST_ActionLogWindow.isActionLogPanel(el)
     if not el or el._ikstDestroyed == true then
@@ -116,6 +129,66 @@ function IKST_ActionLogWindow.purgeDragTabs()
     end
 end
 
+function IKST_ActionLogWindow:applyCollapsedLayout()
+    local panel = IKST_ActionLogWindow.instance
+    if not panel then
+        return
+    end
+    local collapsed = panel._logCollapsed == true
+    if collapsed then
+        if panel.height and panel.height > IKST_ActionLogWindow.COLLAPSED_H then
+            panel._logExpandedH = panel.height
+        elseif not panel._logExpandedH then
+            if IKST_JobLayout and type(IKST_JobLayout.actionLogWindowSize) == "function" then
+                local _, defH = IKST_JobLayout.actionLogWindowSize()
+                panel._logExpandedH = defH
+            else
+                panel._logExpandedH = 320
+            end
+        end
+        if type(panel.setHeight) == "function" then
+            panel:setHeight(IKST_ActionLogWindow.COLLAPSED_H)
+        else
+            panel.height = IKST_ActionLogWindow.COLLAPSED_H
+        end
+    elseif panel._logExpandedH and type(panel.setHeight) == "function" then
+        panel:setHeight(panel._logExpandedH)
+    end
+    if panel.collapseBtn then
+        if type(panel.collapseBtn.setX) == "function" then
+            panel.collapseBtn:setX(math.max(6, panel.width - 86))
+        end
+        local title = collapsed
+            and IKST.text("IGUI_IKST_ActionLog_Expand", "Expand")
+            or IKST.text("IGUI_IKST_ActionLog_Collapse", "Minimize")
+        if type(panel.collapseBtn.setLabel) == "function" then
+            panel.collapseBtn:setLabel(title)
+        else
+            panel.collapseBtn.label = title
+            panel.collapseBtn._fitSrc = nil
+            panel.collapseBtn._fitLabel = nil
+        end
+    end
+    if type(panel.onGeometryChanged) == "function" then
+        panel:onGeometryChanged()
+    end
+end
+
+function IKST_ActionLogWindow.toggleCollapse()
+    local panel = IKST_ActionLogWindow.ensure()
+    if not panel then
+        return
+    end
+    panel._logCollapsed = not (panel._logCollapsed == true)
+    setLogCollapsedPref(panel._logCollapsed == true)
+    IKST_ActionLogWindow.applyCollapsedLayout()
+    panel:refresh()
+end
+
+function IKST_ActionLogWindow.syncWithHub(_player)
+    -- Soft hub has no action-log satellite. Keep this as a no-op for old callers.
+end
+
 function IKST_ActionLogWindow.enforceSingleton()
     local panels = IKST_ActionLogWindow.collectPanels()
     local keeper = IKST_ActionLogWindow.instance
@@ -165,6 +238,8 @@ function IKST_ActionLogWindow:new(x, y, width, height)
     o.lines = {}
     o.pin = true
     o.moveWithMouse = false
+    o._logCollapsed = logCollapsedPref()
+    o._logExpandedH = nil
     IKUI_Chrome.applyPanelColors(o)
     IKST_DragHandle.attach(o, "top", {
         clampFn = function(p)
@@ -202,6 +277,9 @@ function IKST_ActionLogWindow:lineHeight()
 end
 
 function IKST_ActionLogWindow:onGeometryChanged()
+    if self.collapseBtn and type(self.collapseBtn.setX) == "function" then
+        self.collapseBtn:setX(math.max(6, self.width - 86))
+    end
     if IKST_DragHandle and type(IKST_DragHandle.layoutTab) == "function" then
         IKST_DragHandle.layoutTab(self)
     end
@@ -209,6 +287,14 @@ end
 
 function IKST_ActionLogWindow:createChildren()
     ISPanel.createChildren(self)
+    local label = self._logCollapsed and IKST.text("IGUI_IKST_ActionLog_Expand", "Expand")
+        or IKST.text("IGUI_IKST_ActionLog_Collapse", "Minimize")
+    self.collapseBtn = IKUI_Button:new(self.width - 86, 6, 76, 22, label, self, function()
+        IKST_ActionLogWindow.toggleCollapse()
+    end)
+    self.collapseBtn.style = "ghost"
+    self.collapseBtn.radius = 8
+    self:addChild(self.collapseBtn)
 end
 
 function IKST_ActionLogWindow:prerender()
@@ -219,6 +305,10 @@ function IKST_ActionLogWindow:prerender()
     local c = IKUI_Chrome.colors
     local title = IKST.text("IGUI_IKST_ActionLog", "Action log")
     self:drawText(title, pad, pad + 2, c.accent.r, c.accent.g, c.accent.b, 1, UIFont.Small)
+
+    if self._logCollapsed then
+        return
+    end
 
     local y = pad + headerH
     local lineH = self:lineHeight()
@@ -379,7 +469,20 @@ function IKST_ActionLogWindow.open(player)
     if IKST_JobLayout and type(IKST_JobLayout.restoreActionLogPosition) == "function" then
         IKST_JobLayout.restoreActionLogPosition(panel)
     end
+    if panel._logCollapsed and not panel._logExpandedH then
+        if IKST_JobLayout and type(IKST_JobLayout.actionLogWindowSize) == "function" then
+            local _, defH = IKST_JobLayout.actionLogWindowSize()
+            panel._logExpandedH = defH
+        elseif panel.height and panel.height > IKST_ActionLogWindow.COLLAPSED_H then
+            panel._logExpandedH = panel.height
+        else
+            panel._logExpandedH = 320
+        end
+    end
     panel:refresh()
+    if panel._logCollapsed then
+        IKST_ActionLogWindow.applyCollapsedLayout()
+    end
     if type(panel.bringToTop) == "function" then
         panel:bringToTop()
     end

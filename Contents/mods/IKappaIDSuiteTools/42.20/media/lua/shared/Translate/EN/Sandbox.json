@@ -14,7 +14,25 @@
     "Sandbox_IKappaIDSuiteTools_ClaimHouseSelfService_tooltip": "ON = players claim safehouses themselves from IKST. OFF = use house request (if enabled) or staff.",
 
     "Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled": "Players can request house claims",
-    "Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled_tooltip": "ON = players walk-draw a zone and staff approve under Claim requests. Works with house self-claim OFF.",
+    "Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled_tooltip": "ON = players walk-draw any land zone and staff approve under Claim requests (open ground or buildings). Works with house self-claim OFF.",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads": "Self-claim: block roads",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads_tooltip": "ON = player self-claims cannot cover street tiles. Does not block staff claim requests (admins decide).",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse": "Self-claim: keep clear of other safehouses",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse_tooltip": "ON = player self-claims must stay outside a buffer around existing safehouses so paths stay open.",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfNearSafehouseTiles": "Self-claim: clear distance (tiles)",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfNearSafehouseTiles_tooltip": "Buffer tiles around other safehouses when Block near safehouses is ON. 0 = only reject overlapping squares.",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfMinTiles": "Self-claim: min tiles (W×H)",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfMinTiles_tooltip": "Minimum area for a player self-claim rectangle.",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfMaxTiles": "Self-claim: max tiles (W×H)",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfMaxTiles_tooltip": "Maximum area for a player self-claim rectangle.",
+
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfRequireSquare": "Self-claim: roughly square",
+    "Sandbox_IKappaIDSuiteTools_ClaimSelfRequireSquare_tooltip": "ON = W and H may differ by at most 2 tiles on player self-claims.",
 
     "Sandbox_IKappaIDSuiteTools_ClaimVehicleSelfService": "Players can claim vehicles",
     "Sandbox_IKappaIDSuiteTools_ClaimVehicleSelfService_tooltip": "ON = players claim nearby vehicles themselves. OFF = use vehicle request (if enabled) or staff.",
@@ -122,7 +140,7 @@
     "Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle_tooltip": "Allow staff to turn water and power on or off for the whole server.",
 
     "Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin": "Remote Admin Tools",
-    "Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip": "Allow admins to use tools like Protect Area from a distance. Not recommended for public servers.",
+    "Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip": "DANGER: When enabled, protect-radius and similar tools work map-wide from any distance. Not recommended for public servers.",
     "Sandbox_IKappaIDSuiteTools_CatchMaxDistance": "Catch Max Distance",
     "Sandbox_IKappaIDSuiteTools_CatchMaxDistance_tooltip": "Maximum distance (tiles) for Catch when StaffRemoteAdmin is off.",
 

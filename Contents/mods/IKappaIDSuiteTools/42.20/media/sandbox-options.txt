@@ -24,6 +24,60 @@ option IKappaIDSuiteTools.ClaimHouseRequestEnabled
     translation = IKappaIDSuiteTools_ClaimHouseRequestEnabled,
 }
 
+option IKappaIDSuiteTools.ClaimSelfBlockRoads
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfBlockRoads,
+}
+
+option IKappaIDSuiteTools.ClaimSelfBlockNearSafehouse
+{
+    type = boolean,
+    default = true,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse,
+}
+
+option IKappaIDSuiteTools.ClaimSelfNearSafehouseTiles
+{
+    type = integer,
+    default = 8,
+    min = 0,
+    max = 64,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfNearSafehouseTiles,
+}
+
+option IKappaIDSuiteTools.ClaimSelfMinTiles
+{
+    type = integer,
+    default = 16,
+    min = 1,
+    max = 1000,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfMinTiles,
+}
+
+option IKappaIDSuiteTools.ClaimSelfMaxTiles
+{
+    type = integer,
+    default = 400,
+    min = 10,
+    max = 5000,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfMaxTiles,
+}
+
+option IKappaIDSuiteTools.ClaimSelfRequireSquare
+{
+    type = boolean,
+    default = false,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimSelfRequireSquare,
+}
+
 option IKappaIDSuiteTools.ClaimVehicleSelfService
 {
     type = boolean,

@@ -282,10 +282,8 @@ local function definePaintCursor()
 
         end
 
-        if IKST_JobsPanel and IKST_JobsPanel.instance then
-
-            IKST_JobsPanel.instance:refreshJobUI()
-
+        if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+            IKST_Hub.refreshActive()
         end
 
         IKST.notify(self.character, sprite, true)

@@ -76,8 +76,8 @@ function IKST_VehicleClaimClient.onMirroredModData()
     if not hasServerRows then
         IKST_VehicleClaimClient.syncFromMirroredStore()
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
 
@@ -169,8 +169,8 @@ function IKST_VehicleClaimClient.onClaimListResult(args)
     IKST_VehicleClaimClient.claims = (args and args.claims) or {}
     IKST_VehicleClaimClient.listBootstrapped = true
     IKST_VehicleClaimClient.reindexClaims()
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
 
@@ -178,8 +178,8 @@ function IKST_VehicleClaimClient.onNearbyResult(vehicles)
     IKST_VehicleClaimClient.nearby = vehicles or {}
     IKST_VehicleClaimClient.listBootstrapped = true
     IKST_VehicleClaimClient.reindexClaims()
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
 
@@ -361,7 +361,7 @@ function IKST_VehicleClaimClient.forceRefresh(args)
             })
         end
     end
-    if IKST_JobsPanel and IKST_JobsPanel.instance then
-        IKST_JobsPanel.instance:refreshJobUI()
+    if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
+        IKST_Hub.refreshActive()
     end
 end
