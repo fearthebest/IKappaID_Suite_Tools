@@ -4,8 +4,8 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "IKappaID_UI/IKUI_SoftBody"
-require "IKappaID_UI/IKUI_Controls"
+require "IKappaID_UI_Framework/IKUI_SoftBody"
+require "IKappaID_UI_Framework/IKUI_Controls"
 
 IKST_SoftTool_Home = IKST_SoftTool_Home or {}
 

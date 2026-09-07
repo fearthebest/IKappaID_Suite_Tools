@@ -13,8 +13,8 @@ require "IKST_Economy"
 require "IKST_EconomyBridge"
 require "IKST_Identity"
 require "IKST_Access"
-require "IKappaID_UI/IKUI_Chrome"
-require "IKappaID_UI/IKUI_Config"
+require "IKappaID_UI_Framework/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Config"
 require "IKST_EconomyIcons"
 
 IKST_EconomyUI = IKST_EconomyUI or {}

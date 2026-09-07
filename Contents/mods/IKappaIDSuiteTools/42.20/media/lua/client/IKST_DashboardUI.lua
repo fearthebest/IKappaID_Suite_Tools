@@ -3,8 +3,8 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "IKappaID_UI/IKUI_Config"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Config"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 require "IKST_ClaimIcons"
 require "IKST_DashboardQuick"
 

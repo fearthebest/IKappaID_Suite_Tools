@@ -7,7 +7,7 @@ end
 require "IKST_Shared"
 require "IKST_JobStaff"
 require "IKST_Confirm"
-require "IKappaID_UI/IKUI_SoftBody"
+require "IKappaID_UI_Framework/IKUI_SoftBody"
 
 IKST_SoftTool_Admin = IKST_SoftTool_Admin or {}
 

@@ -6,7 +6,7 @@ end
 require "ISUI/ISButton"
 require "ISUI/ISUIElement"
 require "IKST_UI_Layout"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_DragHandle = IKST_DragHandle or {}
 if IKST_DragHandle._tickHooked ~= true then

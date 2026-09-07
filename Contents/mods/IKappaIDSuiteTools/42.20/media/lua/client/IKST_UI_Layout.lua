@@ -3,8 +3,8 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "IKappaID_UI/IKUI_Config"
-require "IKappaID_UI/IKUI_Layout"
+require "IKappaID_UI_Framework/IKUI_Config"
+require "IKappaID_UI_Framework/IKUI_Layout"
 
 IKST_UI_Layout = IKST_UI_Layout or {}
 

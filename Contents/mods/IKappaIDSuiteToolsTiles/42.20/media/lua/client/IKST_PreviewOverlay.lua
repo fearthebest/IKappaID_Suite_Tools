@@ -5,7 +5,7 @@ end
 require "IKST_Shared"
 require "IKST_Grid"
 require "IKST_VehicleIdentity"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_PreviewOverlay = IKST_PreviewOverlay or {}
 IKST_PreviewOverlay.batchSquares = {}

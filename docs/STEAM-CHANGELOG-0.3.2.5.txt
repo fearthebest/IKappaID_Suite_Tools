@@ -1,0 +1,11 @@
+IKappaID Suite Tools — v0.3.2.5 BETA (Build 42.20)
+
+Requires IKappaID UI Framework v0.1.0.4+ (Mod ID: IKappaID_UI_Framework). Enable the Framework above this suite. Upload Framework 0.1.0.4 with this pack.
+
+CHANGED
+• Control panel and Detach economy window now have rounded IKappaID corners (same dark + orange look).
+
+NOTE
+• Dedicated Mods= must include IKappaID_UI_Framework then IKappaIDSuiteTools (and the addons you use).
+• Inventory restyle is a separate mod: IKappaID UI v1.0.0.0.
+• Keep StaffRemoteAdmin off on public hosts.

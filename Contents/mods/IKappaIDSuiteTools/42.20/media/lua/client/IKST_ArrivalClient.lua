@@ -5,7 +5,7 @@ end
 require "ISUI/ISPanel"
 require "IKST_Shared"
 require "IKST_Arrival"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_ArrivalClient = ISPanel:derive("IKST_ArrivalClient")
 IKST_ArrivalClient.instance = nil

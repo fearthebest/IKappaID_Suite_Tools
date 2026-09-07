@@ -3,7 +3,7 @@
 Build 42 admin and player toolkit for Project Zomboid: safehouse and vehicle claims, recovery journal, server utilities, and optional World Edit, Vehicles, Economy, and Loot addons.
 
 [![Steam Workshop](https://img.shields.io/badge/Steam-Workshop-blue)](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193)
-[![Version](https://img.shields.io/badge/Version-0.3.2.4-green)](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193)
+[![Version](https://img.shields.io/badge/Version-0.3.2.5-green)](https://steamcommunity.com/sharedfiles/filedetails/?id=3750835193)
 [![Build](https://img.shields.io/badge/Project%20Zomboid-Build%2042-orange)](https://pzwiki.net/wiki/Build_42)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

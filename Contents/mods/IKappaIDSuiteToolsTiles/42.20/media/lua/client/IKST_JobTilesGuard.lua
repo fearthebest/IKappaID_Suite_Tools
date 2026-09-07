@@ -4,7 +4,7 @@ end
 
 require "ISUI/ISTextEntryBox"
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 require "IKST_ActionLog"
 require "IKST_JobLayout"
 require "IKST_WorldPick"

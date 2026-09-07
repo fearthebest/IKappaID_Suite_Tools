@@ -5,7 +5,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 end
 
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_ActionLog = IKST_ActionLog or {}
 IKST_ActionLog.MAX_LINES = 20

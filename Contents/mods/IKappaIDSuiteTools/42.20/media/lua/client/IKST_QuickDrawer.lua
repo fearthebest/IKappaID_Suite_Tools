@@ -12,7 +12,7 @@ require "IKST_Utility"
 
 require "IKST_QuickActions"
 
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 require "IKST_HubNav"
 

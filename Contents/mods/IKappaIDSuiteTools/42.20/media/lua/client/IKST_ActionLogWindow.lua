@@ -6,13 +6,13 @@ end
 require "ISUI/ISPanel"
 require "ISUI/ISUIElement"
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_JobLayout"
 require "IKST_ActionLog"
 require "IKST_DragHandle"
 require "IKST_UIPrefs"
-require "IKappaID_UI/IKUI_Controls"
+require "IKappaID_UI_Framework/IKUI_Controls"
 
 local prevInstance = IKST_ActionLogWindow and IKST_ActionLogWindow.instance or nil
 

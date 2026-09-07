@@ -28,7 +28,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Access"
-require "IKappaID_UI/IKUI_Shell"
+require "IKappaID_UI_Framework/IKUI_Shell"
 require "IKST_Hub"
 
 IKST_Joypad = IKST_Joypad or {}

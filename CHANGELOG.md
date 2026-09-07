@@ -1,5 +1,18 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.5 — BETA (2026-09-06)
+
+Build **42.20** — rounded hub chrome. Requires **IKappaID UI Framework v0.1.0.4+**.
+
+### Changed
+- **Hub and Detach windows** — rounded IKappaID corners (from Framework 0.1.0.4). Same tools; clearer panel edges.
+
+### Notes
+- Enable IKappaID UI Framework above Suite Tools.
+- Inventory look is a separate mod: **IKappaID UI v1.0.0.0**.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.5.txt`
+
 ## 0.3.2.4 — BETA (2026-09-03)
 
 Build **42.20** — hub-only manage surfaces + IKappaID_UI economy detach.

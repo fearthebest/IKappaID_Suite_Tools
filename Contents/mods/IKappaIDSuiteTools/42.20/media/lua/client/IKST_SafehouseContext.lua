@@ -19,7 +19,7 @@ require "IKST_ClaimIcons"
 require "IKST_JobGuard"
 require "IKST_Hub"
 require "IKST_ClaimPermissionsUI"
-require "IKappaID_UI/IKUI_Shell"
+require "IKappaID_UI_Framework/IKUI_Shell"
 
 IKST_SafehouseContext = IKST_SafehouseContext or {}
 

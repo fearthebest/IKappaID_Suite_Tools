@@ -4,7 +4,7 @@ end
 
 require "IKST_Shared"
 require "IKST_Plugins"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 require "IKST_JobLayout"
 require "IKST_JobGuard"
 require "IKST_JobAutomation"

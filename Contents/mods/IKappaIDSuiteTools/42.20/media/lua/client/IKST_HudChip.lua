@@ -5,7 +5,7 @@ end
 require "ISUI/ISButton"
 require "IKST_Shared"
 require "IKST_Access"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_HudChip = ISPanel:derive("IKST_HudChip")
 IKST_HudChip.instance = nil

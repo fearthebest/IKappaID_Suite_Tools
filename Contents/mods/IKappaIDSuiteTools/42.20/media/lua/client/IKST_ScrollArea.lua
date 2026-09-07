@@ -3,7 +3,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
     return
 end
 
-require "IKappaID_UI/IKUI_Widgets"
+require "IKappaID_UI_Framework/IKUI_Widgets"
 
 IKST_ScrollArea = IKUI_ScrollHost
 

@@ -5,7 +5,7 @@ end
 require "ISUI/ISTextEntryBox"
 require "ISUI/ISLabel"
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 require "IKST_UI_Layout"
 require "IKST_TileIndex"
 require "IKST_SpriteGrid"

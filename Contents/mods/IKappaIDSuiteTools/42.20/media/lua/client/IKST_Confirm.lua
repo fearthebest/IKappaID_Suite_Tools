@@ -2,7 +2,7 @@ if type(isServer) == "function" and isServer() and type(isClient) == "function" 
 
 require "ISUI/ISModalDialog"
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_Confirm = IKST_Confirm or {}
 

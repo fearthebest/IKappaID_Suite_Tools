@@ -6,7 +6,7 @@ end
 
 require "ISUI/ISLabel"
 require "IKST_Shared"
-require "IKappaID_UI/IKUI_SoftBody"
+require "IKappaID_UI_Framework/IKUI_SoftBody"
 require "IKST_JobLayout"
 require "IKST_JobUtilities"
 require "IKST_JobStaff"

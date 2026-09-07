@@ -10,7 +10,7 @@ require "IKST_ContainerRules"
 require "IKST_TransferRules"
 require "IKST_TileCheck"
 require "IKST_Access"
-require "IKappaID_UI/IKUI_Chrome"
+require "IKappaID_UI_Framework/IKUI_Chrome"
 
 IKST_GuardHooks = IKST_GuardHooks or {}
 IKST_GuardHooks._shApplied = IKST_GuardHooks._shApplied or {}

@@ -13,7 +13,7 @@ require "IKST_Briefing"
 require "IKST_Unstuck"
 require "IKST_Dashboard"
 require "IKST_Access"
-require "IKappaID_UI/IKUI_SoftBody"
+require "IKappaID_UI_Framework/IKUI_SoftBody"
 
 IKST_SoftTool_Everyone = IKST_SoftTool_Everyone or {}
 
