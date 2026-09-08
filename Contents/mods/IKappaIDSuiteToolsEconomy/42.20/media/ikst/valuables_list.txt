@@ -1,0 +1,152 @@
+# Jewelry supplement for ATM exchange — itemType|label|payout
+# Primary operator list: media/ikst/sell_list.txt (PhoneShop format: ItemType|Label|Price|Category)
+# This file adds B42 jewelry not in sell_list.txt. Restart server after edits.
+# Prices use Phone Shop tiers (plain gold ring ~100, gold necklace ~120).
+
+# Metal scrap (B42 smithing)
+Base.GoldScrap|Gold fragments|25
+Base.SilverScrap|Silver fragments|12
+
+# Necklaces — gold
+Base.NecklaceLong_Gold|Long gold necklace|150
+
+# Necklaces — silver
+Base.Necklace_Silver|Silver necklace|65
+Base.NecklaceLong_Silver|Long silver necklace|90
+Base.Necklace_SilverDiamond|Silver necklace (diamond)|120
+Base.Necklace_SilverSapphire|Silver necklace (sapphire)|100
+Base.NecklaceLong_SilverDiamond|Long silver necklace (diamond)|130
+Base.NecklaceLong_SilverEmerald|Long silver necklace (emerald)|100
+Base.NecklaceLong_SilverSapphire|Long silver necklace (sapphire)|90
+Base.Necklace_SilverCrucifix|Silver crucifix necklace|70
+Base.Necklace_Crucifix|Crucifix necklace|60
+Base.Necklace_DogTag|Dog tags|40
+Base.Necklace_DogTag_Female|Dog tags (female)|40
+Base.Necklace_DogTag_Male|Dog tags (male)|40
+Base.Necklace_Pearl|Pearl necklace|90
+Base.Necklace_YingYang|Yin and yang necklace|45
+Base.NecklaceLong_Amber|Long amber necklace|80
+Base.Locket|Locket|55
+
+# Chokers
+Base.Necklace_Choker|Choker|45
+Base.Necklace_Choker_Amber|Choker (amber)|75
+Base.Necklace_Choker_Diamond|Choker (diamond)|110
+Base.Necklace_Choker_Sapphire|Choker (sapphire)|95
+Base.Necklace_Choker_Bone|Bone choker|35
+
+# Earrings — studs & loops
+Base.Earring_Stud_Gold|Gold stud earrings|50
+Base.Earring_Stud_Silver|Silver stud earrings|35
+Base.Earring_LoopLrg_Silver|Large silver hoop earrings|45
+Base.Earring_LoopMed_Silver|Medium silver hoop earrings|40
+Base.Earring_LoopSmall_Gold_Top|Small gold hoop (top)|50
+Base.Earring_LoopSmall_Silver_Both|Small silver hoop earrings|35
+Base.Earring_LoopSmall_Silver_Top|Small silver hoop (top)|35
+
+# Earrings — gems & pearl
+Base.Earring_Stone_Sapphire|Sapphire stud earrings|110
+Base.Earring_Stone_Emerald|Emerald stud earrings|110
+Base.Earring_Stone_Ruby|Ruby stud earrings|110
+Base.Earring_Pearl|Pearl stud earrings|85
+Base.Earring_Dangly_Sapphire|Dangly sapphire earrings|130
+Base.Earring_Dangly_Emerald|Dangly emerald earrings|130
+Base.Earring_Dangly_Ruby|Dangly ruby earrings|130
+Base.Earring_Dangly_Diamond|Dangly diamond earrings|150
+Base.Earring_Dangly_Pearl|Dangly pearl earrings|115
+
+# Nose jewelry
+Base.NoseRing_Gold|Gold nose ring|50
+Base.NoseRing_Silver|Silver nose ring|35
+Base.NoseStud_Gold|Gold nose stud|50
+Base.NoseStud_Silver|Silver nose stud|35
+
+# Finger rings — gold (plain, extra slots)
+Base.Ring_Right_RingFinger_Gold|Gold ring (right ring)|100
+Base.Ring_Left_MiddleFinger_Gold|Gold ring middle (left)|100
+Base.Ring_Right_MiddleFinger_Gold|Gold ring middle (right)|100
+
+# Finger rings — gold (gems, extra slots)
+Base.Ring_Right_RingFinger_GoldRuby|Gold ruby ring (right ring)|160
+Base.Ring_Left_MiddleFinger_GoldRuby|Gold ruby ring middle (left)|160
+Base.Ring_Right_MiddleFinger_GoldRuby|Gold ruby ring middle (right)|160
+Base.Ring_Left_MiddleFinger_GoldDiamond|Gold diamond ring middle (left)|200
+Base.Ring_Right_MiddleFinger_GoldDiamond|Gold diamond ring middle (right)|200
+
+# Finger rings — silver (plain)
+Base.Ring_Left_RingFinger_Silver|Silver ring (left ring)|70
+Base.Ring_Right_RingFinger_Silver|Silver ring (right ring)|70
+Base.Ring_Left_MiddleFinger_Silver|Silver ring middle (left)|70
+Base.Ring_Right_MiddleFinger_Silver|Silver ring middle (right)|70
+
+# Finger rings — silver (gems)
+Base.Ring_Left_RingFinger_SilverDiamond|Silver diamond ring (left ring)|120
+Base.Ring_Right_RingFinger_SilverDiamond|Silver diamond ring (right ring)|120
+Base.Ring_Left_MiddleFinger_SilverDiamond|Silver diamond ring middle (left)|120
+Base.Ring_Right_MiddleFinger_SilverDiamond|Silver diamond ring middle (right)|120
+
+# Signet rings
+Base.Ring_Left_RingFinger_Signet|Signet ring (left ring)|80
+Base.Ring_Right_RingFinger_Signet|Signet ring (right ring)|80
+Base.Ring_Left_MiddleFinger_Signet|Signet ring middle (left)|80
+Base.Ring_Right_MiddleFinger_Signet|Signet ring middle (right)|80
+
+# Belly button jewelry
+Base.BellyButton_StudGold|Gold belly stud|45
+Base.BellyButton_StudSilver|Silver belly stud|35
+Base.BellyButton_StudGoldDiamond|Gold belly stud (diamond)|90
+Base.BellyButton_StudSilverDiamond|Silver belly stud (diamond)|70
+Base.BellyButton_RingGold|Gold belly ring|50
+Base.BellyButton_RingSilver|Silver belly ring|40
+Base.BellyButton_RingGoldDiamond|Gold belly ring (diamond)|110
+Base.BellyButton_RingGoldRuby|Gold belly ring (ruby)|100
+Base.BellyButton_RingSilverAmethyst|Silver belly ring (amethyst)|85
+Base.BellyButton_RingSilverDiamond|Silver belly ring (diamond)|90
+Base.BellyButton_RingSilverRuby|Silver belly ring (ruby)|85
+Base.BellyButton_DangleGold|Gold belly dangle|55
+Base.BellyButton_DangleSilver|Silver belly dangle|40
+Base.BellyButton_DangleGoldRuby|Gold belly dangle (ruby)|110
+Base.BellyButton_DangleSilverDiamond|Silver belly dangle (diamond)|90
+
+# Bracelets (B42 left/right variants)
+Base.Bracelet_BangleLeftGold|Gold bangle (left)|80
+Base.Bracelet_BangleLeftSilver|Silver bangle (left)|55
+Base.Bracelet_BangleRightSilver|Silver bangle (right)|55
+Base.Bracelet_ChainLeftGold|Gold chain bracelet (left)|90
+Base.Bracelet_ChainLeftSilver|Silver chain bracelet (left)|65
+Base.Bracelet_ChainRightSilver|Silver chain bracelet (right)|65
+Base.Bracelet_LeftFriendshipTINT|Friendship bracelet (left)|20
+Base.Bracelet_RightFriendshipTINT|Friendship bracelet (right)|20
+
+# Wristwatches (B42 color variants)
+Base.WristWatch_Left_ClassicGold|Gold watch (left)|140
+Base.WristWatch_Left_Expensive|Luthex watch (left)|180
+Base.WristWatch_Right_Expensive|Luthex watch (right)|180
+Base.WristWatch_Left_ClassicBlack|Classic watch black (left)|70
+Base.WristWatch_Right_ClassicBlack|Classic watch black (right)|70
+Base.WristWatch_Left_ClassicBrown|Classic watch brown (left)|70
+Base.WristWatch_Right_ClassicBrown|Classic watch brown (right)|70
+Base.WristWatch_Left_ClassicMilitary|Military watch (left)|80
+Base.WristWatch_Right_ClassicMilitary|Military watch (right)|80
+Base.WristWatch_Left_DigitalBlack|Digital watch black (left)|80
+Base.WristWatch_Right_DigitalBlack|Digital watch black (right)|80
+Base.WristWatch_Left_DigitalRed|Digital watch red (left)|80
+Base.WristWatch_Right_DigitalRed|Digital watch red (right)|80
+Base.WristWatch_Left_DigitalDress|Digital dress watch (left)|90
+Base.WristWatch_Right_DigitalDress|Digital dress watch (right)|90
+
+# Trophy / decorative jewelry (low payout)
+Base.Necklace_Teeth|Teeth necklace|25
+Base.NecklaceLong_Teeth|Long teeth necklace|30
+Base.Necklace_SkullMammal|Animal skull necklace|25
+Base.NecklaceLong_SkullMammal|Long animal skull necklace|30
+Base.Necklace_SkullMammal_Multi|Animal skulls necklace|30
+Base.NecklaceLong_SkullMammal_Multi|Long animal skulls necklace|35
+Base.Necklace_SkullSmall|Small skull necklace|20
+Base.NecklaceLong_SkullSmall|Long small skull necklace|25
+Base.Necklace_SkullSmall_Multi|Small skulls necklace|25
+Base.NecklaceLong_SkullSmall_Multi|Long small skulls necklace|30
+Base.Necklace_BoarTusk|Boar tusk necklace|25
+Base.Necklace_BoarTusk_Multi|Boar tusks necklace|30
+Base.Earring_BirdSkull|Bird skull earring|20
+Base.Earring_BoarTusk|Boar tusk earring|20

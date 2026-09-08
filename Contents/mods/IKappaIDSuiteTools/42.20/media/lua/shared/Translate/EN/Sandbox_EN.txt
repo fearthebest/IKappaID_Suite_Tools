@@ -1,0 +1,217 @@
+Sandbox_IKappaIDSuiteTools = IKappaID Suite Tools
+
+Sandbox_IKST_General = IKST: General
+Sandbox_IKST_Claims = IKST: Claims
+Sandbox_IKST_Admin = IKST: Admin Tools
+Sandbox_IKST_Security = IKST: Security & Logs
+Sandbox_IKST_Misc = IKST: Player Tools
+
+Sandbox_IKappaIDSuiteTools_EnableMod = Enable IKST
+Sandbox_IKappaIDSuiteTools_EnableMod_tooltip = Master switch for IKappaID Suite Tools features.
+
+Sandbox_IKappaIDSuiteTools_ClaimHouseSelfService = Players can claim houses
+Sandbox_IKappaIDSuiteTools_ClaimHouseSelfService_tooltip = ON = players claim safehouses themselves from IKST. OFF = use house request (if enabled) or staff.
+
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled = Players can request house claims
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled_tooltip = ON = players walk-draw any land zone and staff approve under Claim requests (open ground or buildings). Works with house self-claim OFF.
+Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads = Self-claim: block roads
+Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads_tooltip = ON = player self-claims cannot cover street tiles. Does not block staff claim requests (admins decide).
+Sandbox_IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse = Self-claim: keep clear of other safehouses
+Sandbox_IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse_tooltip = ON = player self-claims must stay outside a buffer around existing safehouses so paths stay open.
+Sandbox_IKappaIDSuiteTools_ClaimSelfNearSafehouseTiles = Self-claim: clear distance (tiles)
+Sandbox_IKappaIDSuiteTools_ClaimSelfNearSafehouseTiles_tooltip = Buffer tiles around other safehouses when Block near safehouses is ON. 0 = only reject overlapping squares.
+Sandbox_IKappaIDSuiteTools_ClaimSelfMinTiles = Self-claim: min tiles (WxH)
+Sandbox_IKappaIDSuiteTools_ClaimSelfMinTiles_tooltip = Minimum area for a player self-claim rectangle.
+Sandbox_IKappaIDSuiteTools_ClaimSelfMaxTiles = Self-claim: max tiles (WxH)
+Sandbox_IKappaIDSuiteTools_ClaimSelfMaxTiles_tooltip = Maximum area for a player self-claim rectangle.
+Sandbox_IKappaIDSuiteTools_ClaimSelfRequireSquare = Self-claim: roughly square
+Sandbox_IKappaIDSuiteTools_ClaimSelfRequireSquare_tooltip = ON = W and H may differ by at most 2 tiles on player self-claims.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleSelfService = Players can claim vehicles
+Sandbox_IKappaIDSuiteTools_ClaimVehicleSelfService_tooltip = ON = players claim nearby vehicles themselves. OFF = use vehicle request (if enabled) or staff.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequestEnabled = Players can request vehicle claims
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequestEnabled_tooltip = ON = players send unclaimed nearby vehicles to staff under Claim requests. Works with vehicle self-claim OFF.
+
+Sandbox_IKappaIDSuiteTools_MaxVehicleClaims = Max vehicle claims per player
+Sandbox_IKappaIDSuiteTools_MaxVehicleClaims_tooltip = How many vehicles one player may own. 0 = no limit.
+
+Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims = Max house claims per player
+Sandbox_IKappaIDSuiteTools_MaxSafehouseClaims_tooltip = How many safehouses one player may own. 0 = no limit.
+
+Sandbox_IKappaIDSuiteTools_ClaimDurationDays = Claim lasts (real-life days)
+Sandbox_IKappaIDSuiteTools_ClaimDurationDays_tooltip = Real-life calendar days until a claim expires from the claim date. 0 = no fixed end date. Independent of in-game time speed.
+
+Sandbox_IKappaIDSuiteTools_ClaimInactivityDays = Release if idle (real-life days)
+Sandbox_IKappaIDSuiteTools_ClaimInactivityDays_tooltip = Release the claim if the owner does not use it for this many real-life calendar days. Default 14. 0 = off. If both this and Claim lasts are set, whichever ends first wins.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireSeat = Must sit in car to claim
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireSeat_tooltip = Players must be sitting in the vehicle to claim it (staff can still claim from the list).
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireEngine = Must start engine to claim
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireEngine_tooltip = Players must start the engine before claiming a vehicle.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireKeys = Must have key to claim
+Sandbox_IKappaIDSuiteTools_ClaimVehicleRequireKeys_tooltip = Players need the vehicle key (or keys in ignition) to claim it.
+
+Sandbox_IKappaIDSuiteTools_ClaimListMaxSize = Max claims in list
+Sandbox_IKappaIDSuiteTools_ClaimListMaxSize_tooltip = How many claims to show when listing or searching. Higher values can slow menus.
+
+Sandbox_IKappaIDSuiteTools_ClaimAdminBypass = Admins ignore claim locks
+Sandbox_IKappaIDSuiteTools_ClaimAdminBypass_tooltip = Staff can enter and use any claimed house or vehicle.
+
+Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly = Whitelist only
+Sandbox_IKappaIDSuiteTools_ClaimWhitelistOnly_tooltip = Only the owner and named players on the list can use the claim. Guest rules below are ignored.
+
+Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers = Owners can add friends
+Sandbox_IKappaIDSuiteTools_ClaimAllowNamedPlayers_tooltip = Let owners add specific players to a claim whitelist with custom access.
+
+Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers = Max friends on whitelist
+Sandbox_IKappaIDSuiteTools_ClaimMaxNamedPlayers_tooltip = Max named players per claim. 0 = no limit.
+
+Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra = Owners can grant extra access
+Sandbox_IKappaIDSuiteTools_ClaimOwnersGrantExtra_tooltip = Owners may give whitelisted players more access than the guest defaults allow.
+
+Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups = Owners can edit group access
+Sandbox_IKappaIDSuiteTools_ClaimOwnersEditGroups_tooltip = Owners may change Everyone, Members, Safehouse mates, and Faction access tabs.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter = Strangers: enter cars
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestEnter_tooltip = Allow any player to get into claimed vehicles. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive = Strangers: drive cars
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDrive_tooltip = Allow any player to drive claimed vehicles. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot = Strangers: loot car trunks
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestLoot_tooltip = Allow any player to take items from claimed vehicles. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors = Strangers: car doors/windows
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestDoors_tooltip = Allow any player to open doors and windows on claimed vehicles.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel = Strangers: refuel cars
+Sandbox_IKappaIDSuiteTools_ClaimVehicleGuestRefuel_tooltip = Allow any player to add fuel to claimed vehicles.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter = Safehouse mates: enter cars
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateEnter_tooltip = Allow the owner's safehouse mates to enter their claimed vehicles.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive = Safehouse mates: drive cars
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateDrive_tooltip = Allow the owner's safehouse mates to drive their claimed vehicles.
+
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot = Safehouse mates: loot car trunks
+Sandbox_IKappaIDSuiteTools_ClaimVehicleMateLoot_tooltip = Allow the owner's safehouse mates to take items from their claimed vehicles.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild = Strangers: build in houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestBuild_tooltip = Allow any player to build inside claimed safehouses. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy = Strangers: destroy in houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDestroy_tooltip = Allow any player to dismantle or break things inside claimed safehouses. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot = Strangers: loot houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestLoot_tooltip = Allow any player to take items from claimed safehouses. Ignored if Whitelist only is on.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors = Strangers: house doors
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseGuestDoors_tooltip = Allow any player to open doors in claimed safehouses.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild = Members: build in houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberBuild_tooltip = Allow safehouse members to build inside.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy = Members: destroy in houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberDestroy_tooltip = Allow safehouse members to dismantle or break things inside.
+
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot = Members: loot houses
+Sandbox_IKappaIDSuiteTools_ClaimSafehouseMemberLoot_tooltip = Allow safehouse members to take items from containers inside.
+
+Sandbox_IKappaIDSuiteTools_StaffRespectSafehouseClaims = Staff respect house claims
+Sandbox_IKappaIDSuiteTools_StaffRespectSafehouseClaims_tooltip = When ON, staff tools also follow safehouse claim rules (unless Admin bypass is on).
+
+Sandbox_IKappaIDSuiteTools_StaffToolsEnabled = Enable staff tools
+Sandbox_IKappaIDSuiteTools_StaffToolsEnabled_tooltip = Heal, give items, world edit, and other admin tools. OFF blocks those tools even if the player is staff.
+
+Sandbox_IKappaIDSuiteTools_EnableThreatTools = Enable zombie / threat tools
+Sandbox_IKappaIDSuiteTools_EnableThreatTools_tooltip = Staff tools for clearing zombies and checking threats.
+
+Sandbox_IKappaIDSuiteTools_EnableCatchJail = Enable catch and jail
+Sandbox_IKappaIDSuiteTools_EnableCatchJail_tooltip = Staff can freeze and jail players.
+
+Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle = Enable water / power toggle
+Sandbox_IKappaIDSuiteTools_EnableUtilitiesToggle_tooltip = Staff can turn global water and power on or off. Multiplayer uses the server.
+
+Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin = Allow remote admin tools
+Sandbox_IKappaIDSuiteTools_StaffRemoteAdmin_tooltip = DANGER: When enabled, protect-radius and similar tools work map-wide from any distance. Not recommended on public servers.
+
+Sandbox_IKappaIDSuiteTools_CatchMaxDistance = Catch max distance
+Sandbox_IKappaIDSuiteTools_CatchMaxDistance_tooltip = How far Catch can reach (tiles). Remote admin bypasses this.
+
+Sandbox_IKappaIDSuiteTools_RateLimitEnabled = Limit command spam
+Sandbox_IKappaIDSuiteTools_RateLimitEnabled_tooltip = Slow down repeated commands (claims, staff actions, lists) to protect the server.
+
+Sandbox_IKappaIDSuiteTools_StrictRemoteRateLimits = Stricter remote limits
+Sandbox_IKappaIDSuiteTools_StrictRemoteRateLimits_tooltip = Tighter rate limits for remote or high-impact staff commands.
+
+Sandbox_IKappaIDSuiteTools_AuditLogEnabled = Write audit log
+Sandbox_IKappaIDSuiteTools_AuditLogEnabled_tooltip = Log important actions to the server console and an in-memory buffer.
+
+Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries = Audit log size
+Sandbox_IKappaIDSuiteTools_AuditLogMaxEntries_tooltip = How many recent audit lines to keep in memory.
+
+Sandbox_IKappaIDSuiteTools_DebugLogEnabled = Debug logging
+Sandbox_IKappaIDSuiteTools_DebugLogEnabled_tooltip = Print [IKST-DEBUG] lines for troubleshooting. Keep OFF on public servers.
+
+Sandbox_IKappaIDSuiteTools_DebugLogVerbose = Verbose debug
+Sandbox_IKappaIDSuiteTools_DebugLogVerbose_tooltip = Extra detail when debug logging is on.
+
+Sandbox_IKappaIDSuiteTools_DebugLogMaxEntries = Debug log size
+Sandbox_IKappaIDSuiteTools_DebugLogMaxEntries_tooltip = How many debug lines to keep in memory.
+
+Sandbox_IKappaIDSuiteTools_ArrivalStabilizationEnabled = Spawn protection
+Sandbox_IKappaIDSuiteTools_ArrivalStabilizationEnabled_tooltip = Short grace period after join or respawn so players are not instantly killed.
+
+Sandbox_IKappaIDSuiteTools_ArrivalStabilizationSeconds = Spawn protection (seconds)
+Sandbox_IKappaIDSuiteTools_ArrivalStabilizationSeconds_tooltip = How long spawn protection lasts. 0 = off even if spawn protection is enabled.
+
+Sandbox_IKappaIDSuiteTools_ArrivalOnJoin = Protect on join
+Sandbox_IKappaIDSuiteTools_ArrivalOnJoin_tooltip = Apply spawn protection when a player joins the server.
+
+Sandbox_IKappaIDSuiteTools_ArrivalOnRespawn = Protect on respawn
+Sandbox_IKappaIDSuiteTools_ArrivalOnRespawn_tooltip = Apply spawn protection when a player respawns.
+
+Sandbox_IKappaIDSuiteTools_ArrivalAttackEndsGrace = Attacking ends protection
+Sandbox_IKappaIDSuiteTools_ArrivalAttackEndsGrace_tooltip = Protection ends early if the player attacks.
+
+Sandbox_IKappaIDSuiteTools_ArrivalMoveEndsGrace = Moving ends protection
+Sandbox_IKappaIDSuiteTools_ArrivalMoveEndsGrace_tooltip = Protection ends early if the player moves too far.
+
+Sandbox_IKappaIDSuiteTools_ArrivalMoveThresholdTiles = Move distance to end protection
+Sandbox_IKappaIDSuiteTools_ArrivalMoveThresholdTiles_tooltip = How many tiles the player may move before protection ends (only if Moving ends protection is on).
+
+Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled = Enable recovery journal
+Sandbox_IKappaIDSuiteTools_RecoveryJournalEnabled_tooltip = Skill book that saves and restores skills after death.
+
+Sandbox_IKappaIDSuiteTools_LockMaxAttempts = Keypad wrong tries
+Sandbox_IKappaIDSuiteTools_LockMaxAttempts_tooltip = Wrong passwords allowed before a 60-second lockout.
+
+Sandbox_IKappaIDSuiteTools_LockInstallDistance = Keypad install distance
+Sandbox_IKappaIDSuiteTools_LockInstallDistance_tooltip = How close a player must stand to install a keypad lock.
+
+Sandbox_IKappaIDSuiteTools_VehicleNearRadius = Vehicle claim distance
+Sandbox_IKappaIDSuiteTools_VehicleNearRadius_tooltip = How close you must be to claim the nearest vehicle.
+
+Sandbox_IKappaIDSuiteTools_VehicleListRadius = Vehicle search distance (legacy)
+Sandbox_IKappaIDSuiteTools_VehicleListRadius_tooltip = Old search radius. Prefer the Vehicles addon for listing cars.
+
+Sandbox_IKappaIDSuiteTools_BriefingEnabled = Enable server briefing
+Sandbox_IKappaIDSuiteTools_BriefingEnabled_tooltip = Show the server briefing / rules panel to players.
+
+Sandbox_IKappaIDSuiteTools_BriefingMaxSectionBytes = Briefing section size
+Sandbox_IKappaIDSuiteTools_BriefingMaxSectionBytes_tooltip = Max size of one briefing section (bytes). Larger text is cut.
+
+Sandbox_IKappaIDSuiteTools_UnstuckEnabled = Enable Unstuck
+Sandbox_IKappaIDSuiteTools_UnstuckEnabled_tooltip = Players can free themselves to a nearby clear tile.
+
+Sandbox_IKappaIDSuiteTools_UnstuckCooldownSec = Unstuck cooldown (seconds)
+Sandbox_IKappaIDSuiteTools_UnstuckCooldownSec_tooltip = Wait time between Unstuck uses.
+
+Sandbox_IKappaIDSuiteTools_EventTpEnabled = Enable event teleport
+Sandbox_IKappaIDSuiteTools_EventTpEnabled_tooltip = Staff event points and player Join / Return teleports.
+
+Sandbox_IKappaIDSuiteTools_EventTpCooldownSec = Event teleport cooldown (seconds)
+Sandbox_IKappaIDSuiteTools_EventTpCooldownSec_tooltip = Wait time between event Join or Return uses.

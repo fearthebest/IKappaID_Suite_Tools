@@ -1,0 +1,3 @@
+Tooltip_EN = {
+    Tooltip_IKST_KeypadKit = Craftable lock kit. Right-click a container and choose Install keypad.,
+}

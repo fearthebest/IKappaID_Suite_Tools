@@ -1,0 +1,12 @@
+# IKST ATM fixtures — vanilla standing ATM kiosk (gas stations, banks) + optional IKST Tiles art.
+# Map-placed location_business_bank_01_64-67 work for banking without admin enable.
+# ikst_economy_01_* used only when Tiles addon is installed (admin kit fallback).
+# One sprite name or prefix per line. Prefix lines end with _.
+location_business_bank_01_64
+location_business_bank_01_65
+location_business_bank_01_66
+location_business_bank_01_67
+ikst_economy_01_0
+ikst_economy_01_1
+ikst_economy_01_2
+ikst_economy_01_3

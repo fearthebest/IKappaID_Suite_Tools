@@ -1,0 +1,430 @@
+if type(isServer) == "function" and isServer() and type(isClient) == "function" and not isClient() then
+    return
+end
+
+require "IKST_Shared"
+require "IKST_ClaimPolicy"
+require "IKST_Claim"
+require "IKST_VehicleClaim"
+require "IKST_VehicleClaimClient"
+require "IKST_SafehouseClaim"
+require "IKST_SafehouseClaimClient"
+require "IKST_Access"
+require "IKST_PhunZones"
+require "IKST_SafeHouse"
+require "IKST_ClaimIcons"
+require "IKST_JobGuard"
+
+IKST_ClaimRadial = IKST_ClaimRadial or {}
+
+IKST_ClaimRadial.DEFAULT_SH_SIZE = 13
+
+function IKST_ClaimRadial.mayCreateSafehouseClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateSafehouseClaim
+        and IKST_ClaimPolicy.mayCreateSafehouseClaim(player)
+end
+
+function IKST_ClaimRadial.mayCreateVehicleClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayCreateVehicleClaim
+        and IKST_ClaimPolicy.mayCreateVehicleClaim(player)
+end
+
+function IKST_ClaimRadial.mayRequestVehicleClaim(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayRequestVehicleClaim
+        and IKST_ClaimPolicy.mayRequestVehicleClaim(player)
+end
+
+function IKST_ClaimRadial.mayShowVehicleClaimRequest(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowVehicleClaimRequest
+        and IKST_ClaimPolicy.mayShowVehicleClaimRequest(player)
+end
+
+function IKST_ClaimRadial.mayShowSafehouseClaimRequest(player)
+    return IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest
+        and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(player)
+end
+
+function IKST_ClaimRadial.playerMenu(playerObj)
+    if not playerObj or not playerObj.getPlayerNum then
+        return nil
+    end
+    if not getPlayerRadialMenu then
+        return nil
+    end
+    return getPlayerRadialMenu(playerObj:getPlayerNum())
+end
+
+function IKST_ClaimRadial.texture(path)
+    -- Custom media/ui/ikst glyphs are off; vanilla paths (e.g. saddlebag) still OK.
+    if type(path) == "string" and string.find(path, "media/ui/ikst/", 1, true) then
+        return nil
+    end
+    if IKST_ClaimIcons and type(IKST_ClaimIcons.texture) == "function" then
+        return IKST_ClaimIcons.texture(path)
+    end
+    if not path or type(getTexture) ~= "function" then
+        return nil
+    end
+    return getTexture(path)
+end
+
+function IKST_ClaimRadial.nearVehicle(playerObj)
+    if not playerObj then
+        return nil
+    end
+    if playerObj.getVehicle then
+        local inside = playerObj:getVehicle()
+        if inside then
+            return inside
+        end
+    end
+    if ISVehicleMenu and ISVehicleMenu.getVehicleToInteractWith then
+        local viaMenu = ISVehicleMenu.getVehicleToInteractWith(playerObj)
+        if viaMenu then
+            return viaMenu
+        end
+    end
+    local sq = type(playerObj.getCurrentSquare) == "function" and playerObj:getCurrentSquare() or nil
+    if sq and sq.getVehicleContainer then
+        return sq:getVehicleContainer()
+    end
+    return nil
+end
+
+function IKST_ClaimRadial.resetSliceKeys(menu)
+    if menu then
+        menu._ikstSliceKeys = nil
+    end
+end
+
+function IKST_ClaimRadial.addSliceOnce(menu, key, text, texture, fn, arg1, arg2, arg3, arg4, arg5, arg6)
+    if not menu or not menu.addSlice or not key then
+        return false
+    end
+    menu._ikstSliceKeys = menu._ikstSliceKeys or {}
+    if menu._ikstSliceKeys[key] then
+        return false
+    end
+    menu._ikstSliceKeys[key] = true
+    menu:addSlice(text, texture, fn, arg1, arg2, arg3, arg4, arg5, arg6)
+    return true
+end
+
+function IKST_ClaimRadial.addVehicleSlices(playerObj)
+    if not playerObj then
+        return
+    end
+    local vehicle = IKST_ClaimRadial.nearVehicle(playerObj)
+    if not vehicle or not vehicle.getId then
+        return
+    end
+    local vid = vehicle:getId()
+    if vid == nil then
+        return
+    end
+    local menu = IKST_ClaimRadial.playerMenu(playerObj)
+    if not menu then
+        return
+    end
+    local uiState = IKST_VehicleClaimClient.uiState(vid, playerObj, vehicle)
+    local vidKey = tostring(vid)
+
+    if not uiState or not uiState.claimed then
+        if uiState and uiState.canClaim == true and IKST_ClaimRadial.mayCreateVehicleClaim(playerObj) then
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "vehicle_claim_" .. vidKey,
+                IKST.text("IGUI_IKST_Guard_Claim", "Claim vehicle"),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_CLAIM),
+                function()
+                    IKST.dispatchCommand(playerObj, IKST.CMD.vehicleClaim, { vehicleId = vid })
+                end
+            )
+        elseif uiState and uiState.canClaim ~= true and IKST_ClaimRadial.mayShowVehicleClaimRequest(playerObj) then
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "vehicle_request_" .. vidKey,
+                IKST.text("IGUI_IKST_ClaimTile_RequestVehicle", "Request vehicle claim"),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_CLAIM),
+                function()
+                    IKST.dispatchCommand(playerObj, IKST.CMD.vehicleClaimRequest, { vehicleId = vid })
+                end
+            )
+        end
+        return
+    end
+
+    if uiState.canRelease then
+        IKST_ClaimRadial.addSliceOnce(
+            menu, "vehicle_release_" .. vidKey,
+            IKST.text("IGUI_IKST_Guard_ReleaseClaim", "Release claim"),
+            IKST_ClaimRadial.texture(IKST_ClaimIcons.VEHICLE_UNCLAIM),
+            function()
+                IKST.dispatchCommand(playerObj, IKST.CMD.vehicleReleaseClaim, { vehicleId = vid })
+            end
+        )
+    end
+
+    if uiState.canEdit and IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
+        IKST_ClaimRadial.addSliceOnce(
+            menu, "vehicle_perms_" .. vidKey,
+            IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."),
+            IKST_ClaimRadial.texture(IKST_ClaimIcons.PERMS),
+            function()
+                IKST_VehicleClaimUI.open(playerObj, vid)
+            end
+        )
+    end
+
+    if uiState.claimed and not uiState.canRelease and not uiState.canEdit and uiState.ownerLabel then
+        IKST_ClaimRadial.addSliceOnce(
+            menu, "vehicle_info_" .. vidKey,
+            IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner") .. ": " .. tostring(uiState.ownerLabel),
+            nil,
+            function() end
+        )
+    end
+end
+
+function IKST_ClaimRadial.safehouseContext(playerObj)
+    if not playerObj or not playerObj.getCurrentSquare then
+        return nil, nil
+    end
+    local sq = playerObj:getCurrentSquare()
+    if not sq then
+        return nil, nil
+    end
+    local sh = IKST_SafehouseClaim.safehouseAtSquare(sq)
+    if sh then
+        return sh, nil
+    end
+    if not IKST_ClaimRadial.mayCreateSafehouseClaim(playerObj) then
+        if IKST_ClaimRadial.mayShowSafehouseClaimRequest(playerObj) then
+            if SafeHouse and SafeHouse.getSafeHouse and SafeHouse.getSafeHouse(sq) then
+                return nil, nil
+            end
+            local staff = IKST_Access.canUseTools(playerObj)
+            if not staff then
+                local building = nil
+                if type(sq.getBuilding) == "function" then
+                    building = sq:getBuilding()
+                end
+                if not IKST_Claim.isResidentialBuilding(building) then
+                    return nil, nil
+                end
+            end
+            return nil, { requestOnly = true }
+        end
+        return nil, nil
+    end
+    if SafeHouse and SafeHouse.getSafeHouse and SafeHouse.getSafeHouse(sq) then
+        return nil, nil
+    end
+    local staff = IKST_Access.canUseTools(playerObj)
+    local building = nil
+    if type(sq.getBuilding) == "function" then
+        building = sq:getBuilding()
+    end
+    if not staff and not IKST_Claim.isResidentialBuilding(building) then
+        return nil, nil
+    end
+    local x = math.floor(playerObj:getX())
+    local y = math.floor(playerObj:getY())
+    local z = type(playerObj.getZ) == "function" and playerObj:getZ() or 0
+    local mode = IKST_Claim.MODE.square
+    if not staff then
+        mode = IKST_Claim.MODE.building
+    end
+    local px, py, pw, ph = IKST_Claim.safehousePreviewRect(x, y, z, IKST_ClaimRadial.DEFAULT_SH_SIZE, mode, nil, nil)
+    return nil, { x = px, y = py, w = pw, h = ph, z = z, claimMode = mode }
+end
+
+function IKST_ClaimRadial.addSafehouseSlices(playerObj)
+    if not playerObj then
+        return
+    end
+    if IKST_ClaimRadial.nearVehicle(playerObj) then
+        return
+    end
+    local sh, claimPreview = IKST_ClaimRadial.safehouseContext(playerObj)
+    if not sh and not claimPreview then
+        return
+    end
+    local menu = IKST_ClaimRadial.playerMenu(playerObj)
+    if not menu then
+        return
+    end
+
+    if sh then
+        local x, y, w, h, owner = IKST_SafehouseClaim.boundsFromSafehouse(sh)
+        if not x then
+            return
+        end
+        local areaKey = tostring(x) .. "_" .. tostring(y) .. "_" .. tostring(w) .. "_" .. tostring(h)
+        local uiState = IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.uiState(x, y, w, h, playerObj, owner)
+        local isAdmin = IKST_Access.canUseTools(playerObj)
+        local canRelease = isAdmin
+        local canEdit = isAdmin
+        if uiState then
+            canRelease = uiState.canRelease == true or isAdmin
+            canEdit = uiState.canEdit == true or isAdmin
+        end
+
+        if canRelease then
+            local shId = IKST_SafeHouse and (IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh))
+                or (type(sh.getOnlineID) == "function" and sh:getOnlineID() or (type(sh.getId) == "function" and sh:getId() or nil))
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "safehouse_release_" .. areaKey,
+                IKST.text("IGUI_IKST_Guard_SH_Release", "Remove safe area"),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.SAFEHOUSE_UNCLAIM),
+                function()
+                    IKST.dispatchCommand(playerObj, IKST.CMD.safehouseRelease, {
+                        x = x, y = y, w = w, h = h, owner = owner, id = shId,
+                    })
+                end
+            )
+        end
+
+        if canEdit and IKST_SafehouseClaimUI and IKST_SafehouseClaimUI.open then
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "safehouse_perms_" .. areaKey,
+                IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.PERMS),
+                function()
+                    IKST_SafehouseClaimUI.open(playerObj, x, y, w, h)
+                end
+            )
+        end
+        return
+    end
+
+    if claimPreview then
+        if claimPreview.requestOnly then
+            IKST_ClaimRadial.addSliceOnce(
+                menu, "safehouse_request",
+                IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house"),
+                IKST_ClaimRadial.texture(IKST_ClaimIcons.SAFEHOUSE_CLAIM),
+                function()
+                    IKST_JobGuard.startHouseClaimRequest(playerObj, nil)
+                end
+            )
+            return
+        end
+        if IKST_PhunZones.rectBlocksSafehouse(claimPreview.x, claimPreview.y, claimPreview.w, claimPreview.h) then
+            return
+        end
+        local areaKey = tostring(claimPreview.x) .. "_" .. tostring(claimPreview.y)
+        IKST_ClaimRadial.addSliceOnce(
+            menu, "safehouse_claim_" .. areaKey,
+            IKST.text("IGUI_IKST_Guard_SH_Claim", "Claim land here"),
+            IKST_ClaimRadial.texture(IKST_ClaimIcons.SAFEHOUSE_CLAIM),
+            function()
+                IKST.dispatchCommand(playerObj, IKST.CMD.safehouseClaim, {
+                    x = math.floor(playerObj:getX()),
+                    y = math.floor(playerObj:getY()),
+                    z = claimPreview.z or 0,
+                    size = IKST_ClaimRadial.DEFAULT_SH_SIZE,
+                    w = claimPreview.w,
+                    h = claimPreview.h,
+                    claimMode = claimPreview.claimMode or IKST_Claim.MODE.square,
+                })
+            end
+        )
+    end
+end
+
+function IKST_ClaimRadial.afterVehicleRadial(playerObj)
+    if not playerObj then
+        return
+    end
+    IKST_ClaimRadial.addVehicleSlices(playerObj)
+end
+
+function IKST_ClaimRadial.prepareMenu(playerObj)
+    IKST_ClaimRadial.resetSliceKeys(IKST_ClaimRadial.playerMenu(playerObj))
+end
+
+function IKST_ClaimRadial.openSafehouseRadial(playerObj)
+    if not playerObj or IKST_ClaimRadial.nearVehicle(playerObj) then
+        return
+    end
+    local sh, claimPreview = IKST_ClaimRadial.safehouseContext(playerObj)
+    if not sh and not claimPreview then
+        return
+    end
+    local menu = IKST_ClaimRadial.playerMenu(playerObj)
+    if not menu then
+        return
+    end
+    if menu.clear then
+        menu:clear()
+    end
+    IKST_ClaimRadial.resetSliceKeys(menu)
+    IKST_ClaimRadial.addSafehouseSlices(playerObj)
+    if type(menu.isEmpty) == "function" and menu:isEmpty() then
+        return
+    end
+    if menu.center then
+        menu:center()
+    end
+    if menu.display then
+        menu:display()
+    end
+end
+
+function IKST_ClaimRadial.onVehicleKeyPressed(key, playerObj)
+    if not playerObj then
+        return
+    end
+    if IKST_ClaimRadial.nearVehicle(playerObj) then
+        return
+    end
+    IKST_ClaimRadial.openSafehouseRadial(playerObj)
+end
+
+function IKST_ClaimRadial.hookVehicleMenu()
+    if IKST_ClaimRadial._patched or not ISVehicleMenu then
+        return
+    end
+    IKST_ClaimRadial._patched = true
+
+    if ISVehicleMenu.showRadialMenu then
+        IKST_ClaimRadial._vanillaInside = ISVehicleMenu.showRadialMenu
+        function ISVehicleMenu.showRadialMenu(playerObj)
+            IKST_ClaimRadial.prepareMenu(playerObj)
+            IKST_ClaimRadial._vanillaInside(playerObj)
+            IKST_ClaimRadial.afterVehicleRadial(playerObj)
+        end
+    end
+
+    if ISVehicleMenu.showRadialMenuOutside then
+        IKST_ClaimRadial._vanillaOutside = ISVehicleMenu.showRadialMenuOutside
+        function ISVehicleMenu.showRadialMenuOutside(playerObj)
+            IKST_ClaimRadial._vanillaOutside(playerObj)
+            local menu = IKST_ClaimRadial.playerMenu(playerObj)
+            if menu and menu._ikstSliceKeys then
+                return
+            end
+            IKST_ClaimRadial.prepareMenu(playerObj)
+            IKST_ClaimRadial.afterVehicleRadial(playerObj)
+        end
+    end
+
+    if ISVehicleMenu.onKeyPressed then
+        IKST_ClaimRadial._vanillaKey = ISVehicleMenu.onKeyPressed
+        function ISVehicleMenu.onKeyPressed(key)
+            if IKST_ClaimRadial._vanillaKey then
+                IKST_ClaimRadial._vanillaKey(key)
+            end
+            local player = getPlayer and getPlayer() or nil
+            if not player and getSpecificPlayer then
+                player = getSpecificPlayer(0)
+            end
+            if player then
+                IKST_ClaimRadial.onVehicleKeyPressed(key, player)
+            end
+        end
+    end
+end
+
+if Events and Events.OnGameStart then
+    Events.OnGameStart.Add(IKST_ClaimRadial.hookVehicleMenu)
+end

@@ -1,0 +1,20 @@
+name=IKappaID Suite Tools - Vehicles
+
+id=IKappaIDSuiteToolsVehicles
+
+description=Vehicle list, repair, and cleanup for IKappaID Suite Tools. Requires World Edit (IKappaIDSuiteToolsTiles).
+
+author=IKappaID
+
+poster=poster.png
+icon=icon.png
+
+modversion=0.3.2.5
+
+versionMin=42.20
+
+require=IKappaIDSuiteTools,IKappaIDSuiteToolsTiles
+
+category=Admin
+
+tags=Build 42;Admin;Vehicles;Multiplayer

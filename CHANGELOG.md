@@ -1,5 +1,16 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.5 — (2026-09-08)
+
+Build **42.20** pack restored to git (it had been reverted on `master`). Load-order crash fixes for dedicated / client boot.
+
+### Fixed
+- Recursive `require` between `IKST_SafehouseClaim` and Mirror, and between `IKST_Economy` and EconomyIdentity (Kahlua cannot recurse).
+- Shared `*Register.lua` no longer `require`s client SoftTool / JobAdmin files (shared loads first).
+- Tiles painter: `require "IKST_PaintCursor"` (filename), not a missing `IKST_PaintCursorManager` module.
+
+Steam paste: use the v0.3.2.5 notes in chat / Workshop changelog.
+
 ## 0.3.0.0 — BETA (2026-07-01)
 
 Official **BETA** release for Build 42 multiplayer playtesting.
