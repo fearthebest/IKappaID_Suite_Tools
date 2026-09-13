@@ -20,6 +20,7 @@ IKST_PreviewOverlay._hoverHighlightedSquares = {}
 IKST_PreviewOverlay._hoverHighlightedObjects = {}
 IKST_PreviewOverlay._jobHighlightedSquares = {}
 IKST_PreviewOverlay._jobHighlightedObjects = {}
+IKST_PreviewOverlay._renderHooked = false
 
 local PREVIEW_COLORS = {
     accent = "accent",
@@ -44,8 +45,11 @@ local function objectColor()
     return c.r, c.g, c.b, 0.90
 end
 
--- JavaDoc: setHighlighted(highlight, renderOnce). renderOnce=false keeps the
--- highlight; the one-arg call is render-once and flickers every frame.
+-- JavaDoc: setHighlighted(highlight, renderOnce) and the player-index overloads.
+-- https://projectzomboid.com/modding/zombie/iso/IsoObject.html
+-- renderOnce=false keeps the highlight. The one-arg call is render-once and
+-- flickers. Vanilla loot uses setHighlighted(playerNum, true, false) on the
+-- container IsoObject — never persist-highlight that object.
 local function persistHighlight(obj, r, g, b, a)
     if not obj or type(obj.setHighlighted) ~= "function" then
         return nil
@@ -53,6 +57,9 @@ local function persistHighlight(obj, r, g, b, a)
     obj:setHighlighted(true, false)
     if type(obj.setHighlightColor) == "function" then
         obj:setHighlightColor(r, g, b, a)
+    end
+    if type(IKST_PreviewOverlay.ensureRenderHook) == "function" then
+        IKST_PreviewOverlay.ensureRenderHook()
     end
     return { obj = obj, r = r, g = g, b = b, a = a }
 end
@@ -64,15 +71,33 @@ local function highlightObj(entry)
     return entry
 end
 
+function IKST_PreviewOverlay.releaseObjectHighlight(obj)
+    if not obj or type(obj.setHighlighted) ~= "function" then
+        return
+    end
+    obj:setHighlighted(false, false)
+    local player = getPlayer and getPlayer() or nil
+    local pn = nil
+    if player and type(player.getPlayerNum) == "function" then
+        pn = player:getPlayerNum()
+    end
+    if pn ~= nil then
+        obj:setHighlighted(pn, false, false)
+        if type(obj.setOutlineHighlight) == "function" then
+            obj:setOutlineHighlight(pn, false)
+        end
+        if type(obj.setOutlineHlAttached) == "function" then
+            obj:setOutlineHlAttached(pn, false)
+        end
+    end
+end
+
 local function clearHighlightList(list)
     if not list then
         return
     end
     for _, entry in ipairs(list) do
-        local obj = highlightObj(entry)
-        if obj and type(obj.setHighlighted) == "function" then
-            obj:setHighlighted(false)
-        end
+        IKST_PreviewOverlay.releaseObjectHighlight(highlightObj(entry))
     end
 end
 
@@ -401,11 +426,17 @@ end
 function IKST_PreviewOverlay.clearJob()
     clearJobHighlights()
     IKST_PreviewOverlay._jobKey = ""
+    if type(IKST_PreviewOverlay.syncRenderHook) == "function" then
+        IKST_PreviewOverlay.syncRenderHook()
+    end
 end
 
 function IKST_PreviewOverlay.clearBatch()
     clearBatchHighlights()
     IKST_PreviewOverlay.batchSquares = {}
+    if type(IKST_PreviewOverlay.syncRenderHook) == "function" then
+        IKST_PreviewOverlay.syncRenderHook()
+    end
 end
 
 function IKST_PreviewOverlay.highlightSquareFloors(squares, colorKey, alpha, store)
@@ -559,6 +590,9 @@ function IKST_PreviewOverlay.clearHover()
     clearHoverHighlights()
     IKST_PreviewOverlay._hoverKey = nil
     IKST_PreviewOverlay._hoverCacheAtMs = 0
+    if type(IKST_PreviewOverlay.syncRenderHook) == "function" then
+        IKST_PreviewOverlay.syncRenderHook()
+    end
 end
 
 function IKST_PreviewOverlay.invalidateHoverCache()
@@ -636,13 +670,49 @@ local function refreshHighlights()
     reapplyHighlightList(IKST_PreviewOverlay._jobHighlightedObjects, jr, jg, jb, 0.85)
 end
 
-local function onRenderTick()
-    if #IKST_PreviewOverlay._batchHighlightedSquares == 0
+local function highlightListsEmpty()
+    return #IKST_PreviewOverlay._batchHighlightedSquares == 0
         and #IKST_PreviewOverlay._batchHighlightedObjects == 0
         and #IKST_PreviewOverlay._hoverHighlightedSquares == 0
         and #IKST_PreviewOverlay._hoverHighlightedObjects == 0
         and #IKST_PreviewOverlay._jobHighlightedSquares == 0
-        and #IKST_PreviewOverlay._jobHighlightedObjects == 0 then
+        and #IKST_PreviewOverlay._jobHighlightedObjects == 0
+end
+
+local onRenderTick
+
+function IKST_PreviewOverlay.ensureRenderHook()
+    if IKST_PreviewOverlay._renderHooked then
+        return
+    end
+    if not Events or not Events.OnRenderTick or not Events.OnRenderTick.Add then
+        return
+    end
+    Events.OnRenderTick.Add(onRenderTick)
+    IKST_PreviewOverlay._renderHooked = true
+end
+
+function IKST_PreviewOverlay.releaseRenderHook()
+    if not IKST_PreviewOverlay._renderHooked then
+        return
+    end
+    if Events and Events.OnRenderTick and Events.OnRenderTick.Remove then
+        Events.OnRenderTick.Remove(onRenderTick)
+    end
+    IKST_PreviewOverlay._renderHooked = false
+end
+
+function IKST_PreviewOverlay.syncRenderHook()
+    if highlightListsEmpty() then
+        IKST_PreviewOverlay.releaseRenderHook()
+    else
+        IKST_PreviewOverlay.ensureRenderHook()
+    end
+end
+
+onRenderTick = function()
+    if highlightListsEmpty() then
+        IKST_PreviewOverlay.releaseRenderHook()
         return
     end
     IKST_PreviewOverlay._hlFrame = (IKST_PreviewOverlay._hlFrame or 0) + 1
@@ -650,8 +720,4 @@ local function onRenderTick()
         return
     end
     refreshHighlights()
-end
-
-if Events and Events.OnRenderTick then
-    Events.OnRenderTick.Add(onRenderTick)
 end

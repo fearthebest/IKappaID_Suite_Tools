@@ -26,6 +26,7 @@ require "IKST_JobLayout"
 require "IKST_ClaimIcons"
 require "IKST_ClaimPolicy"
 require "IKST_Access"
+require "IKST_Args"
 
 IKST_JobGuard = IKST_JobGuard or {}
 
@@ -40,7 +41,7 @@ function IKST_JobGuard.getSafehouses()
     return {}
 end
 
--- Overview list: server safehouses plus in-progress walk-draw draft (borders != claimed yet).
+-- Overview list: server safehouses plus in-progress drag-select draft (borders != claimed yet).
 function IKST_JobGuard.overviewSafehouseRows(player)
     local rows = {}
     for _, sh in ipairs(IKST_JobGuard.getSafehouses() or {}) do
@@ -64,14 +65,14 @@ function IKST_JobGuard.overviewSafehouseRows(player)
         return rows
     end
     local state = IKST.getPlayerState(player)
-    if state and state.claimReqA then
+    if state and (state.claimReqSelecting or state.claimReqA) then
         local a = state.claimReqA
         local draw = state.claimReqDraw
-        local x = a.x
-        local y = a.y
-        local z = a.z or 0
-        local w = 1
-        local h = 1
+        local x = a and a.x or 0
+        local y = a and a.y or 0
+        local z = (a and a.z) or 0
+        local w = 0
+        local h = 0
         local ready = false
         if draw then
             w = draw.w or w
@@ -83,10 +84,12 @@ function IKST_JobGuard.overviewSafehouseRows(player)
         end
         local prefix = IKST.text("IGUI_IKST_ClaimOverview_DraftRow", "Draft request")
         if ready then
-            prefix = IKST.text("IGUI_IKST_ClaimOverview_DraftReady", "Draft ready — press Mark end")
+            prefix = IKST.text("IGUI_IKST_ClaimOverview_DraftReady", "Draft ready — send to staff")
+        elseif not a then
+            prefix = IKST.text("IGUI_IKST_ClaimOverview_DraftDrag", "Draft — drag on the world")
         elseif draw and draw.reason == "too_small" then
             prefix = IKST.format("IGUI_IKST_ClaimOverview_DraftSmall",
-                "Draft — keep walking (min {1})", tostring(IKST_Claim.MIN_DIM))
+                "Draft — drag larger (min {1})", tostring(IKST_Claim.MIN_DIM))
         end
         local draft = {
             draft = true,
@@ -344,8 +347,11 @@ function IKST_JobGuard.safehouseActionPills(panel, p, isAdmin, isStaff, state)
         local claimState = IKST.getPlayerState(p)
         local reqLabel = IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house")
         local reqPrimary = true
-        if claimState and claimState.claimReqA then
-            reqLabel = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Mark end (B)")
+        if claimState and claimState.claimReqDraw and claimState.claimReqDraw.ok then
+            reqLabel = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Send to staff")
+        elseif claimState and (claimState.claimReqSelecting or claimState.claimReqA) then
+            reqLabel = IKST.text("IGUI_IKST_ClaimReq_Selecting", "Selecting zone…")
+            reqPrimary = false
         end
         actionItems[#actionItems + 1] = {
             label = reqLabel,
@@ -383,7 +389,7 @@ function IKST_JobGuard.safehouseActionPills(panel, p, isAdmin, isStaff, state)
                 })
             end,
         }
-        local mayManage = sel.canEdit == true or sel.isMine == true or isAdmin
+        local mayManage = IKST_ClaimPermissionsUI.rowAllowsOpen(sel) or isAdmin
         if mayManage then
             actionItems[#actionItems + 1] = {
                 label = IKST.text("IGUI_IKST_ClaimInvite_Invite", "Invite"),
@@ -395,21 +401,19 @@ function IKST_JobGuard.safehouseActionPills(panel, p, isAdmin, isStaff, state)
                     panel:refreshJobUI(true)
                 end,
             }
-            if sel.canEdit then
-                actionItems[#actionItems + 1] = {
-                    label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"),
-                    onClick = function()
-                        local row = panel.guardSelectedSH
-                        if not row then
-                            return
-                        end
-                        panel._ikstSoftInvite = nil
-                        local cfg = IKST_ClaimPermissionsUI.safehouseConfig(row.x, row.y, row.w, row.h)
-                        IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
-                        panel:refreshJobUI(true)
-                    end,
-                }
-            end
+            actionItems[#actionItems + 1] = {
+                label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"),
+                onClick = function()
+                    local row = panel.guardSelectedSH
+                    if not row then
+                        return
+                    end
+                    panel._ikstSoftInvite = nil
+                    local cfg = IKST_ClaimPermissionsUI.safehouseConfig(row.x, row.y, row.w, row.h)
+                    IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
+                    panel:refreshJobUI(true)
+                end,
+            }
         end
         if sel.canRelease == true and (sel.isMine == true or isAdmin) then
             actionItems[#actionItems + 1] = {
@@ -429,7 +433,7 @@ function IKST_JobGuard.safehouseActionPills(panel, p, isAdmin, isStaff, state)
                 end,
             }
         end
-        if sel.canRespawn then
+        if IKST_ClaimPermissionsUI.rowAllowsRespawn(sel) then
             actionItems[#actionItems + 1] = {
                 label = IKST_JobGuard.respawnChipLabel(sel),
                 primary = sel.respawnOn == true,
@@ -451,9 +455,11 @@ function IKST_JobGuard.claimOverviewActionPills(panel, player)
     local claimState = IKST.getPlayerState(p)
     local reqLabel = IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house")
     local reqPrimary = false
-    if claimState and claimState.claimReqA then
-        reqLabel = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Mark end (B)")
+    if claimState and claimState.claimReqDraw and claimState.claimReqDraw.ok then
+        reqLabel = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Send to staff")
         reqPrimary = true
+    elseif claimState and (claimState.claimReqSelecting or claimState.claimReqA) then
+        reqLabel = IKST.text("IGUI_IKST_ClaimReq_Selecting", "Selecting zone…")
     end
     if IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(p) then
         pills[#pills + 1] = {
@@ -723,26 +729,40 @@ function IKST_JobGuard.startHouseClaimRequest(player, panel)
     if not state then
         return false
     end
-    local c = IKST_JobGuard.coords(p)
-    if not state.claimReqA then
-        if IKST_ClaimRequestDraw and IKST_ClaimRequestDraw.start then
-            IKST_ClaimRequestDraw.start(p, c)
-        else
-            state.claimReqA = { x = c.x, y = c.y, z = c.z }
-        end
+    local host = panel
+    if not host then
+        host = {
+            player = p,
+            refreshJobUI = function() end,
+        }
+    end
+    if state.claimReqA and state.claimReqB and state.claimReqDraw and state.claimReqDraw.ok then
+        IKST_JobGuard.finishHouseClaimRequest(host)
+        return true
+    end
+    local selectMode = "walk"
+    if IKST_ClaimPolicy and type(IKST_ClaimPolicy.houseRequestSelectMode) == "function" then
+        selectMode = IKST_ClaimPolicy.houseRequestSelectMode()
+    end
+    if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.start) == "function" then
+        IKST_ClaimRequestDraw.start(p, {
+            mode = selectMode,
+            panel = panel,
+            onReady = function()
+                IKST_JobGuard.finishHouseClaimRequest(host)
+            end,
+        })
+    end
+    if selectMode == "drag" then
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_DragSelect",
+            "Drag a rectangle on the ground. The blue zone stays on those tiles even if you run."), true)
+    else
         IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_WalkToB",
-            "Corner marked. Walk to the opposite corner - the blue zone is what staff will see - then press Ask staff to claim again."), true)
-        if panel and panel.refreshJobUI then
-            panel:refreshJobUI()
-        end
-        return true
+            "Walk to the opposite corner. The zone is from where you started to where you stand."), true)
     end
-    if panel then
-        IKST_JobGuard.finishHouseClaimRequest(panel)
-        return true
+    if panel and panel.refreshJobUI then
+        panel:refreshJobUI()
     end
-    IKST.notify(p, IKST.text("IGUI_IKST_ClaimTile_RequestHouse", "Request house")
-        .. " â€” open IKST Claim Overview to finish the walk-draw request.", true)
     return true
 end
 
@@ -752,6 +772,9 @@ function IKST_JobGuard.finishHouseClaimRequest(panel)
         return
     end
     if IKST_ClaimPolicy and not IKST_ClaimPolicy.mayRequestSafehouseClaim(p) then
+        if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.releaseConfirmLock) == "function" then
+            IKST_ClaimRequestDraw.releaseConfirmLock()
+        end
         IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_Disabled",
             "House claim requests are disabled on this server."), false)
         return
@@ -760,14 +783,26 @@ function IKST_JobGuard.finishHouseClaimRequest(panel)
     if not state then
         return
     end
-    local c = IKST_JobGuard.coords(p)
-    if not state.claimReqA then
-        IKST_JobGuard.startHouseClaimRequest(p, panel)
+    local a = state.claimReqA
+    local b = state.claimReqB
+    if not a or not b then
+        if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.releaseConfirmLock) == "function" then
+            IKST_ClaimRequestDraw.releaseConfirmLock()
+        end
+        if state.claimReqMode == "walk" then
+            IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_WalkToB",
+                "Walk to the opposite corner. The zone is from where you started to where you stand."), false)
+        else
+            IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_DragSelect",
+                "Drag a rectangle on the ground. The blue zone stays on those tiles even if you run."), false)
+        end
         return
     end
-    local a = state.claimReqA
-    local ok, err, zx, zy, zw, zh = IKST_Claim.walkDrawRect(a.x, a.y, a.z, c.x, c.y, c.z)
+    local ok, err, zx, zy, zw, zh = IKST_Claim.walkDrawRect(a.x, a.y, a.z, b.x, b.y, b.z)
     if not ok then
+        if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.releaseConfirmLock) == "function" then
+            IKST_ClaimRequestDraw.releaseConfirmLock()
+        end
         local msg = IKST.text("IGUI_IKST_ClaimReq_BadSize", "Zone must be")
             .. " " .. IKST_Claim.sizeRangeLabel()
         if err == "same floor only" then
@@ -779,9 +814,9 @@ function IKST_JobGuard.finishHouseClaimRequest(panel)
                 .. "). "
                 .. IKST.text("IGUI_IKST_ClaimReq_NowSize", "Now")
                 .. " " .. tostring(zw) .. "x" .. tostring(zh)
-                .. " - " .. IKST.text("IGUI_IKST_ClaimReq_WalkCloser", "walk closer")
+                .. " - " .. IKST.text("IGUI_IKST_ClaimReq_DragSmaller", "drag a smaller area")
         elseif err == "zone too small" then
-            msg = IKST.text("IGUI_IKST_ClaimReq_TooSmall", "Keep walking (min")
+            msg = IKST.text("IGUI_IKST_ClaimReq_TooSmall", "Drag a larger zone (min")
                 .. " " .. tostring(IKST_Claim.MIN_DIM) .. "). "
                 .. IKST.text("IGUI_IKST_ClaimReq_NowSize", "Now")
                 .. " " .. tostring(zw) .. "x" .. tostring(zh)
@@ -789,20 +824,32 @@ function IKST_JobGuard.finishHouseClaimRequest(panel)
         IKST.notify(p, msg, false)
         return
     end
+    local dist = 8
+    if IKST_Access and type(IKST_Access.sandboxInt) == "function" then
+        dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
+    end
+    if IKST_Args and type(IKST_Args.actorNearRect) == "function"
+        and not IKST_Args.actorNearRect(p, zx, zy, a.z, zw, zh, dist) then
+        if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.releaseConfirmLock) == "function" then
+            IKST_ClaimRequestDraw.releaseConfirmLock()
+        end
+        IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_StandNear",
+            "Stand nearer the selected zone, then send it."), false)
+        return
+    end
     local confirm = IKST.text("IGUI_IKST_ClaimReq_Confirm",
         "Send this zone to staff for approval? Staff must accept it before it is yours.")
         .. " " .. tostring(zw) .. "x" .. tostring(zh)
         .. " @ " .. tostring(zx) .. "," .. tostring(zy)
     IKST_Confirm.show(confirm, function()
-        IKST.dispatchCommand(p, IKST.CMD.claimRequest, {
-            x1 = a.x, y1 = a.y, z1 = a.z,
-            x2 = c.x, y2 = c.y, z2 = c.z,
-        })
-        if IKST_ClaimRequestDraw and IKST_ClaimRequestDraw.clear then
-            IKST_ClaimRequestDraw.clear(p)
-        else
-            state.claimReqA = nil
+        local st = IKST.getPlayerState(p)
+        if not st or not st.claimReqA or not st.claimReqB then
+            return
         end
+        IKST.dispatchCommand(p, IKST.CMD.claimRequest, {
+            x1 = st.claimReqA.x, y1 = st.claimReqA.y, z1 = st.claimReqA.z,
+            x2 = st.claimReqB.x, y2 = st.claimReqB.y, z2 = st.claimReqB.z,
+        })
         if panel.refreshJobUI then
             panel:refreshJobUI()
         end
@@ -811,6 +858,8 @@ function IKST_JobGuard.finishHouseClaimRequest(panel)
             IKST_ClaimRequestDraw.clear(p)
         else
             state.claimReqA = nil
+            state.claimReqB = nil
+            state.claimReqSelecting = nil
         end
         IKST.notify(p, IKST.text("IGUI_IKST_ClaimReq_Cancelled", "Claim request cancelled."), true)
         if panel.refreshJobUI then

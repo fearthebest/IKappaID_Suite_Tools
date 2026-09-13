@@ -26,8 +26,7 @@ function IKST_GuardOps.claimRowForViewer(entry, viewer)
     row.claimed = true
     row.canClaim = false
     row.canRelease = IKST_GuardOps.canManageVehicleClaim(viewer, entry, entry.id)
-    row.canEdit = row.canRelease
-        and (IKST_VehicleClaim.playerMayEdit(entry, viewer) or IKST_GuardOps.actorIsAdmin(viewer))
+    row.canEdit = row.canRelease == true
     row.hoursRemaining = IKST_ClaimPolicy.hoursRemaining(entry.expiresAt)
     row.hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt)
     if entry.label and entry.label ~= "" then

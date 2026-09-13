@@ -14,6 +14,9 @@ require "IKST_PhunZones"
 require "IKST_SafeHouse"
 require "IKST_ClaimIcons"
 require "IKST_JobGuard"
+require "IKST_ClaimPermissionsUI"
+require "IKST_VehicleClaimUI"
+require "IKST_SafehouseClaimUI"
 
 IKST_ClaimRadial = IKST_ClaimRadial or {}
 
@@ -163,7 +166,7 @@ function IKST_ClaimRadial.addVehicleSlices(playerObj)
         )
     end
 
-    if uiState.canEdit and IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
+    if IKST_ClaimPermissionsUI.rowAllowsOpen(uiState) and IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
         IKST_ClaimRadial.addSliceOnce(
             menu, "vehicle_perms_" .. vidKey,
             IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."),
@@ -265,7 +268,7 @@ function IKST_ClaimRadial.addSafehouseSlices(playerObj)
         local canEdit = isAdmin
         if uiState then
             canRelease = uiState.canRelease == true or isAdmin
-            canEdit = uiState.canEdit == true or isAdmin
+            canEdit = IKST_ClaimPermissionsUI.rowAllowsOpen(uiState) or isAdmin
         end
 
         if canRelease then

@@ -247,7 +247,7 @@ function IKST_ClaimRequestQueue.setBounds(staff, requestId, args)
     return true, "borders updated"
 end
 
--- Walk-draw corners -> pending staff review. Does not create a safehouse.
+-- Mouse-drag corners -> pending staff review. Does not create a safehouse.
 function IKST_ClaimRequestQueue.submit(player, args)
     if IKST_Authority and not IKST_Authority.guardServerMutate() then
         return false, "server only"
@@ -271,16 +271,20 @@ function IKST_ClaimRequestQueue.submit(player, args)
     if z1 < -1 or z1 > 32 or z2 < -1 or z2 > 32 then
         return false, "need both corners"
     end
+    local ok, err, x, y, w, h = IKST_Claim.walkDrawRect(x1, y1, z1, x2, y2, z2)
+    if not ok then
+        return false, err or "invalid zone"
+    end
     local dist = 8
     if IKST_Access and type(IKST_Access.sandboxInt) == "function" then
         dist = IKST_Access.sandboxInt("ClaimNearDistance", 8, 2, 32)
     end
-    if not IKST_Args.actorNearCoord(player, x2, y2, z2, dist) then
-        return false, "stand at the end corner"
-    end
-    local ok, err, x, y, w, h = IKST_Claim.walkDrawRect(x1, y1, z1, x2, y2, z2)
-    if not ok then
-        return false, err or "invalid zone"
+    if type(IKST_Args.actorNearRect) == "function" then
+        if not IKST_Args.actorNearRect(player, x, y, z1, w, h, dist) then
+            return false, "stand near the zone"
+        end
+    elseif not IKST_Args.actorNearCoord(player, x2, y2, z2, dist) then
+        return false, "stand near the zone"
     end
     local user = requestUsername(player)
     if not user or user == "" then

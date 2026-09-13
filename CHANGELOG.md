@@ -1,5 +1,33 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.7 — (2026-09-13)
+
+Build **42.20**. House claim requests, leftover highlights, keypad loot flash, and idle client ticks.
+
+### Added
+- Sandbox **House request: how to mark the zone** — Walk from A to B (default) or Drag on the world. Only one method at a time.
+- Walk request paints a **solid growing rectangle** from the start corner to where you stand (HUD, every UI frame).
+
+### Fixed
+- Staff **Claim requests** preview no longer blinks on row select, and the highlight no longer stays after deny.
+- Containers with a **keypad** no longer flash when selected in loot. Vanilla owns that outline; install preview paints the floor instead.
+
+### Changed
+- Client tick listeners **unhook when idle** (borders off, hub closed, no overlay highlights, no arrival grace, no keypad install). Server cheat-detection scans are unchanged.
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.7.txt`
+
+## 0.3.2.6 — (2026-09-10)
+
+Build **42.20**. Claim owners can manage their own house and vehicle permissions; safehouse respawn shows on the vanilla spawn map after death.
+
+### Fixed
+- Safehouse **Permissions** and **Respawn** chips now show for a normal owner (not only admins). The hub was waiting on client claim data that does not sync in MP.
+- Turning **Respawn** on writes the vanilla SafeHouse flag on the **server**, so a new character can see the house on the spawn map.
+- Vehicle **Permissions** for owners: the server row now marks the claim as yours (`isMine` / edit), so the Perms chip is not admin-only.
+
+Steam paste: see v0.3.2.6 notes below / chat.
+
 ## 0.3.2.5 — (2026-09-08)
 
 Build **42.20** pack restored to git (it had been reverted on `master`). Load-order crash fixes for dedicated / client boot.

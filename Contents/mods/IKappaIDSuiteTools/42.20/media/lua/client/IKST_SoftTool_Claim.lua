@@ -15,6 +15,7 @@ require "IKST_Claim"
 require "IKST_Confirm"
 require "IKappaID_UI/IKUI_SoftBody"
 require "IKappaID_UI/IKUI_Chrome"
+require "IKST_ClaimPermissionsUI"
 require "ISUI/ISLabel"
 require "ISUI/ISTextEntryBox"
 
@@ -153,7 +154,7 @@ function IKST_SoftTool_Claim.buildSafehouses(panel, contentTop)
         and IKST_ClaimPolicy.mayCreateSafehouseClaim(p)
     local requestOnly = IKST_ClaimPolicy and IKST_ClaimPolicy.mayShowSafehouseClaimRequest
         and IKST_ClaimPolicy.mayShowSafehouseClaimRequest(p)
-    -- Request-only: no Size / Claim mode form — A→B walk is the acquire path.
+    -- Request-only: no Size / Claim mode form — mouse-drag on the world is the acquire path.
     local showSelfForm = canSelf == true and not requestOnly
     if canSelf and IKST_ClaimPolicy.mayRequestSafehouseClaim
         and IKST_ClaimPolicy.mayRequestSafehouseClaim(p) then
@@ -419,6 +420,16 @@ function IKST_SoftTool_Claim.buildVehicles(panel, contentTop)
         return card, areaX, areaY, areaW, areaH
     end
 
+    if IKST_ClaimPermissionsUI.hasSoft(panel) then
+        local manageBand = { y = bandsY, h = bandsH }
+        local card, ax, ay, aw, ah = openBand(manageBand,
+            IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions"))
+        IKST_ClaimPermissionsUI.placeSoft(panel, card, ax, ay, aw, ah, p)
+        if soft then
+            return stackBottom + gap
+        end
+        return rect.y + rect.h
+    end
     do
         local card, ax, ay, aw, ah = openBand(bands[1], IKST.text("IGUI_IKST_Guard_Vehicle_Claims", "Claims"))
         local listH, pillH, gapLP = IKUI_SoftBody.listPillSplit(ah, 1)
@@ -470,7 +481,7 @@ function IKST_SoftTool_Claim.buildVehicles(panel, contentTop)
                 end,
             }
         end
-        if selectedClaim and selectedClaim.canEdit then
+        if selectedClaim and (IKST_ClaimPermissionsUI.rowAllowsOpen(selectedClaim) or isAdmin) then
             claimActions[#claimActions + 1] = {
                 label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"),
                 onClick = function()
@@ -480,11 +491,7 @@ function IKST_SoftTool_Claim.buildVehicles(panel, contentTop)
                 end,
             }
         end
-        if soft and IKST_ClaimPermissionsUI.hasSoft(panel) then
-            IKST_ClaimPermissionsUI.placeSoft(panel, card, ax, ay, aw, ah, p)
-        else
-            IKUI_SoftBody.pillRow(panel, card, ax, pillY, aw, pillH, claimActions)
-        end
+        IKUI_SoftBody.pillRow(panel, card, ax, pillY, aw, pillH, claimActions)
     end
 
     do
@@ -557,7 +564,7 @@ function IKST_SoftTool_Claim.buildVehicles(panel, contentTop)
                 end,
             }
         end
-        if vid and (canEdit or isAdmin) then
+        if vid and (canEdit or isAdmin or (uiState and IKST_ClaimPermissionsUI.rowAllowsOpen(uiState))) then
             vehicleActions[#vehicleActions + 1] = {
                 label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions"),
                 onClick = function()
@@ -623,7 +630,8 @@ function IKST_SoftTool_Claim.buildVehicles(panel, contentTop)
                 IKST_JobGuard.requestClaims(p)
                 panel:refreshJobUI()
             end
-        elseif not (vid and uiState and uiState.claimed and (canEdit or isAdmin)) then
+        elseif not (vid and uiState and uiState.claimed and (canEdit or isAdmin
+            or IKST_ClaimPermissionsUI.rowAllowsOpen(uiState))) then
             actionLabel = IKST.text("IGUI_IKST_RefreshList", "Refresh")
             onAction = function()
                 IKST_JobGuard.requestNearbyVehicles(p)
@@ -766,8 +774,37 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
         quickBandIndex = 4
     end
 
+    -- One full-width permissions page. Painting into both house and vehicle
+    -- manage columns stacked widgets on top of lists so pills were unclickable.
+    if IKST_ClaimPermissionsUI.hasSoft(panel) then
+        local manageBand = {
+            y = listAreaY,
+            h = math.max(120, (bands[4].y + bands[4].h) - listAreaY),
+        }
+        local card, ax, ay, aw, ah = openBand(manageBand,
+            IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions"))
+        IKST_ClaimPermissionsUI.placeSoft(panel, card, ax, ay, aw, ah, p)
+        if soft then
+            return stackBottom + gap
+        end
+        return rect.y + rect.h
+    end
+
     do
         local overviewShRows = IKST_JobGuard.overviewSafehouseRows(p)
+        if panel.guardSelectedSH and (panel.guardSelectedSH.draft == true or panel.guardSelectedSH.pending == true) then
+            local stillDraft = false
+            for i = 1, #overviewShRows do
+                local row = overviewShRows[i]
+                if row and row.data and row.data.draft == true then
+                    stillDraft = true
+                    break
+                end
+            end
+            if not stillDraft then
+                panel.guardSelectedSH = nil
+            end
+        end
         if panel.guardSelectedSH and panel.guardSelectedSH.draft ~= true then
             panel.guardSelectedSH = IKST_JobGuard.pickPreferredSafehouse(
                 IKST_JobGuard.getSafehouses(), panel.guardSelectedSH)
@@ -797,7 +834,7 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
             end
             if sh.draft == true then
                 shPills[#shPills + 1] = {
-                    label = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Mark end (B)"),
+                    label = IKST.text("IGUI_IKST_ClaimTile_MarkEnd", "Send to staff"),
                     primary = sh.ready == true,
                     onClick = function()
                         IKST_JobGuard.onRequestClaimClick(panel)
@@ -812,7 +849,10 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
                             local st = IKST.getPlayerState(p)
                             if st then
                                 st.claimReqA = nil
+                                st.claimReqB = nil
                                 st.claimReqDraw = nil
+                                st.claimReqSelecting = nil
+                                st.claimReqMode = nil
                             end
                         end
                         panel.guardSelectedSH = nil
@@ -821,7 +861,7 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
                 }
                 return shPills
             end
-            local mayManage = sh.canEdit == true or sh.isMine == true
+            local mayManage = IKST_ClaimPermissionsUI.rowAllowsOpen(sh)
                 or (IKST_Access and type(IKST_Access.canUseTools) == "function" and IKST_Access.canUseTools(p))
             if mayManage then
                 shPills[#shPills + 1] = {
@@ -846,20 +886,18 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
                         panel:refreshJobUI(true)
                     end,
                 }
-                if sh.canEdit then
-                    shPills[#shPills + 1] = {
-                        label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"),
-                        primary = true,
-                        onClick = function()
-                            local cfg = IKST_ClaimPermissionsUI.safehouseConfig(sh.x, sh.y, sh.w, sh.h)
-                            panel._ikstSoftInvite = nil
-                            IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
-                            panel:refreshJobUI(true)
-                        end,
-                    }
-                end
+                shPills[#shPills + 1] = {
+                    label = IKST.text("IGUI_IKST_VehicleClaim_Perms", "Perms"),
+                    primary = true,
+                    onClick = function()
+                        local cfg = IKST_ClaimPermissionsUI.safehouseConfig(sh.x, sh.y, sh.w, sh.h)
+                        panel._ikstSoftInvite = nil
+                        IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
+                        panel:refreshJobUI(true)
+                    end,
+                }
             end
-            if sh.canRespawn then
+            if IKST_ClaimPermissionsUI.rowAllowsRespawn(sh) then
                 shPills[#shPills + 1] = {
                     label = IKST_JobGuard.respawnChipLabel(sh),
                     primary = sh.respawnOn == true,
@@ -919,9 +957,7 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
             local actAw = math.max(40, right.w - inner * 2)
             local actAy = actCY + padY
             local actAh = math.max(btnH, right.h - actCY - padY * 2)
-            if IKST_ClaimPermissionsUI.hasSoft(panel) then
-                IKST_ClaimPermissionsUI.placeSoft(panel, actCard, actAx, actAy, actAw, actAh, p)
-            elseif panel._ikstSoftInvite then
+            if panel._ikstSoftInvite then
                 IKST_JobGuard.placeSoftInvite(panel, actCard, actAx, actAy, actAw, actAh, p)
             else
                 local sh = panel.guardSelectedSH
@@ -935,9 +971,17 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
                         hint = IKST.text("IGUI_IKST_ClaimTile_AcquireHint",
                             "Use Get a claim above (or Claim → Safehouses) to request or claim.")
                     elseif panel.guardSelectedSH and panel.guardSelectedSH.draft == true then
-                        hint = IKST.format("IGUI_IKST_ClaimOverview_DraftHint",
-                            "Orange borders are a draft only. Walk until at least {1}x{1}, then Mark end to send to staff.",
-                            tostring(IKST_Claim.MIN_DIM))
+                        local walkMode = IKST_ClaimPolicy and type(IKST_ClaimPolicy.houseRequestSelectMode) == "function"
+                            and IKST_ClaimPolicy.houseRequestSelectMode() == "walk"
+                        if walkMode then
+                            hint = IKST.format("IGUI_IKST_ClaimOverview_DraftHintWalk",
+                                "Blue fill is a draft only. Walk until at least {1}x{1}, then send to staff.",
+                                tostring(IKST_Claim.MIN_DIM))
+                        else
+                            hint = IKST.format("IGUI_IKST_ClaimOverview_DraftHint",
+                                "Blue fill is a draft only. Drag at least {1}x{1} on the world, then send to staff.",
+                                tostring(IKST_Claim.MIN_DIM))
+                        end
                     end
                     local empty = ISLabel:new(actAx, actAy, 16, hint, 1, 1, 1, 1, UIFont.Small, true)
                     empty:initialise()
@@ -1012,12 +1056,10 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
         local actAw = math.max(40, right.w - inner * 2)
         local actAy = actCY + padY
         local actAh = math.max(btnH, right.h - actCY - padY * 2)
-        if IKST_ClaimPermissionsUI.hasSoft(panel) then
-            IKST_ClaimPermissionsUI.placeSoft(panel, actCard, actAx, actAy, actAw, actAh, p)
-        else
+        do
             local vPills = {}
             if selectedClaim then
-                local mayManage = selectedClaim.canEdit == true or selectedClaim.isMine == true
+                local mayManage = IKST_ClaimPermissionsUI.rowAllowsOpen(selectedClaim)
                     or (IKST_Access and type(IKST_Access.canUseTools) == "function" and IKST_Access.canUseTools(p))
                 if mayManage then
                     vPills[#vPills + 1] = {
@@ -1028,17 +1070,15 @@ function IKST_SoftTool_Claim.buildClaimOverview(panel)
                             panel:refreshJobUI(true)
                         end,
                     }
-                    if selectedClaim.canEdit then
-                        vPills[#vPills + 1] = {
-                            label = IKST.text("IGUI_IKST_ClaimTile_Keys", "Keys"),
-                            primary = true,
-                            onClick = function()
-                                local cfg = IKST_ClaimPermissionsUI.vehicleConfig(selectedClaim.id, selectedClaim.claimKey)
-                                IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
-                                panel:refreshJobUI(true)
-                            end,
-                        }
-                    end
+                    vPills[#vPills + 1] = {
+                        label = IKST.text("IGUI_IKST_ClaimTile_Keys", "Keys"),
+                        primary = true,
+                        onClick = function()
+                            local cfg = IKST_ClaimPermissionsUI.vehicleConfig(selectedClaim.id, selectedClaim.claimKey)
+                            IKST_ClaimPermissionsUI.beginSoft(panel, cfg)
+                            panel:refreshJobUI(true)
+                        end,
+                    }
                 end
                 if selectedClaim.canRelease then
                     vPills[#vPills + 1] = {
@@ -1133,7 +1173,7 @@ function IKST_SoftTool_Claim.buildClaimRequests(panel)
     local btnH = IKUI_SoftBody.STANDARD_BTN_H
     local note = ISLabel:new(rect.x, rect.y, 18,
         IKST.text("IGUI_IKST_ClaimRequestHelp",
-            "Player walk-draw zones waiting for staff approve/deny. Not vanilla F1 tickets."),
+            "Player drag-select zones waiting for staff approve/deny. Not vanilla F1 tickets."),
         0.75, 0.78, 0.82, 1, UIFont.Small, true)
     note:initialise()
     panel:addJobWidget(note)

@@ -191,6 +191,40 @@ function IKST_Args.actorNearCoord(player, x, y, z, maxDist)
     return IKST.distance2d(px, py, x, y) <= maxDist
 end
 
+-- Inside the AABB, or within maxDist of the nearest point on it (inclusive tiles).
+function IKST_Args.actorNearRect(player, x, y, z, w, h, maxDist)
+    if not player or x == nil or y == nil then
+        return false
+    end
+    w = math.max(1, math.floor(tonumber(w) or 1))
+    h = math.max(1, math.floor(tonumber(h) or 1))
+    maxDist = IKST.parseNumberOptional(maxDist) or 12
+    z = IKST.parseNumberOptional(z) or 0
+    local px = player:getX()
+    local py = player:getY()
+    local pz = player:getZ() or 0
+    if math.abs(pz - z) > IKST_Args.staffZSpan(player) then
+        return false
+    end
+    local minX = x
+    local minY = y
+    local maxX = x + w - 1
+    local maxY = y + h - 1
+    local nx = px
+    local ny = py
+    if nx < minX then
+        nx = minX
+    elseif nx > maxX then
+        nx = maxX
+    end
+    if ny < minY then
+        ny = minY
+    elseif ny > maxY then
+        ny = maxY
+    end
+    return IKST.distance2d(px, py, nx, ny) <= maxDist
+end
+
 -- Staff world ops: require proximity unless sandbox StaffRemoteAdmin is on.
 function IKST_Args.requireNearOrRemoteAdmin(player, x, y, z, maxDist)
     if not player then

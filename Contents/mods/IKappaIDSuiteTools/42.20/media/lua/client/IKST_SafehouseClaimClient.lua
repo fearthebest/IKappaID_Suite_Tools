@@ -6,6 +6,7 @@ require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_SafehouseClaim"
 require "IKST_SafehouseClaimMirror"
+require "IKST_SafeHouse"
 require "IKST_Identity"
 require "IKST_Access"
 
@@ -149,6 +150,28 @@ function IKST_SafehouseClaimClient.onSafehouseListResult(args)
     end
 end
 
+function IKST_SafehouseClaimClient.applyRespawnMirror(args)
+    if type(args) ~= "table" then
+        return
+    end
+    local username = args.username
+    local on = args.on == true
+    if type(username) ~= "string" or username == "" then
+        return
+    end
+    local sh = nil
+    if IKST_SafeHouse and type(IKST_SafeHouse.find) == "function" then
+        sh = IKST_SafeHouse.find(args, nil)
+    end
+    if sh and IKST_SafeHouse and type(IKST_SafeHouse.applyRespawnFlag) == "function" then
+        IKST_SafeHouse.applyRespawnFlag(sh, username, on)
+    end
+    local row = IKST_SafehouseClaimClient.rowForBounds(args.x, args.y, args.w, args.h)
+    if row then
+        row.respawnOn = on
+    end
+end
+
 function IKST_SafehouseClaimClient.rowForBounds(x, y, w, h)
     if x == nil or y == nil or not w or not h then
         return nil
@@ -182,6 +205,22 @@ function IKST_SafehouseClaimClient.spFallbackState(x, y, w, h, player, owner)
     }
 end
 
+-- Display only: owner from server row, claim entry, or vanilla owner field.
+function IKST_SafehouseClaimClient.viewerOwnsOwnerField(player, owner)
+    if not player or not owner or owner == "" then
+        return false
+    end
+    if IKST_Identity and type(IKST_Identity.playerOwnsKey) == "function"
+        and IKST_Identity.playerOwnsKey(player, owner) == true then
+        return true
+    end
+    if IKST_ClaimPolicy and type(IKST_ClaimPolicy.usernamesEqual) == "function"
+        and type(player.getUsername) == "function" then
+        return IKST_ClaimPolicy.usernamesEqual(owner, player:getUsername()) == true
+    end
+    return false
+end
+
 function IKST_SafehouseClaimClient.finalizeUiState(state, player, owner)
     if not state then
         return nil
@@ -193,13 +232,26 @@ function IKST_SafehouseClaimClient.finalizeUiState(state, player, owner)
         end
         local isAdmin = IKST_Access and type(IKST_Access.canUseTools) == "function"
             and IKST_Access.canUseTools(player)
-        if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
-            state.isMine = IKST_SafehouseClaim.isOwner(entry, player)
-            state.canRelease = IKST_SafehouseClaim.isOwner(entry, player) or isAdmin
-            state.canEdit = IKST_SafehouseClaim.playerMayEdit(entry, player) or isAdmin
-        elseif isAdmin then
+        local isMine = state.isMine == true
+        if entry and not IKST_SafehouseClaim.isEntryExpired(entry)
+            and type(IKST_SafehouseClaim.isOwner) == "function"
+            and IKST_SafehouseClaim.isOwner(entry, player) then
+            isMine = true
+        end
+        if not isMine then
+            isMine = IKST_SafehouseClaimClient.viewerOwnsOwnerField(player, owner or state.owner)
+        end
+        state.isMine = isMine
+        if isMine or isAdmin or state.canRelease == true then
             state.canRelease = true
+        end
+        if isMine or isAdmin or state.canEdit == true then
             state.canEdit = true
+        end
+        if (isMine or isAdmin or state.canRespawn == true)
+            and IKST_ClaimPolicy and type(IKST_ClaimPolicy.safehouseRespawnAllowed) == "function"
+            and IKST_ClaimPolicy.safehouseRespawnAllowed() then
+            state.canRespawn = true
         end
         return state
     end
@@ -223,8 +275,14 @@ function IKST_SafehouseClaimClient.uiState(x, y, w, h, player, owner)
                 x = x, y = y, w = w, h = h,
                 owner = entry.owner or owner,
                 claimed = true,
-                canRelease = false,
-                canEdit = false,
+                stale = true,
+            }, player, owner or entry.owner)
+        end
+        if owner and owner ~= "" then
+            return IKST_SafehouseClaimClient.finalizeUiState({
+                x = x, y = y, w = w, h = h,
+                owner = owner,
+                claimed = true,
                 stale = true,
             }, player, owner)
         end

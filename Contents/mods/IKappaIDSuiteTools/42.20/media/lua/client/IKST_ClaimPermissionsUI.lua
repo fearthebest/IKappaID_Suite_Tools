@@ -190,6 +190,28 @@ function IKST_ClaimPermissionsUI.hasSoft(hub)
     return hub and hub._ikstSoftPermsCfg ~= nil
 end
 
+-- Owner, listed claim, or staff row from the server. Members without those flags stay out.
+function IKST_ClaimPermissionsUI.rowAllowsOpen(row)
+    if not row then
+        return false
+    end
+    return row.canEdit == true or row.isMine == true or row.canRelease == true
+end
+
+-- Display only. Server still validates playerMaySetRespawn.
+function IKST_ClaimPermissionsUI.rowAllowsRespawn(row)
+    if not row then
+        return false
+    end
+    if not IKST_ClaimPolicy or type(IKST_ClaimPolicy.safehouseRespawnAllowed) ~= "function" then
+        return false
+    end
+    if not IKST_ClaimPolicy.safehouseRespawnAllowed() then
+        return false
+    end
+    return row.canRespawn == true or IKST_ClaimPermissionsUI.rowAllowsOpen(row)
+end
+
 function IKST_ClaimPermissionsUI.placeSoft(hub, parent, ax, ay, aw, ah, player)
     if not hub or not parent or not player then
         return
@@ -368,7 +390,9 @@ function IKST_ClaimPermissionsUI.placeSoft(hub, parent, ax, ay, aw, ah, player)
             end,
         }
     end
-    if y + btnH <= ay + ah then
-        IKST_JobLayout.placePillGroup(hub, parent, ax, y, aw, btnH, foot)
+    local footY = y
+    if footY + btnH > ay + ah then
+        footY = math.max(ay, (ay + ah) - btnH)
     end
+    IKST_JobLayout.placePillGroup(hub, parent, ax, footY, aw, btnH, foot)
 end

@@ -115,9 +115,12 @@ function IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
     end
     local canRelease = false
     local canEdit = false
+    local isMine = false
     if player then
         canRelease = IKST_VehicleClaim.playerMayRelease(entry, player, claimKey)
-        canEdit = IKST_VehicleClaim.playerMayEdit(entry, player)
+        canEdit = canRelease == true or IKST_VehicleClaim.playerMayEdit(entry, player)
+        isMine = IKST_VehicleClaim.isOwner(entry, player)
+            or IKST_VehicleClaim.playerListedClaim(player, claimKey)
     end
     return {
         id = claimKey,
@@ -130,6 +133,7 @@ function IKST_VehicleClaimClient.buildRowFromEntry(entry, player)
         y = entry.y,
         z = entry.z,
         claimed = true,
+        isMine = isMine,
         canClaim = false,
         canRelease = canRelease,
         canEdit = canEdit,
@@ -241,7 +245,10 @@ function IKST_VehicleClaimClient.spFallbackState(vehicleId, player, vehicle)
             ownerLabel = IKST_Identity.labelForKey(entry.owner),
             displayLabel = displayLabel,
             canRelease = IKST_VehicleClaim.playerMayRelease(entry, player, claimKey or entry.id),
-            canEdit = IKST_VehicleClaim.playerMayEdit(entry, player),
+            canEdit = IKST_VehicleClaim.playerMayRelease(entry, player, claimKey or entry.id)
+                or IKST_VehicleClaim.playerMayEdit(entry, player),
+            isMine = IKST_VehicleClaim.isOwner(entry, player)
+                or IKST_VehicleClaim.playerListedClaim(player, claimKey or entry.id),
             canClaim = false,
             hoursRemainingText = IKST_ClaimPolicy.hoursRemainingLabel(entry.expiresAt),
         }

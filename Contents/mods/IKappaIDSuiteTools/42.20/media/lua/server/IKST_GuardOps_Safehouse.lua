@@ -206,9 +206,22 @@ function IKST_GuardOps.safehouseRowForViewer(row, viewer)
     if row.x and row.y and row.w and row.h then
         entry = IKST_SafehouseClaim.get(row.x, row.y, row.w, row.h)
     end
-    local isOwner = IKST_ClaimPolicy.usernamesEqual(row.owner, IKST_GuardOps.username(viewer))
+    local username = IKST_GuardOps.username(viewer)
+    local isOwner = false
+    if row.owner and viewer and IKST_Identity and type(IKST_Identity.playerOwnsKey) == "function"
+        and IKST_Identity.playerOwnsKey(viewer, row.owner) then
+        isOwner = true
+    elseif IKST_ClaimPolicy.usernamesEqual(row.owner, username) then
+        isOwner = true
+    end
     if entry and not IKST_SafehouseClaim.isEntryExpired(entry) then
         isOwner = isOwner or IKST_SafehouseClaim.isOwner(entry, viewer)
+    end
+    local sh = IKST_GuardOps.findSafehouseEntry({
+        x = row.x, y = row.y, w = row.w, h = row.h, id = row.id, owner = row.owner,
+    }, viewer)
+    if not isOwner and sh and type(sh.isOwner) == "function" and sh:isOwner(viewer) == true then
+        isOwner = true
     end
     out.isMine = isOwner
     out.canRelease = IKST_GuardOps.actorIsAdmin(viewer) or isOwner
@@ -221,16 +234,10 @@ function IKST_GuardOps.safehouseRowForViewer(row, viewer)
     out.respawnAllowed = IKST_ClaimPolicy.safehouseRespawnAllowed()
     out.respawnOn = false
     out.canRespawn = false
-    if out.respawnAllowed then
-        local sh = IKST_GuardOps.findSafehouseEntry({
-            x = row.x, y = row.y, w = row.w, h = row.h, id = row.id, owner = row.owner,
-        }, viewer)
-        if sh and IKST_GuardOps.playerMaySetRespawn(sh, viewer) then
-            out.canRespawn = true
-            local uname = IKST_GuardOps.username(viewer)
-            if uname and type(sh.isRespawnInSafehouse) == "function" then
-                out.respawnOn = sh:isRespawnInSafehouse(uname) == true
-            end
+    if out.respawnAllowed and sh and IKST_GuardOps.playerMaySetRespawn(sh, viewer) then
+        out.canRespawn = true
+        if username and type(sh.isRespawnInSafehouse) == "function" then
+            out.respawnOn = sh:isRespawnInSafehouse(username) == true
         end
     end
     return out
@@ -375,6 +382,37 @@ function IKST_GuardOps.playerMaySetRespawn(sh, actor)
     return false
 end
 
+function IKST_GuardOps.mirrorRespawnToClients(sh, username, on)
+    if type(username) ~= "string" or username == "" then
+        return
+    end
+    local x, y, w, h = nil, nil, nil, nil
+    if IKST_SafehouseClaim and type(IKST_SafehouseClaim.boundsFromSafehouse) == "function" then
+        x, y, w, h = IKST_SafehouseClaim.boundsFromSafehouse(sh)
+    end
+    local payload = {
+        username = username,
+        on = on == true,
+        x = x,
+        y = y,
+        w = w,
+        h = h,
+        id = IKST_SafeHouse and (IKST_SafeHouse.onlineId(sh) or IKST_SafeHouse.id(sh)) or nil,
+    }
+    local function sendTo(p)
+        if p and IKST.deliverClientCommand then
+            IKST.deliverClientCommand(p, IKST.CMD.safehouseRespawnMirror, payload)
+        end
+    end
+    if IKST.isMultiplayerSession and IKST.isMultiplayerSession()
+        and IKST_StaffOps and type(IKST_StaffOps.forEachOnline) == "function" then
+        IKST_StaffOps.forEachOnline(sendTo)
+        return
+    end
+    local localPlayer = type(getPlayer) == "function" and getPlayer() or nil
+    sendTo(localPlayer)
+end
+
 function IKST_GuardOps.setSafehouseRespawn(actor, args)
     if not IKST_ClaimPolicy.safehouseRespawnAllowed() then
         return false, "safehouse respawn disabled"
@@ -402,6 +440,7 @@ function IKST_GuardOps.setSafehouseRespawn(actor, args)
         sh:syncSafehouse()
     end
     IKST_SafeHouse.afterMutation(sh, actor)
+    IKST_GuardOps.mirrorRespawnToClients(sh, username, on)
     return true, on and "respawn on" or "respawn off"
 end
 

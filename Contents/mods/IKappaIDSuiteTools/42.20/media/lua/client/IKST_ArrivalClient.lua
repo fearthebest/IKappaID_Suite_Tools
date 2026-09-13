@@ -9,6 +9,7 @@ require "IKappaID_UI/IKUI_Chrome"
 
 IKST_ArrivalClient = ISPanel:derive("IKST_ArrivalClient")
 IKST_ArrivalClient.instance = nil
+IKST_ArrivalClient._tickHooked = false
 
 function IKST_ArrivalClient:new(player)
     local sw = getCore():getScreenWidth()
@@ -52,6 +53,7 @@ function IKST_ArrivalClient.ensure()
         IKST_ArrivalClient.instance:addToUIManager()
     end
     IKST_ArrivalClient.instance.player = player
+    IKST_ArrivalClient.ensureTick()
 end
 
 function IKST_ArrivalClient.onSync(args)
@@ -63,6 +65,7 @@ function IKST_ArrivalClient.onSync(args)
             IKST_ArrivalClient.instance:removeFromUIManager()
             IKST_ArrivalClient.instance = nil
         end
+        IKST_ArrivalClient.releaseTick()
         return
     end
     IKST_ArrivalClient.ensure()
@@ -87,6 +90,7 @@ end
 
 function IKST_ArrivalClient.onTick()
     if not IKST_ArrivalClient.instance or not IKST_ArrivalClient.instance.remainingMs then
+        IKST_ArrivalClient.releaseTick()
         return
     end
     local step = 33
@@ -100,9 +104,27 @@ function IKST_ArrivalClient.onTick()
     if IKST_ArrivalClient.instance.remainingMs <= 0 then
         IKST_ArrivalClient.instance:removeFromUIManager()
         IKST_ArrivalClient.instance = nil
+        IKST_ArrivalClient.releaseTick()
     end
 end
 
-if Events and Events.OnTick then
+function IKST_ArrivalClient.releaseTick()
+    if not IKST_ArrivalClient._tickHooked then
+        return
+    end
+    if Events and Events.OnTick and Events.OnTick.Remove then
+        Events.OnTick.Remove(IKST_ArrivalClient.onTick)
+    end
+    IKST_ArrivalClient._tickHooked = false
+end
+
+function IKST_ArrivalClient.ensureTick()
+    if IKST_ArrivalClient._tickHooked then
+        return
+    end
+    if not Events or not Events.OnTick or not Events.OnTick.Add then
+        return
+    end
     Events.OnTick.Add(IKST_ArrivalClient.onTick)
+    IKST_ArrivalClient._tickHooked = true
 end

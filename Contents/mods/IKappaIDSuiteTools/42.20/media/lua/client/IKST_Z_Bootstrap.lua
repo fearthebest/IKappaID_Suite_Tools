@@ -169,6 +169,11 @@ local function onServerCommand(module, command, args)
                 IKST.notify(player, tostring(args.message), false)
             end
         end
+        if args and args.mode == IKST.CMD.claimRequest then
+            if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.clear) == "function" then
+                IKST_ClaimRequestDraw.clear(player)
+            end
+        end
         if IKST_EconomyUI and IKST_EconomyUI.onServerResult then
             IKST_EconomyUI.onServerResult(args or {})
         end
@@ -371,6 +376,13 @@ local function onServerCommand(module, command, args)
     if command == IKST.CMD.safehouseClaimMirror then
         if IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.forceRefresh then
             IKST_SafehouseClaimClient.forceRefresh(args)
+        end
+        return
+    end
+
+    if command == IKST.CMD.safehouseRespawnMirror then
+        if IKST_SafehouseClaimClient and type(IKST_SafehouseClaimClient.applyRespawnMirror) == "function" then
+            IKST_SafehouseClaimClient.applyRespawnMirror(args)
         end
         return
     end

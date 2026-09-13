@@ -58,6 +58,15 @@ function IKST_ClaimPolicy.houseRequestEnabled()
     return true
 end
 
+-- Sandbox enum: 1 = walk A to B, 2 = drag on the world. Never both at once.
+function IKST_ClaimPolicy.houseRequestSelectMode()
+    local n = IKST_ClaimPolicy.sandboxInt("ClaimHouseRequestSelect", 1, 1, 2)
+    if n == 2 then
+        return "drag"
+    end
+    return "walk"
+end
+
 function IKST_ClaimPolicy.vehicleSelfServiceEnabled()
     local sv = IKST_ClaimPolicy.sandbox()
     if sv and sv.ClaimVehicleSelfService ~= nil then

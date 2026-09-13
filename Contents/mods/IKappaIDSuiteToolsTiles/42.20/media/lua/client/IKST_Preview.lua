@@ -14,6 +14,22 @@ local function playerCoords(player)
     return math.floor(player:getX()), math.floor(player:getY()), player:getZ()
 end
 
+-- Request-house drag uses IKST_ClaimRequestDraw (cursor tiles). The Guard
+-- safehouse preview is player-centered, so it must stay off during a request
+-- or walking paints a second "self-claim" square under the character.
+local function claimRequestActive(player)
+    if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.isActive) == "function" then
+        return IKST_ClaimRequestDraw.isActive(player) == true
+    end
+    local state = player and IKST.getPlayerState and IKST.getPlayerState(player)
+    return state ~= nil and (state.claimReqSelecting == true or state.claimReqA ~= nil)
+end
+
+local function maySelfClaimPreview(player)
+    return IKST_ClaimPolicy and type(IKST_ClaimPolicy.mayCreateSafehouseClaim) == "function"
+        and IKST_ClaimPolicy.mayCreateSafehouseClaim(player) == true
+end
+
 function IKST_Preview.syncForPanel(panel)
     if not panel or not panel.player or not IKST_PreviewOverlay then
         if IKST_PreviewOverlay and IKST_PreviewOverlay.clearJob then
@@ -115,6 +131,10 @@ function IKST_Preview.syncForPanel(panel)
     end
 
     if view == IKST.VIEW.guard and state then
+        if claimRequestActive(player) then
+            IKST_PreviewOverlay.clearJob()
+            return
+        end
         local mode = state.guardMode or "tools"
         if mode == "safehouses" then
             local size = state.guardShSize or 13
@@ -124,13 +144,17 @@ function IKST_Preview.syncForPanel(panel)
                 shW, shH = IKST_JobGuard.readShDimensions(panel, state)
             end
             local rects = {}
-            local px, py, pw, ph, pz, _, previewKind = IKST_Claim.safehousePreviewRect(cx, cy, cz, size, claimMode, shW, shH)
-            rects[#rects + 1] = {
-                x = px, y = py, w = pw, h = ph, z = pz,
-                color = previewKind == IKST_Claim.MODE.building and "accent" or "claim",
-            }
-            if panel.guardSelectedSH then
-                local sel = panel.guardSelectedSH
+            -- Request-only players have no self-claim square. Painting one
+            -- underfoot looks like a second claim next to a house request.
+            if maySelfClaimPreview(player) then
+                local px, py, pw, ph, pz, _, previewKind = IKST_Claim.safehousePreviewRect(cx, cy, cz, size, claimMode, shW, shH)
+                rects[#rects + 1] = {
+                    x = px, y = py, w = pw, h = ph, z = pz,
+                    color = previewKind == IKST_Claim.MODE.building and "accent" or "claim",
+                }
+            end
+            local sel = panel.guardSelectedSH
+            if sel and sel.draft ~= true and sel.pending ~= true then
                 rects[#rects + 1] = {
                     x = sel.x, y = sel.y,
                     w = sel.w and sel.w > 0 and sel.w or 1,
@@ -139,7 +163,11 @@ function IKST_Preview.syncForPanel(panel)
                     color = "warn",
                 }
             end
-            IKST_PreviewOverlay.setJobRects(rects)
+            if #rects == 0 then
+                IKST_PreviewOverlay.clearJob()
+            else
+                IKST_PreviewOverlay.setJobRects(rects)
+            end
             return
         end
         if mode == "tiles" or mode == "farming" then
@@ -176,6 +204,7 @@ end
 
 local _previewMoveKey = ""
 local _previewMoveParts = {}
+local _previewTickHooked = false
 
 local function previewMoveKey(panel)
     if not panel or not panel.player then
@@ -204,6 +233,10 @@ local function previewMoveKey(panel)
         parts[n] = state.guardShH or ""
         n = n + 1
         parts[n] = state.guardShClaimMode or ""
+        n = n + 1
+        parts[n] = tostring(state.claimReqSelecting == true)
+        n = n + 1
+        parts[n] = state.claimReqA and "a" or ""
         n = n + 1
         parts[n] = state.guardRadius or ""
         n = n + 1
@@ -245,7 +278,7 @@ end
 local function onPreviewTick()
     local panel = IKST_Hub and type(IKST_Hub.activeJobPanel) == "function" and IKST_Hub.activeJobPanel()
     if not panel or type(panel.getIsVisible) ~= "function" or not panel:getIsVisible() then
-        _previewMoveKey = ""
+        IKST_Preview.releaseTick()
         return
     end
     if IKST_HubNav and type(IKST_HubNav.isFavoritesView) == "function" and IKST_HubNav.isFavoritesView(panel.view) then
@@ -258,6 +291,29 @@ local function onPreviewTick()
     end
 end
 
-if Events and Events.OnTick then
+function IKST_Preview.releaseTick()
+    if _previewMoveKey ~= "" then
+        _previewMoveKey = ""
+        if IKST_PreviewOverlay and type(IKST_PreviewOverlay.clearJob) == "function" then
+            IKST_PreviewOverlay.clearJob()
+        end
+    end
+    if not _previewTickHooked then
+        return
+    end
+    if Events and Events.OnTick and Events.OnTick.Remove then
+        Events.OnTick.Remove(onPreviewTick)
+    end
+    _previewTickHooked = false
+end
+
+function IKST_Preview.ensureTick()
+    if _previewTickHooked then
+        return
+    end
+    if not Events or not Events.OnTick or not Events.OnTick.Add then
+        return
+    end
     Events.OnTick.Add(onPreviewTick)
+    _previewTickHooked = true
 end

@@ -128,7 +128,7 @@ function IKST_Claim.rectFromCorners(x1, y1, x2, y2)
     local h = math.abs(y2 - y1) + 1
     return x, y, w, h
 end
--- Walk-draw claim request: exact corner rectangle (not whole-building snap).
+-- Two-corner claim request: exact AABB (not whole-building snap).
 -- Returns ok, err, x, y, w, h
 function IKST_Claim.walkDrawRect(x1, y1, z1, x2, y2, z2)
     local x, y, w, h = IKST_Claim.rectFromCorners(x1, y1, x2, y2)

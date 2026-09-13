@@ -10,6 +10,8 @@ require "IKST_VehiclePermissions"
 require "IKST_Access"
 require "IKST_ClaimIcons"
 require "IKST_VehicleKeys"
+require "IKST_ClaimPermissionsUI"
+require "IKST_VehicleClaimUI"
 
 IKST_VehicleContext = IKST_VehicleContext or {}
 
@@ -102,7 +104,7 @@ function IKST_VehicleContext.onFillWorldObjectContextMenu(playerNum, context, wo
         end, IKST_ClaimIcons.VEHICLE_UNCLAIM)
     end
 
-    if uiState.canEdit then
+    if IKST_ClaimPermissionsUI.rowAllowsOpen(uiState) then
         IKST_VehicleContext.addOption(sub, IKST.text("IGUI_IKST_VehicleClaim_Perms", "Permissions..."), player, function()
             if IKST_VehicleClaimUI and IKST_VehicleClaimUI.open then
                 IKST_VehicleClaimUI.open(player, vid)

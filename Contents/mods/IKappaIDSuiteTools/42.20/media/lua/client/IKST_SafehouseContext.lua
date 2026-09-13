@@ -8,6 +8,7 @@ end
 require "ISUI/ISWorldObjectContextMenu"
 require "ISUI/UserPanel/ISSafehouseUI"
 require "ISUI/UserPanel/ISUserPanelUI"
+require "OptionScreens/MapSpawnSelect"
 require "IKST_Shared"
 require "IKST_ClaimPolicy"
 require "IKST_Claim"
@@ -130,6 +131,146 @@ function IKST_SafehouseContext.stripVanillaClaimOptions(context)
     end
 end
 
+local function spawnRegionFromBounds(x, y, w, h)
+    if x == nil or y == nil or not w or not h then
+        return nil
+    end
+    -- Same center as vanilla MapSpawnSelect:getSafehouseSpawnRegion.
+    local posX = x + (h / 2)
+    local posY = y + (w / 2)
+    local name = "Safehouse"
+    if type(getText) == "function" then
+        name = getText("UI_mapspawn_Safehouse")
+    end
+    return {
+        {
+            name = name,
+            points = {
+                unemployed = {
+                    { posX = posX, posY = posY, posZ = 0 },
+                },
+            },
+        },
+    }
+end
+
+local function spawnUsernames()
+    local names = {}
+    local function add(n)
+        if type(n) == "string" and n ~= "" then
+            names[#names + 1] = n
+        end
+    end
+    if type(getClientUsername) == "function" then
+        add(getClientUsername())
+    end
+    local player = nil
+    if type(getSpecificPlayer) == "function" then
+        player = getSpecificPlayer(0)
+    end
+    if not player and type(getPlayer) == "function" then
+        player = getPlayer()
+    end
+    if player and type(player.getUsername) == "function" then
+        add(player:getUsername())
+    end
+    return names
+end
+
+local function nameMatches(a, b)
+    if type(a) ~= "string" or type(b) ~= "string" then
+        return false
+    end
+    if IKST_ClaimPolicy and type(IKST_ClaimPolicy.usernamesEqual) == "function" then
+        return IKST_ClaimPolicy.usernamesEqual(a, b)
+    end
+    return a == b
+end
+
+local function javaHouseAllowsRespawn(sh, username)
+    if not sh or type(username) ~= "string" then
+        return false
+    end
+    local flagged = false
+    if type(sh.isRespawnInSafehouse) == "function" then
+        flagged = sh:isRespawnInSafehouse(username) == true
+    end
+    if not flagged and type(sh.getPlayersRespawn) == "function" then
+        local list = sh:getPlayersRespawn()
+        if list and type(list.contains) == "function" then
+            flagged = list:contains(username) == true
+        end
+    end
+    if not flagged then
+        return false
+    end
+    if type(sh.getOwner) == "function" and nameMatches(sh:getOwner(), username) then
+        return true
+    end
+    if type(sh.getPlayers) == "function" then
+        local members = sh:getPlayers()
+        if members and type(members.contains) == "function" and members:contains(username) then
+            return true
+        end
+    end
+    return false
+end
+
+function IKST_SafehouseContext.safehouseSpawnRegion()
+    if type(isClient) == "function" and not isClient() then
+        return nil
+    end
+    if not IKST_ClaimPolicy or type(IKST_ClaimPolicy.safehouseRespawnAllowed) ~= "function" then
+        return nil
+    end
+    if not IKST_ClaimPolicy.safehouseRespawnAllowed() then
+        return nil
+    end
+    local names = spawnUsernames()
+    if #names < 1 then
+        return nil
+    end
+    local found = nil
+    if IKST_SafeHouse and type(IKST_SafeHouse.iter) == "function" then
+        IKST_SafeHouse.iter(function(sh)
+            if found then
+                return
+            end
+            for i = 1, #names do
+                if javaHouseAllowsRespawn(sh, names[i]) then
+                    local x, y, w, h = IKST_SafeHouse.bounds(sh)
+                    found = spawnRegionFromBounds(x, y, w, h)
+                    return
+                end
+            end
+        end)
+    end
+    if found then
+        return found
+    end
+    local rows = IKST_SafehouseClaimClient and IKST_SafehouseClaimClient.safehouses
+    if type(rows) == "table" then
+        for i = 1, #rows do
+            local row = rows[i]
+            if row and row.respawnOn == true then
+                local mine = row.isMine == true or row.canRespawn == true
+                if not mine then
+                    for n = 1, #names do
+                        if nameMatches(row.owner, names[n]) then
+                            mine = true
+                            break
+                        end
+                    end
+                end
+                if mine then
+                    return spawnRegionFromBounds(row.x, row.y, row.w, row.h)
+                end
+            end
+        end
+    end
+    return nil
+end
+
 function IKST_SafehouseContext.wrapVanilla()
     if IKST_SafehouseContext.wrapped then
         return
@@ -167,9 +308,21 @@ function IKST_SafehouseContext.wrapVanilla()
             IKST_SafehouseContext.redirectView(self.player, self.safehouse)
         end
     end
+    if MapSpawnSelect and type(MapSpawnSelect.getSafehouseSpawnRegion) == "function"
+        and not MapSpawnSelect.__ikst_safehouse_spawn then
+        MapSpawnSelect.__ikst_safehouse_spawn = true
+        local origSpawn = MapSpawnSelect.getSafehouseSpawnRegion
+        MapSpawnSelect.getSafehouseSpawnRegion = function(self)
+            local region = origSpawn(self)
+            if region then
+                return region
+            end
+            return IKST_SafehouseContext.safehouseSpawnRegion()
+        end
+    end
 end
 
-function IKST_SafehouseContext.addRespawnOption(sub, player, sh, x, y, w, h, owner)
+function IKST_SafehouseContext.addRespawnOption(sub, player, sh, x, y, w, h, owner, uiState)
     if not IKST_ClaimPolicy or type(IKST_ClaimPolicy.safehouseRespawnAllowed) ~= "function" then
         return
     end
@@ -182,6 +335,9 @@ function IKST_SafehouseContext.addRespawnOption(sub, player, sh, x, y, w, h, own
     elseif type(sh.isOwner) == "function" and sh:isOwner(player) == true then
         allowed = true
     elseif type(sh.playerAllowed) == "function" and sh:playerAllowed(player) == true then
+        allowed = true
+    elseif IKST_ClaimPermissionsUI and type(IKST_ClaimPermissionsUI.rowAllowsRespawn) == "function"
+        and IKST_ClaimPermissionsUI.rowAllowsRespawn(uiState) then
         allowed = true
     end
     if not allowed then
@@ -239,7 +395,7 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
         local canEdit = isAdmin
         if uiState then
             canRelease = uiState.canRelease == true or isAdmin
-            canEdit = uiState.canEdit == true or isAdmin
+            canEdit = IKST_ClaimPermissionsUI.rowAllowsOpen(uiState) or isAdmin
         end
 
         local root = context:addOption(IKST.text("IGUI_IKST_SafehouseClaim_Menu", "Safe area"))
@@ -278,7 +434,7 @@ function IKST_SafehouseContext.onFillWorldObjectContextMenu(playerNum, context, 
                 end
             end, IKST_ClaimIcons.PERMS)
         end
-        IKST_SafehouseContext.addRespawnOption(sub, player, sh, x, y, w, h, owner)
+        IKST_SafehouseContext.addRespawnOption(sub, player, sh, x, y, w, h, owner, uiState)
         sub:addOption(IKST.text("IGUI_IKST_VehicleClaim_Info", "Owner") .. ": " .. tostring(owner or "?"), nil, nil)
         return
     end

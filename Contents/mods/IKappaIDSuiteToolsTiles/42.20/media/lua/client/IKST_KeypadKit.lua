@@ -15,6 +15,7 @@ require "IKST_PreviewOverlay"
 IKST_KeypadKit = IKST_KeypadKit or {}
 IKST_KeypadKit._installTarget = nil
 IKST_KeypadKit._installDialogOpen = false
+IKST_KeypadKit._tickHooked = false
 
 function IKST_KeypadKit.playerHasClearanceTag(player)
     if not player or not IKST_Clearance or not IKST_Clearance.eachInventoryItem then
@@ -46,12 +47,40 @@ function IKST_KeypadKit.findKitInInventory(player)
     return kit
 end
 
+function IKST_KeypadKit.releaseTick()
+    if not IKST_KeypadKit._tickHooked then
+        return
+    end
+    if Events and Events.OnTick and Events.OnTick.Remove then
+        Events.OnTick.Remove(IKST_KeypadKit.onTick)
+    end
+    IKST_KeypadKit._tickHooked = false
+end
+
+function IKST_KeypadKit.ensureTick()
+    if IKST_KeypadKit._tickHooked then
+        return
+    end
+    if not Events or not Events.OnTick or not Events.OnTick.Add then
+        return
+    end
+    Events.OnTick.Add(IKST_KeypadKit.onTick)
+    IKST_KeypadKit._tickHooked = true
+end
+
 function IKST_KeypadKit.clearInstallHighlight()
+    local obj = IKST_KeypadKit._installTarget and IKST_KeypadKit._installTarget.obj
     IKST_KeypadKit._installTarget = nil
     IKST_KeypadKit._installDialogOpen = false
+    if IKST_PreviewOverlay and type(IKST_PreviewOverlay.releaseObjectHighlight) == "function" then
+        IKST_PreviewOverlay.releaseObjectHighlight(obj)
+    elseif obj and type(obj.setHighlighted) == "function" then
+        obj:setHighlighted(false, false)
+    end
     if IKST_PreviewOverlay and IKST_PreviewOverlay.clearJob then
         IKST_PreviewOverlay.clearJob()
     end
+    IKST_KeypadKit.releaseTick()
 end
 
 function IKST_KeypadKit.setInstallHighlight(obj)
@@ -60,9 +89,19 @@ function IKST_KeypadKit.setInstallHighlight(obj)
         return
     end
     IKST_KeypadKit._installTarget = { obj = obj }
-    if IKST_PreviewOverlay and IKST_PreviewOverlay.setContainerTarget then
-        IKST_PreviewOverlay.setContainerTarget(obj, "accent")
+    if IKST_PreviewOverlay and type(IKST_PreviewOverlay.releaseObjectHighlight) == "function" then
+        IKST_PreviewOverlay.releaseObjectHighlight(obj)
     end
+    local sq = nil
+    if IKST_Grid and type(IKST_Grid.squareFromObject) == "function" then
+        sq = IKST_Grid.squareFromObject(obj)
+    elseif type(obj.getSquare) == "function" then
+        sq = obj:getSquare()
+    end
+    if sq and IKST_PreviewOverlay and type(IKST_PreviewOverlay.setJobSquare) == "function" then
+        IKST_PreviewOverlay.setJobSquare(sq, "accent")
+    end
+    IKST_KeypadKit.ensureTick()
 end
 
 function IKST_KeypadKit.isContextMenuVisible()
@@ -83,7 +122,11 @@ function IKST_KeypadKit.isContextMenuVisible()
 end
 
 function IKST_KeypadKit.onTick()
-    if IKST_KeypadKit._installDialogOpen or not IKST_KeypadKit._installTarget then
+    if IKST_KeypadKit._installDialogOpen then
+        return
+    end
+    if not IKST_KeypadKit._installTarget then
+        IKST_KeypadKit.releaseTick()
         return
     end
     if IKST_KeypadKit.isContextMenuVisible() then
@@ -221,7 +264,4 @@ end
 
 if Events and Events.OnFillWorldObjectContextMenu then
     Events.OnFillWorldObjectContextMenu.Add(IKST_KeypadKit.onWorldMenu)
-end
-if Events and Events.OnTick then
-    Events.OnTick.Add(IKST_KeypadKit.onTick)
 end

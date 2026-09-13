@@ -116,3 +116,13 @@ New shared/server files must follow the same pattern: `require "IKST_Shared"` fi
 - [ ] Workshop folder matches `Workshop/IKappaID Suite Tools/` from this repo or the Tier C zip
 
 See also: [LOCAL-INSTALL.md](./LOCAL-INSTALL.md), [AUDIT-0.2.5.md](./AUDIT-0.2.5.md), [SECURITY.md](./SECURITY.md).
+
+## Safehouse missing on the character spawn screen
+
+Vanilla `MapSpawnSelect:getSafehouseSpawnRegion` only lists a house if the **client** `SafeHouse` has your username in `playersRespawn`, `SafehouseAllowRespawn` is true, and you are owner or member.
+
+IKST used to set that flag on the server only (the Respawn chip looked on). B42 has no `SafeHouse:syncSafehouse()`. After this fix the server mirrors the flag to clients and spawn select falls back to that list.
+
+- Confirm server INI `SafehouseAllowRespawn=true`
+- Toggle Respawn on in IKST after updating, then die / create a character again
+- Full game restart so the client loads the new Lua

@@ -13,7 +13,11 @@ Sandbox_IKappaIDSuiteTools_ClaimHouseSelfService = Players can claim houses
 Sandbox_IKappaIDSuiteTools_ClaimHouseSelfService_tooltip = ON = players claim safehouses themselves from IKST. OFF = use house request (if enabled) or staff.
 
 Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled = Players can request house claims
-Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled_tooltip = ON = players walk-draw any land zone and staff approve under Claim requests (open ground or buildings). Works with house self-claim OFF.
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestEnabled_tooltip = ON = players mark a land zone and staff approve under Claim requests (open ground or buildings). Works with house self-claim OFF.
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestSelect = House request: how to mark the zone
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestSelect_tooltip = Pick one method. Walk = start where you stand, walk to the opposite corner. Drag = draw a rectangle on the ground with the mouse. Only one method can run at a time.
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestSelect_option1 = Walk from A to B
+Sandbox_IKappaIDSuiteTools_ClaimHouseRequestSelect_option2 = Drag on the world
 Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads = Self-claim: block roads
 Sandbox_IKappaIDSuiteTools_ClaimSelfBlockRoads_tooltip = ON = player self-claims cannot cover street tiles. Does not block staff claim requests (admins decide).
 Sandbox_IKappaIDSuiteTools_ClaimSelfBlockNearSafehouse = Self-claim: keep clear of other safehouses

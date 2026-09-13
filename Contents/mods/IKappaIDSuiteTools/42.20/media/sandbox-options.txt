@@ -24,6 +24,16 @@ option IKappaIDSuiteTools.ClaimHouseRequestEnabled
     translation = IKappaIDSuiteTools_ClaimHouseRequestEnabled,
 }
 
+option IKappaIDSuiteTools.ClaimHouseRequestSelect
+{
+    type = enum,
+    numValues = 2,
+    default = 1,
+    page = IKST_Claims,
+    translation = IKappaIDSuiteTools_ClaimHouseRequestSelect,
+    valueTranslation = IKappaIDSuiteTools_ClaimHouseRequestSelect,
+}
+
 option IKappaIDSuiteTools.ClaimSelfBlockRoads
 {
     type = boolean,

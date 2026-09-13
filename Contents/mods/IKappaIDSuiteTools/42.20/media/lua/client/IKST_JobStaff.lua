@@ -195,7 +195,7 @@ function IKST_JobStaff.placeClaimRequestQueue(panel, card, ax, ay, aw, ah, playe
         if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.setStaffPreview) == "function" then
             IKST_ClaimRequestDraw.setStaffPreview({
                 x = row.x, y = row.y, z = row.z or 0, w = row.w, h = row.h,
-            })
+            }, p)
         end
     end
 
@@ -256,6 +256,9 @@ function IKST_JobStaff.placeClaimRequestQueue(panel, card, ax, ay, aw, ah, playe
                 end
                 if not ISTextBox or type(ISTextBox.new) ~= "function" then
                     IKST.dispatchCommand(p, IKST.CMD.claimRequestDeny, { id = row.id, reason = "" })
+                    if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.clearStaffPreview) == "function" then
+                        IKST_ClaimRequestDraw.clearStaffPreview()
+                    end
                     return
                 end
                 local playerNum = 0
@@ -276,6 +279,9 @@ function IKST_JobStaff.placeClaimRequestQueue(panel, card, ax, ay, aw, ah, playe
                         reason = string.gsub(reason, "^%s*(.-)%s*$", "%1")
                     end
                     IKST.dispatchCommand(p, IKST.CMD.claimRequestDeny, { id = row.id, reason = reason })
+                    if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.clearStaffPreview) == "function" then
+                        IKST_ClaimRequestDraw.clearStaffPreview()
+                    end
                 end, playerNum)
                 modal:initialise()
                 modal:addToUIManager()
@@ -1631,7 +1637,12 @@ function IKST_JobStaff.onClaimRequestListResult(args)
         end
         if not found then
             IKST_JobStaff.selectedClaimRequestId = nil
+            if IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.clearStaffPreview) == "function" then
+                IKST_ClaimRequestDraw.clearStaffPreview()
+            end
         end
+    elseif IKST_ClaimRequestDraw and type(IKST_ClaimRequestDraw.clearStaffPreview) == "function" then
+        IKST_ClaimRequestDraw.clearStaffPreview()
     end
     if IKST_Hub and type(IKST_Hub.refreshActive) == "function" then
         IKST_Hub.refreshActive()

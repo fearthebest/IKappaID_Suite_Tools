@@ -39,6 +39,13 @@ Registered on `Events.OnGameBoot` and `Events.OnGameStart` (in case classes load
 
 Each wrap saves the previous function in a local and **calls it when the action is allowed** (standard PZ modding compatibility pattern).
 
+### Claims UI (`IKST_SafehouseContext.lua`)
+
+| Vanilla | Method | Check |
+|---------|--------|-------|
+| `ISSafehouseUI` | `addToUIManager` | Redirect View Safehouse to IKST hub |
+| `MapSpawnSelect` | `getSafehouseSpawnRegion` | Call vanilla first; if empty, use synced `playersRespawn` / IKST cache so the house appears on character spawn select |
+
 ### Tiles (`IKST_EnforcementTiles.lua`)
 
 | Vanilla | Method | Check |

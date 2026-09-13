@@ -414,6 +414,9 @@ function IKST_Hub.open(player)
         home:onShow()
     end
     syncHubSatellites(player)
+    if IKST_Preview and type(IKST_Preview.ensureTick) == "function" then
+        IKST_Preview.ensureTick()
+    end
     return win
 end
 
@@ -427,11 +430,17 @@ function IKST_Hub.toggle(player)
         if type(win.close) == "function" then
             win:close()
         end
+        if IKST_Preview and type(IKST_Preview.releaseTick) == "function" then
+            IKST_Preview.releaseTick()
+        end
         return nil
     end
     if win and win.minimized and type(win.restoreFromMini) == "function" then
         bindShell(win, player)
         win:restoreFromMini()
+        if IKST_Preview and type(IKST_Preview.ensureTick) == "function" then
+            IKST_Preview.ensureTick()
+        end
         return win
     end
     return IKST_Hub.open(player)
@@ -442,12 +451,18 @@ function IKST_Hub.close()
     if win and type(win.close) == "function" then
         win:close()
     end
+    if IKST_Preview and type(IKST_Preview.releaseTick) == "function" then
+        IKST_Preview.releaseTick()
+    end
 end
 
 function IKST_Hub.minimize()
     local win = IKUI_Shell.instance
     if win and type(win.toggleMinimize) == "function" and not win.minimized then
         win:toggleMinimize()
+    end
+    if IKST_Preview and type(IKST_Preview.releaseTick) == "function" then
+        IKST_Preview.releaseTick()
     end
 end
 

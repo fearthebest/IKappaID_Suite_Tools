@@ -21,6 +21,8 @@ IKST_GuardHooks._shRenderN = 0
 IKST_GuardHooks._shBordersSnapshot = false
 IKST_GuardHooks._shBordersSynced = false
 IKST_GuardHooks._caughtUpdateHooked = false
+IKST_GuardHooks._borderTickHooked = false
+IKST_GuardHooks._borderRenderHooked = false
 IKST_GuardHooks.SH_THROTTLE_MS = 400
 IKST_GuardHooks.SH_VIEW_RANGE = 90
 IKST_GuardHooks.SH_RENDER_EVERY_N = 8
@@ -29,6 +31,9 @@ function IKST_GuardHooks.init()
     -- Transfer/grab wraps: IKST_Enforcement (base). Tile destroy: IKST_EnforcementTiles.
     if IKST_EnforcementTiles and IKST_EnforcementTiles.init then
         IKST_EnforcementTiles.init()
+    end
+    if IKST_GuardHooks.isBordersEnabled() then
+        IKST_GuardHooks.ensureBorderHooks()
     end
 end
 
@@ -125,10 +130,43 @@ function IKST_GuardHooks.isBordersEnabled()
     return data.showSafehouseBorders == true
 end
 
+function IKST_GuardHooks.ensureBorderHooks()
+    if not Events then
+        return
+    end
+    if not IKST_GuardHooks._borderTickHooked and Events.OnTick and Events.OnTick.Add then
+        Events.OnTick.Add(IKST_GuardHooks.onTickSafehouses)
+        IKST_GuardHooks._borderTickHooked = true
+    end
+    if not IKST_GuardHooks._borderRenderHooked and Events.OnRenderTick and Events.OnRenderTick.Add then
+        Events.OnRenderTick.Add(IKST_GuardHooks.onRenderTickSafehouses)
+        IKST_GuardHooks._borderRenderHooked = true
+    end
+end
+
+function IKST_GuardHooks.releaseBorderHooks()
+    IKST_GuardHooks.clearSafehouseHighlights()
+    IKST_GuardHooks._shBorderOn = false
+    IKST_GuardHooks._shFp = nil
+    if IKST_GuardHooks._borderTickHooked and Events and Events.OnTick and Events.OnTick.Remove then
+        Events.OnTick.Remove(IKST_GuardHooks.onTickSafehouses)
+    end
+    IKST_GuardHooks._borderTickHooked = false
+    if IKST_GuardHooks._borderRenderHooked and Events and Events.OnRenderTick and Events.OnRenderTick.Remove then
+        Events.OnRenderTick.Remove(IKST_GuardHooks.onRenderTickSafehouses)
+    end
+    IKST_GuardHooks._borderRenderHooked = false
+end
+
 function IKST_GuardHooks.setBordersEnabled(on)
     IKST_GuardHooks._shBordersSnapshot = on == true
     IKST_GuardHooks._shBordersSynced = true
-    IKST_GuardHooks.forceSafehouseRefresh()
+    if on == true then
+        IKST_GuardHooks.ensureBorderHooks()
+        IKST_GuardHooks.forceSafehouseRefresh()
+    else
+        IKST_GuardHooks.releaseBorderHooks()
+    end
 end
 
 function IKST_GuardHooks.applyWorldRulesSnapshot(data)
@@ -138,6 +176,11 @@ function IKST_GuardHooks.applyWorldRulesSnapshot(data)
     if data.showSafehouseBorders ~= nil then
         IKST_GuardHooks._shBordersSnapshot = data.showSafehouseBorders == true
         IKST_GuardHooks._shBordersSynced = true
+        if IKST_GuardHooks._shBordersSnapshot then
+            IKST_GuardHooks.ensureBorderHooks()
+        else
+            IKST_GuardHooks.releaseBorderHooks()
+        end
     end
 end
 
@@ -444,11 +487,7 @@ function IKST_GuardHooks.onTickSafehouses()
 
     local enabled = IKST_GuardHooks.isBordersEnabled()
     if not enabled then
-        if IKST_GuardHooks._shBorderOn then
-            IKST_GuardHooks.clearSafehouseHighlights()
-            IKST_GuardHooks._shBorderOn = false
-        end
-        IKST_GuardHooks._shFp = nil
+        IKST_GuardHooks.releaseBorderHooks()
         return
     end
     IKST_GuardHooks._shBorderOn = true
@@ -501,12 +540,6 @@ end
 if Events then
     if Events.OnGameBoot then
         Events.OnGameBoot.Add(IKST_GuardHooks.init)
-    end
-    if Events.OnTick then
-        Events.OnTick.Add(IKST_GuardHooks.onTickSafehouses)
-    end
-    if Events.OnRenderTick then
-        Events.OnRenderTick.Add(IKST_GuardHooks.onRenderTickSafehouses)
     end
     if Events.OnSafehousesChanged then
         Events.OnSafehousesChanged.Add(IKST_GuardHooks.forceSafehouseRefresh)

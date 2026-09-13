@@ -1,0 +1,17 @@
+IKappaID Suite Tools — v0.3.2.7 BETA (Build 42.20)
+
+Requires IKappaID UI (Mod ID: IKappaID_UI).
+
+ADDED
+• House claim request: sandbox option “House request: how to mark the zone” — Walk from A to B (default) or Drag on the world. Only one method at a time.
+• Walk mode grows a solid rectangle from your start corner to where you stand.
+• Claim owners can use Permissions and Respawn on their own house/vehicle (not admin-only). Respawn is written on the server so the house shows on the vanilla spawn map after death.
+
+FIXED
+• Staff Claim requests: selecting a row no longer blinks the zone; deny no longer leaves a leftover highlight.
+• Containers with a keypad no longer flash when you select them in loot.
+
+CHANGED
+• Client tick work unhooks when idle (safehouse borders off, hub closed, no highlights, no arrival HUD, no keypad install). Cheat-detection scans are unchanged.
+
+Full restart of the game after updating. Dedicated hosts: update the server copy too.

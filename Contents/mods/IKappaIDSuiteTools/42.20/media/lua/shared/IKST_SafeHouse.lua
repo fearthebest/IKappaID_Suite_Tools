@@ -221,6 +221,20 @@ function IKST_SafeHouse.sync(sh)
     end
 end
 
+-- B42 SafeHouse has no syncSafehouse(). Spawn select reads the client
+-- playersRespawn list (MapSpawnSelect:getSafehouseSpawnRegion).
+-- https://projectzomboid.com/modding/zombie/iso/areas/SafeHouse.html
+function IKST_SafeHouse.applyRespawnFlag(sh, username, on)
+    if not sh or type(username) ~= "string" or username == "" then
+        return false
+    end
+    if type(sh.setRespawnInSafehouse) ~= "function" then
+        return false
+    end
+    sh:setRespawnInSafehouse(on == true, username)
+    return true
+end
+
 function IKST_SafeHouse.notifyPlayer(sh, player)
     if sh and player and sh.updateSafehouse then
         sh:updateSafehouse(player)
