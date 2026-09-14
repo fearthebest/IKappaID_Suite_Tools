@@ -937,10 +937,10 @@ function IKST_LootOps.staffRollDensity(_container)
 end
 
 function IKST_LootOps.distLuaItems(dist)
-    if not dist then
+    if not dist or type(dist) ~= "table" then
         return nil
     end
-    if type(dist) == "table" and type(dist.items) == "table" then
+    if type(dist.items) == "table" then
         return dist.items
     end
     if dist.items and type(dist.items.size) == "function" then
@@ -950,10 +950,12 @@ function IKST_LootOps.distLuaItems(dist)
 end
 
 function IKST_LootOps.distProcList(dist)
-    if not dist then
+    if not dist or type(dist) ~= "table" then
+        -- B42 ItemPicker.getItemContainer returns Java ItemPickerContainer.
+        -- Indexing .procedural throws; ItemPicker.rollItem expands procedural.
         return nil
     end
-    if dist.procedural == true or (type(dist) == "table" and dist.procList) then
+    if dist.procedural == true or dist.procList then
         return dist.procList
     end
     return nil
@@ -964,9 +966,13 @@ function IKST_LootOps.doStaffRollItem(containerDist, container, character, roomD
         return false
     end
     local before = IKST_LootOps.containerItemCount(container)
-    local luaItems = IKST_LootOps.distLuaItems(containerDist)
-    -- Java ItemPickerContainer wrappers: rollItem expands procedural. Lua dist tables: doRollItem only.
-    if not luaItems and type(ItemPicker.rollItem) == "function" then
+    -- B42 ItemPicker.rollItem / doRollItem require Java ItemPickerContainer
+    -- (https://projectzomboid.com/modding/zombie/inventory/ItemPickerJava.html).
+    -- Lua dist tables (ProceduralDistributions, suburbs junk) stay on Lua fill.
+    if type(containerDist) == "table" then
+        return IKST_LootOps.forceAddFromItemsList(container, IKST_LootOps.distLuaItems(containerDist))
+    end
+    if type(ItemPicker.rollItem) == "function" then
         ItemPicker.rollItem(containerDist, container, doItemContainer == true, character, roomDist)
         if IKST_LootOps.containerItemCount(container) > before then
             return true
@@ -1043,7 +1049,7 @@ function IKST_LootOps.rollLootDistribution(containerDist, container, character, 
     if procList then
         return IKST_LootOps.rollProceduralProcList(procList, container, character, roomDist, doItemContainer)
     end
-    if not isJunk and containerDist.junk then
+    if not isJunk and type(containerDist) == "table" and containerDist.junk then
         IKST_LootOps.doStaffRollItem(containerDist.junk, container, character, roomDist, doItemContainer, true)
     end
     return IKST_LootOps.doStaffRollItem(containerDist, container, character, roomDist, doItemContainer, isJunk == true)
@@ -1094,9 +1100,6 @@ function IKST_LootOps.procEntryName(entry)
         return entry
     end
     if type(entry) == "table" and entry.name then
-        return entry.name
-    end
-    if entry.name then
         return entry.name
     end
     if type(entry.getName) == "function" then

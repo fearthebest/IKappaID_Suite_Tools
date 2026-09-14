@@ -1,0 +1,8 @@
+IKappaID Suite Tools — v0.3.2.8 BETA (Build 42.20)
+
+Requires IKappaID UI (Mod ID: IKappaID_UI).
+
+FIXED
+• Staff Loot Repopulate on dedicated servers no longer errors out on Build 42 loot tables. Refill uses the game’s ItemPicker path again, so containers that already had gun-mod loot (including custom-map crates) can be filled from the currently loaded gun pack.
+
+Full restart of the game after updating. Dedicated hosts: update the server copy too.

@@ -1,5 +1,16 @@
 # IKappaID Suite Tools — Changelog
 
+## 0.3.2.8 — (2026-09-14)
+
+Build **42.20**. Staff loot refill on dedicated MP.
+
+### Fixed
+- Staff **Repopulate** no longer crashes on B42 Java loot tables (`ItemPickerContainer`). Zone/building refill rolls vanilla `ItemPicker.rollItem` instead of reading `.procedural` as a Lua table.
+- Lua junk / `ProceduralDistributions` tables no longer call Java `doRollItem` (that API only accepts `ItemPickerContainer`).
+- Custom-map crates that already used gun-store / army lists refill again (current gun pack, not leftover item IDs).
+
+Steam paste: `docs/STEAM-CHANGELOG-0.3.2.8.txt`
+
 ## 0.3.2.7 — (2026-09-13)
 
 Build **42.20**. House claim requests, leftover highlights, keypad loot flash, and idle client ticks.
